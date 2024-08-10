@@ -225,8 +225,8 @@ function flux_upstream!(pxx_flux, pxz_flux, energy_flux, i_grid_old, i_grid)
 
         # Update fluxes; note the minus signs force pxx_flux to increase (b/c particle
         # is moving UpS and px_sk < 0) and force energy_flux to decrease
-        pxx_flux[i]    -=       px_sk *xwt * γ_Z*u_Z
-        pxz_flux[i]    +=   abs(pz_sk)*xwt * γ_Z*u_Z
+        pxx_flux[i]    -=      px_sk *xwt * γ_Z*u_Z
+        pxz_flux[i]    +=  abs(pz_sk)*xwt * γ_Z*u_Z
         energy_flux[i] -= energy_flux_add * γ_Z*u_Z
 
         # Update PSD, or add to list of tracked thermal particles
