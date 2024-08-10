@@ -1,0 +1,223 @@
+# Seed for random number generator
+ISEED = 210
+
+# Shock speed as: km/sec, Lorentz factor, or beta. 1st nonzero value used
+SKSPD = [0.0, 5.0,  0.0]
+
+# Number of iterations to perform
+NITRS = 20
+
+# Number of time steps per gyro period, for "coarse" and "fine" scattering
+#XNPER = [100.0, 2000.0]
+XN_PER_COARSE = 100.0
+XN_PER_FINE = 2000.0
+
+# no. of different ion species. 1st MUST be protons. Search "NIONS" for details.
+NIONS = 2
+# A(-99.0 for e⁻) each species
+AA_ION = [1.0, -99.0]
+# Z for each species
+ZZ_ION = [1.0, 1.0]
+# T0[K] for each species
+TZ_ION = [1e6, 1e6]
+# den0[/cc] for each species
+DENZ_ION = [1.0, 0.0]
+
+# Far UpS elec temp. Is set to 0 if e- is a separate species.
+TELEC = 0.0
+
+# Input distribution. 1 = thermal, 2 = delta function, 3 = other
+INDST = 1
+
+# Injection energy[keV] and min PSD limit if "INDST" = 2. Ignored otherwise.
+ENINJ = 1e3
+
+# How to assign initial weights. true = equal by particle, false = equal by bin
+INJWT = true
+
+# Max particle energy as Emax[keV], Emax/nuc[keV/aa], pmax/(m_pc). 1st nonzero value used. Also used in setting PSD
+ENMAX = [0, 0, 1e10]
+
+# Gyrofactor, i.e. MFP = gyrofac*gyroradius. Ignored if "NWFRG" = 66
+GYFAC = 1.0
+
+# Far UpS magnetic field in Gauss
+BMAGZ = 1e-5
+
+# UpS angle[deg] between B-field and shock normal
+THTBZ = 0.0
+
+# Start of grid[rg0]. Can not be closer than UpS FEB.
+XGDUP = -1e7
+
+# DwS limit of grid[rg0]
+XGDDW = 1e1
+
+# UpS FEB, in [rg0] or [pc]. 1st non-zero value used. Must be negative.
+FEBUP = [-1e2, 0.0]
+
+# DwS FEB, in [rg0] or [pc]. 1st non-zero value used. Must be positive if included; set <= 0 otherwise.
+FEBDW = [0.0, 0.0]
+
+# Number of x-positions [rg0] where particle spectrum is calculated
+NSPEC = 0
+
+# Enter "66" to write a separate dNdp for each iteration
+DNDPS = 66
+
+# Enter "66" to define custom f(r_g) in subr "scattering"; else = eta_mfp*r_g
+NWFRG = 0
+
+# Number of particles to inject, and target number of particles at low-E pcuts.
+#NPTLO = [600, 1200]
+#N_PTS_INJ = 600
+N_PTS_INJ = 200
+N_PTS_PCUT = 400
+
+# Target number of particles at hi-E pcuts, and cutoff kinetic energy [keV/aa] between the two
+#NPTHI = [2000, 1_000_000]
+N_PTS_PCUT_HI = 2000
+EN_PCUT_HI = 1_000_000
+
+# List of momentum cutoffs [aa*m_pc] to use during iterations.
+PCUTS = [
+    0.01,
+    0.6,
+    1.6,
+    2.0,
+    4.5,
+    9.0,
+    30.0,
+    50.0,
+    200.0,
+    300.0,
+    500.0,
+    1000.0,
+    2000.0,
+    5000.0,
+    1.000e4,
+    3.162e4,
+    1.000e5,
+    3.162e5,
+    1.000e6,
+    3.162e6,
+    1.000e7,
+    1.778e7,
+    3.162e7,
+    5.623e7,
+    1.000e8,
+    1.778e8,
+    3.162e8,
+    5.623e8,
+    1.000e9,
+    1.778e9,
+    3.162e9,
+    5.623e9,
+    1.00e10,
+    1.778e10,
+    3.162e10,
+    5.623e10,
+    1.00e11,
+    1.778e11,
+    3.162e11,
+    5.623e11,
+    1.00e12,
+    1.778e12,
+    3.162e12,
+    5.623e12,
+    1.00e13,
+]
+
+# Enter "66" for no shock, i.e. force r_comp = 1. For testing only.
+NOSHK = 0
+
+# Enter "66" for scatter-FREE propagation. For testing only.
+NOSCT = 0
+
+# Enter "66" to turn off DSA. For testing only.
+NODSA = 0
+
+# Enter "66" to keep velocity profile const. between iterations (i.e. NO smoothing)
+SMSHK = 66
+
+# Factor to weight old profile with in shock smoothing.
+# > 1 favors old profile over new. = 1 to use mean of the two
+SMIWT = 1.0
+
+# Enter "66" to increase old profile weighting for later iterations
+SMVWT = 0
+
+# For profile iteration, = 0 uses only mom. flux eq, = 1 only energy. Must be in [0,1]
+SMMOE = 0.0
+
+# For profile iteration, = 0 uses only flux to find pressure, = 1 only PSD data. Must be in [0,1]
+SMPFP = 0.0
+
+# Target compression ratio. = -1 to use R-H value of 3.00884E+00
+RCOMP = -1.0
+
+# Enter "66" to read in old profile from "mc_grid_old.dat"
+OLDIN = 0
+
+# If reading old profile, # lines to skip, # profiles to average, # lines per profile
+OLDDT = [1300, 5, 100]
+
+# Maximum allowed CR age (sec, explosion frame). Ignored if <= 0
+AGEMX = 3.15e11
+
+# List of time cutoffs to use for tracking particles.
+TCUTS = [ 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 3e13 ]
+
+# Enter "66" to use retro time calc DwS. Ignored if "AGEMX" < 0
+RETRO = 66
+
+# Enter "66" for fast Ups transport
+FPUSH = 66
+
+# UpS x position[rg0] where PROTON fast transport stops
+FPSTP = -1.0
+
+# Artificial smoothing: start position[rg0], scale factor. Ignored if 1st input >= 0
+ARTSM = [0.0, 0.0]
+
+# Kinetic energy[keV] below which electrons have constant mfp. Ignored if <= 0
+EMNFP = 1e4
+
+# Enter "66" for NO radiation losses
+NORAD = 0
+
+# Enter "66" to calculate photon production
+PHOTN = 0
+
+# Jet shock radius[pc] used for normalizing photon production. Ignored if "PHOTN" != 66
+JETRD = 4.38e-01
+
+# Frac of sphere producing CRs, or jet open ang[deg]. 1st non-zero value used. Ignored if "PHOTN" != 66
+JETFR = [0.0, 5.0]
+
+# Distance from jet to observer[kpc]. Used to calc photon fluxes & CMB parameters
+JETDS = 1e6
+
+# Whether to use jet distance (= 1) or redshift (= 2) for cosmological calculations
+COSMO_VAR = 1
+
+# Fraction of ion energy Xferred to electrons at 1st shock crossing. Must be [0,1]; 0 to ignore
+ENXFR = 0.1
+
+# no. of UpS & DwS shells for photon emission. Ignored if "PHOTN" != 66
+NSHLS = [5, 2]
+
+# Fraction of compressed B turb to use in scattering & losses. Must be in [0,1]. 0 means ignore
+BTRBF = 1.0
+
+# Amplification factor to use for B field. 1.0 means no amp
+BAMPF = 1.0
+
+# Enter "66" to define custom epsilon_B on grid; else = B(x) controlled by "BTRBF" and "BAMPF"
+NWEPB = 66
+
+# no. of PSD bins per decade in (1) momentum, (2) theta
+PSDBD = [10, 10]
+
+# no. of PSD ang bins: (1) # linear (cosine) bins, (2) # log (theta) decades
+PSDTB = [119, 4]

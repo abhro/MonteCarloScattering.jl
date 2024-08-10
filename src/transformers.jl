@@ -1,0 +1,625 @@
+module transformers
+using ..parameters: psd_max
+using ..constants: mp_cgs, E₀_proton, c_cgs
+
+export transform_p_PS, transform_p_PSP, transform_psd_corners, get_transform_dN
+
+"""
+Calculate dN(p) (a 1-D array) for the passed slice of PSD in the specified inertial frame.
+
+### Arguments
+
+- psd: the (2-D) slice of the larger phase space distribution
+- m: integer specifying frame into which we're transforming
+- transform_corn_**: array holding transformed corner values, both ptot and cos(θ)
+- o_o_γ_u: conversion factor from flux to number density
+- i_approx: degree of approximation to use in computing the dNdp_out
+
+### Returns
+`dN_out`: dN(p) for the given slice of PSD once transformed into the specified frame
+"""
+function get_transform_dN(
+        psd, m, transform_corn_pt, transform_corn_ct, o_o_γ_u, i_approx::Integer,
+        num_psd_mom_bins, psd_mom_bounds)
+
+    dN_out = zeros(0:psd_max)
+
+    # Loop over cos(θ) and ptot space to re-bin input PSD slice
+    #--------------------------------------------------------------------------
+    for j in 0:psd_max
+        for i in 0:psd_max
+
+            psd[i,j] < 1e-66 && continue # Skip empty cells in PSD
+
+            # In the below block, "cell_wt" includes n0*u1 normalization and division by
+            # |vx| to change #/(cm²⋅s) to #/cm³. Divide by γ of flow speed as part of
+            # Lorentz transformation of phase-space density (Rybicki & Lightman, p.146)
+            #
+            # Obtain cell_wt, p_cell_lo and p_cell_hi
+            #----------------------------------------------------------------------
+            cell_wt = psd[i, j] * o_o_γ_u
+            (pt_lo_pt, pt_lo_ct, pt_hi_pt, pt_hi_ct,
+             ct_lo_pt, ct_lo_ct, ct_hi_pt, ct_hi_ct,
+             pt_lo_tied, pt_hi_tied) = identify_corners(i, j, transform_corn_pt, transform_corn_ct, m)
+            # Use of m in argument list signals what frame we're in; not used except in case of error/printout
+
+            p_cell_lo = pt_lo_pt
+            p_cell_hi = pt_hi_pt
+            #----------------------------------------------------------------------
+            # cell_wt, p_cell_lo, p_cell_hi found
+
+
+            # Find lower and upper boundaries of psd_mom_bounds that we'll be
+            # dealing with based on p_cell_lo and p_cell_hi
+            #----------------------------------------------------------------------
+            l_lo = findfirst(>(p_cell_lo), psd_mom_bounds) - 1
+
+            # Error check to make sure that Lorentz transformations give reasonable results for l_lo
+            if p_cell_lo > psd_mom_bounds[num_psd_mom_bins+1]
+                @info(" In get_dNdp_cr, p_cell_lo > psd_mom_max!",
+                      m, j, i, p_cell_lo, psd_mom_bounds[num_psd_mom_bins+1])
+                l_lo = num_psd_mom_bins
+            end
+
+
+            l_hi = findnext(≥(p_cell_hi), # find phase space break FIXME write better comments
+                            psd_mom_bounds[begin:num_psd_mom_bins+1], # don't search all of the array
+                            l_lo) # start searching from l_lo
+
+
+            # Error check to make sure that Lorentz transformations give reasonable results
+            # for l_hi
+            if p_cell_hi > psd_mom_bounds[num_psd_mom_bins+1]
+                @info(" In get_dNdp_cr, p_cell_hi > psd_mom_max!",
+                      m, j, i, p_cell_hi, psd_mom_bounds[num_psd_mom_bins+1])
+                l_hi = num_psd_mom_bins
+            end
+            #----------------------------------------------------------------------
+            # l_lo and l_hi found
+
+
+            #----------------------------------------------------------------------
+            # Distribute the xwt value of cell_wt into the appropriate bins of dN_out,
+            # assigning fractional weights where the cell of PSD covers more than one bin
+            # of psd_mom_bounds
+            # NOTE: virtually every line referring to psd_mom_bounds uses the top
+            # edge of the bin under consideration (i.e. the value of the next bin
+            # of psd_mom_bounds) because this code block originally used xph
+            #----------------------------------------------------------------------
+
+            # If assuming uniform distribution of cell_wt between p_cell_lo and p_cell_hi
+            #----------------------------------------------------------------------
+            if i_approx == 0
+
+                length_tot = 1 / (p_cell_hi - p_cell_lo)
+                p_bottom   = p_cell_lo
+
+                for l in l_lo:l_hi
+                    # Cell fits entirely within bin of psd_mom_bounds
+                    if p_cell_hi < psd_mom_bounds[l_lo+1]
+                        dN_out[l] += cell_wt
+                        break
+                    end
+
+                    # Top of bin in psd_mom_bounds less than p_cell_hi
+                    if psd_mom_bounds[l+1] < p_cell_hi
+                        dN_out[l] += cell_wt*(psd_mom_bounds[l+1] - p_bottom) / length_tot
+                        # Adjust p_bottom to mark counting of current bin
+                        p_bottom = psd_mom_bounds[l+1]
+                    end
+
+                    # Top of bin in psd_mom_bounds is equal to/greater than p_cell_hi
+                    if psd_mom_bounds[l+1] ≥ p_cell_hi
+                        dN_out[l] += cell_wt*(p_cell_hi - psd_mom_bounds[l]) / length_tot
+                        break
+                    end
+                end
+
+                #----------------------------------------------------------------------
+                # i_approx = 0 finished
+
+
+            # If assuming isosceles trianglular distribution of cell_wt, peak is located
+            # above geometric mean of p_cell_lo and p_cell_hi. If assuming scalene
+            # triangular distribution of cell_wt, peak of triangle is located on (geometric)
+            # mean of ct_hi_pt and ct_lo_pt, noting that both are logarithms.
+            # Only difference is location of p_peak, so handle both with same block of code.
+            #----------------------------------------------------------------------
+            elseif i_approx == 1 || i_approx == 2
+
+                length_tot = 1 / (p_cell_hi - p_cell_lo)
+                ct_height  = 2 * cell_wt / length_tot # A = 1/2*b*h
+
+                p_bottom     = p_cell_lo
+                if i_approx == 1
+                    p_peak   = ( p_cell_lo + p_cell_hi ) / 2
+                else # i_approx == 2
+                    p_peak   = ( ct_lo_pt + ct_hi_pt ) / 2
+                end
+                p_denom_lo   = 1 / (p_peak - p_cell_lo)
+                p_denom_hi   = 1 / (p_cell_hi - p_peak)
+
+
+                fractional_area = 0 # Total amount of cell_wt accounted for
+
+
+                for l in l_lo:l_hi
+
+                    # Cell fits entirely within bin of psd_mom_bounds
+                    #------------------------------------------------------------------
+                    if p_cell_hi < psd_mom_bounds[l_lo+1]
+                        dN_out[l] += cell_wt
+                        break
+                    end
+                    #------------------------------------------------------------------
+                    # cell fits entirely within bin of psd_mom_bounds
+
+
+                    # Top of bin in psd_mom_bounds less than or equal to p_peak.
+                    # Area is
+                    # - a triangle if p_bottom = p_cell_lo, or
+                    # - a trapezoid if p_bottom > p_cell_lo
+                    #------------------------------------------------------------------
+                    if psd_mom_bounds[l+1] ≤ p_peak
+                        # Calculate current base
+                        p_base = psd_mom_bounds[l+1] - p_bottom
+
+                        # Calculate right-hand height
+                        ct_rh_height = (psd_mom_bounds[l+1] - p_cell_lo) * p_denom_lo * ct_height
+
+                        # Calculate left-hand height, taking advantage of right triangle similarity
+                        if p_bottom == p_cell_lo
+                            ct_lh_height = 0.0
+                        else
+                            ct_lh_height = (p_bottom - p_cell_lo) * p_denom_lo * ct_height
+                        end
+
+                        # Calculate partial area...
+                        partial_area = p_base/2 * (ct_lh_height + ct_rh_height)
+
+                        # ...and add it to dN_out
+                        dN_out[l] += partial_area
+
+                        # Adjust p_bottom to mark counting of current bin, update fractional_area...
+                        p_bottom = psd_mom_bounds[l+1]
+                        fractional_area += partial_area
+
+                        # ...and move on to next bin
+                        continue
+                    end
+                    #------------------------------------------------------------------
+                    # top of bin in psd_mom_bounds between p_cell_lo and p_peak
+
+
+                    # Top of bin in psd_mom_bounds between p_peak and p_cell_hi; area
+                    # is remaining area minus missing triangle at right
+                    #------------------------------------------------------------------
+                    if psd_mom_bounds[l+1] < p_cell_hi
+                        # Calculate missing base
+                        p_base = p_cell_hi - psd_mom_bounds[l+1]
+
+                        # Calculate left-hand height of missing area, taking advantage
+                        # of right triangle similarity
+                        ct_lh_height = p_base * p_denom_hi * ct_height
+
+                        # Calculate missing area and partial area and add it to dN_out
+                        missing_area = p_base/2 * ct_lh_height
+                        partial_area = (cell_wt - fractional_area) - missing_area
+                        dN_out[l] += partial_area
+
+                        # Adjust p_bottom to mark counting of current bin, update fractional_area
+                        p_bottom = psd_mom_bounds[l+1]
+                        fractional_area += partial_area
+
+                        # ...and move on to next bin
+                        continue
+                    end
+                    #------------------------------------------------------------------
+                    # top of bin in psd_mom_bounds between p_peak and p_cell_hi
+
+
+                    # Top of bin in psd_mom_bounds above p_cell_hi; area is remaining
+                    # fraction of total
+                    #------------------------------------------------------------------
+                    if psd_mom_bounds[l+1] ≥ p_cell_hi
+                        # Calculate partial area...
+                        partial_area = cell_wt - fractional_area
+
+                        # ...and add it to dN_out
+                        dN_out[l] += partial_area
+
+                        break
+                    end
+                    #------------------------------------------------------------------
+                    # top of bin in psd_mom_bounds above p_cell_hi
+                end
+                #----------------------------------------------------------------------
+                # i_approx = 1, i_approx = 2 finished
+
+
+            # If not assuming anything about shape, i.e. performing exact
+            # calculation of fractional areas
+            #----------------------------------------------------------------------
+            elseif i_approx == 3
+
+                error("i_approx = 3 not currently enabled")
+
+                # Determine which of ct_lo and ct_hi is peak_left and peak_right
+                # Find heights of both peaks, i.e. vertical distance btwn, e.g.,
+                # ct_lo and line segment connecting ct_hi and pt_**
+                # Run through same process as in original version of subroutine,
+                # dividing shape into zones for determining partial areas. Will be
+                # easier this time, though, since bottom line is flat
+                #----------------------------------------------------------------------
+                # i_approx = 3 finished
+
+            else # Invalid selection of i_approx. Flag error and stop program
+                throw(DomainError(i_approx, "i_approx must be 0, 1, 2, or 3"))
+            end
+            #----------------------------------------------------------------------
+            # cell_wt distributed
+
+
+            # This block tracks the distribution of pitch angles in the shock and plasma frames.
+            # In the interest of speed, it uses only the equal-weights method (i_approx = 0 above).
+            # Because ct_bounds DECREASES as index increases (since it's derived from increasing θ),
+            # many things are *slightly* different from the i_approx = 0 case for total momentum.
+            # WARNING: this must be re-checked and re-tested since it was brought into new version of code
+            #----------------------------------------------------------------------
+            ## Adjust cell_wt to remove the velocity-weighting applied in PSD
+            #if i == 0
+            #    pt_sk_cgs = 0.0
+            #    i_pt_sk  = i_ct_pt_sk_min
+            #else
+            #    pt_sk_cgs = exp10(psd_mom_bounds[i] + psd_mom_bounds[i+1])
+            #    pt_sk_cgs = √pt_sk_cgs * mp_cgs * u1sk_cm
+            #    i_pt_sk  = floor(Int, psd_mom_bounds[i] )
+            #end
+            #γ_pt_sk = √( 1 + (pt_sk_cgs/(rest_mass*c_cgs))^2 )
+            #
+            #cell_xwt = cell_wt * pt_sk_cgs / (γ_pt_sk * rest_mass) / proton_num_density_UpS
+
+            ## Binning shock frame values very easy; just add directly to correct bin of histogram
+            #if m == 1
+            #    ct_sk_xw[j,i_pt_sk] += cell_xwt
+            #end
+            #
+            #
+            ## Identify the min and max extent of the plasma frame cell,
+            ## as well as the correct decade of momentum for binning
+            #ct_cell_lo = min(pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct)
+            #ct_cell_hi = max(pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct)
+            #i_pt_pf = floor(Int, ( pt_lo_pt + pt_hi_pt  +  ct_lo_pt + ct_hi_pt)/4 )
+            #
+            #
+            ## Determine the spread in cos(θ)
+            ## Remember that ct_bounds counts DOWN from +1 to -1 !!!!
+            #l_hi = findfirst(<(ct_cell_hi), ct_bounds) - 1
+            #l_lo = findnext(≤(ct_cell_lo), ct_bounds, l_hi)
+            #
+            #
+            ## Distribute cell weight among all bins crossed by cell
+            #ct_length_tot = ct_cell_hi - ct_cell_lo
+            #ct_bottom     = ct_cell_lo
+            #
+            #for l in l_lo:-1:l_hi
+            #    # Cell fits entirely within bin of ct_bounds
+            #    if ct_cell_hi < ct_bounds[l_lo-1]
+            #        if m == 2
+            #            ct_pf_xw[l-1, i_pt_pf] += cell_xwt
+            #        elseif m == 3
+            #            ct_ef_xw[l-1, i_pt_pf] += cell_xwt
+            #        end
+            #        break
+            #    end
+            #
+            #    # Top of bin in ct_bounds less than ct_cell_hi
+            #    if ct_bounds[l-1] < ct_cell_hi
+            #        frac_ct_length = (ct_bounds[l-1] - ct_bottom) / ct_length_tot
+            #
+            #        if m == 2
+            #            ct_pf_xw[l-1, i_pt_pf] += cell_xwt*frac_ct_length
+            #        elseif m == 3
+            #            ct_ef_xw[l-1, i_pt_pf] += cell_xwt*frac_ct_length
+            #        end
+            #
+            #        # Adjust ct_bottom to mark counting of current bin
+            #        ct_bottom = ct_bounds[l-1]
+            #    end
+            #
+            #    # Top of bin in ct_bounds is ≥ ct_cell_hi
+            #    if ct_bounds[l-1] ≥ ct_cell_hi
+            #        frac_ct_length = (ct_cell_hi - ct_bounds[l]) / ct_length_tot
+            #
+            #        if m == 2
+            #            ct_pf_xw[l-1, i_pt_pf] += cell_xwt*frac_ct_length
+            #        elseif m == 3
+            #            ct_ef_xw[l-1, i_pt_pf] += cell_xwt*frac_ct_length
+            #        end
+            #
+            #        break
+            #    end
+            #end # loop over bins of ct_bounds
+            #------------------------------------------------------------------
+            # pitch angles tracked
+
+        end # loop over momenta
+    end # loop over angles
+
+    return dN_out
+end
+
+#----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
+
+"""
+Takes particle's Plasma frame momentum components and transforms them to the shock frame.
+Transformation formulas are correct for all obliquities.
+
+Notes from Glen Double (31 Oct 2002):
+Method: define flow velocity and particle momentum in component vectors
+with respect to the plasma xyz frame. Find p_para (wrt u) component of particle
+momentum using scalar product of p and u. Then p_perp = p - p_para
+(using vectors). Next, make relativistic transformation on p_para while
+p_perp remains constant. Finally, recreate p_rel = p_rel_para + p_perp,
+and find p_rel components in the original xyz frame by taking scalar
+products along the xyz axes.
+
+### Arguments
+
+- aa: particle atomic mass
+- pb_pf: component of pt_pf parallel to magnetic field
+- p_perp_b_pf: component of pt_pf perpendicular to magnetic field
+- γ_pt_pf: Lorentz factor associated with pt_pf
+- φ_rad: phase angle of gyration; looking UpS, counts clockwise from +z axis
+- ux_sk: bulk flow speed along x axis
+- uz_sk: bulk flow speed along z axis
+- utot: total bulk flow speed
+- γ_usf: Lorentz factor associated with utot
+- b_cosθ: component of magnetic field along x axis
+- b_sinθ: component of magnetic field along z axis
+
+### Returns
+
+- pt_sk: total shock frame momentum in new grid zone
+- px_sk/pz_sk: x & z components of pt_sk
+- γ_pt_sk: Lorentz factor associated with pt_sk
+"""
+function transform_p_PS(
+        aa, pb_pf, p_perp_b_pf, γ_pt_pf, φ_rad, ux_sk, uz_sk, utot,
+        γ_usf, b_cosθ, b_sinθ,
+        oblique, o_o_mc)
+
+    φ_p = φ_rad + π/2
+
+    p_p_cos = p_perp_b_pf * cos(φ_p)
+
+
+    # xyz plasma frame components
+    #CHECKTHIS: θ in shock frame may be different from θ in plasma
+    # frame because of lorentz transformation between the two.
+    # Are the next lines correct in light of this?
+    @debug "" pb_pf p_perp_b_pf p_p_cos φ_p b_cosθ b_sinθ
+    px_pf = pb_pf*b_cosθ - p_p_cos*b_sinθ
+    py_pf = p_perp_b_pf * sin(φ_p)
+    pz_pf = pb_pf*b_sinθ + p_p_cos*b_cosθ
+
+    @debug "Taking branch for oblique" oblique
+
+    # xyz shock frame components
+    if oblique
+        @debug "" γ_usk γ_usf ux_sk uz_sk utot px_pf py_pf pz_pf
+        px_sk = ( (γ_usf-1)*(ux_sk/utot)^2 + 1 ) * px_pf + (γ_usf-1)*(ux_sk*uz_sk/utot^2) * pz_pf + γ_usf * γ_pt_pf * aa*mp_cgs * ux_sk
+        py_sk = py_pf
+        pz_sk = (γ_usf-1)*(ux_sk*uz_sk/utot^2) * px_pf + ( (γ_usf-1)*(uz_sk/utot)^2 + 1 ) * pz_pf + γ_usf * γ_pt_pf * aa*mp_cgs * uz_sk
+    else
+        @debug "" γ_usf γ_pt_pf ux_sk px_pf py_pf pz_pf
+        px_sk = γ_usf * ( px_pf +  γ_pt_pf * aa*mp_cgs * ux_sk )
+        py_sk = py_pf
+        pz_sk = pz_pf
+    end
+
+    # Parallel/perpendicular (new) shock frame components
+    @debug "" px_sk py_sk pz_sk
+    pt_sk = hypot( px_sk,  py_sk,  pz_sk )
+    pb_sk = px_sk*b_cosθ +  pz_sk*b_sinθ
+    @debug "" pt_sk pb_sk
+
+    if pt_sk < abs(pb_sk)
+        p_perp_b_sk = 1e-6 * pt_sk
+        pb_sk        = copysign( √( pt_sk^2 - p_perp_b_sk^2 ), pb_sk )
+        #CHECKTHIS: does this *ever* happen?!
+        @warn "pt_sk < pb_sk in transform_p_PS"
+    else
+        p_perp_b_sk = √( pt_sk^2  -  pb_sk^2 )
+    end
+
+    γ_pt_sk = √( (pt_sk*o_o_mc)^2  +  1 )
+
+    return pt_sk, px_sk, pz_sk, γ_pt_sk
+end
+
+#----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
+
+"""
+Takes particle's old plasma frame momentum components and transforms them twice:
+from old Plasma frame to new Shock frame, then from new Shock frame to new Plasma frame.
+Only ever called if particle scattered between zones with different bulk flow velocities.
+Transformation formulas are correct for all obliquities.
+
+Notes from Glen Double (31 Oct 2002):
+Method: define flow velocity and particle momentum in component vectors
+with respect to the plasma xyz frame. Find p_para (wrt u) component of particle
+momentum using scalar product of p and u. Then p_perp = p - p_para
+(using vectors). Next, make relativistic transformation on p_para while
+p_perp remains constant. Finally, recreate p_rel = p_rel_para + p_perp,
+and find p_rel components in the original xyz frame by taking scalar
+products along the xyz axes.
+
+### Arguments
+
+- aa: particle atomic mass
+- ux_sk/old: current and old bulk flow speed along x axis
+- uz_sk/old: current and old bulk flow speed along z axis
+- utot/old: current and old total bulk flow speed
+- γ_usf/old: Lorentz factor associated with utot/old
+- b_cosθ/old: current and old component of magnetic field along x axis
+- b_sinθ/old: current and old component of magnetic field along z axis
+
+### Returns
+
+- pt_pf: total plasma frame momentum in new grid zone
+- pt_sk: total shock frame momentum in new grid zone
+- p*sk: xyz components of pt_sk
+- pb_sk: component of pt_sk parallel to magnetic field
+- p_perp_b_sk: component of pt_sk perpendicular to magnetic field
+- γ_pt_sk: Lorentz factor associated with pt_sk
+
+### Modifies
+
+- pb_pf: component of pt_pf parallel to magnetic field
+- p_perp_b_pf: component of pt_pf perpendicular to magnetic field
+- γ_pt_pf: Lorentz factor associated with pt_pf
+- φ_rad: phase angle of gyration; looking UpS, counts clockwise from +z axis
+"""
+function transform_p_PSP(
+        aa, pb_pf, p_perp_b_pf, γ_pt_pf, φ_rad,
+        ux_sk_old, uz_sk_old, utot_old, γ_usf_old, b_cos_old, b_sin_old,
+        ux_sk, uz_sk, utot, γ_usf, b_cosθ, b_sinθ,
+        o_o_mc)
+
+    φ_p = φ_rad + π/2
+
+    p_p_cos = p_perp_b_pf * cos(φ_p)
+
+    # xyz (old) plasma frame components
+    px_pf = pb_pf*b_cos_old  -  p_p_cos*b_sin_old
+    py_pf = p_perp_b_pf * sin(φ_p)
+    pz_pf = pb_pf*b_sin_old  +  p_p_cos*b_cos_old
+
+    # xyz (new) shock frame components
+    px_sk = (((γ_usf_old-1) * (ux_sk_old/utot_old)^2 + 1) * px_pf +
+            (γ_usf_old-1) * (ux_sk_old*uz_sk_old/utot_old^2) * pz_pf +
+            γ_usf_old * γ_pt_pf * aa*mp_cgs * ux_sk_old)
+    py_sk = py_pf
+    pz_sk = ((γ_usf_old-1) * (ux_sk_old*uz_sk_old/utot_old^2) * px_pf +
+            ((γ_usf_old-1) * (uz_sk_old/utot_old)^2 + 1) * pz_pf +
+            γ_usf_old * γ_pt_pf * aa*mp_cgs * uz_sk_old)
+
+    # Parallel/perpendicular (new) shock frame components
+    pt_sk = hypot( px_sk, py_sk, pz_sk )
+    pb_sk = px_sk*b_cosθ  +  pz_sk*b_sinθ
+
+    if pt_sk < abs(pb_sk)
+        p_perp_b_sk = 1e-6 * pt_sk
+        pb_sk        = copysign( √( pt_sk^2 - p_perp_b_sk^2 ), pb_sk )
+        @warn "pt_sk < pb_sk in transform_p_PSP"
+    else
+        p_perp_b_sk = √( pt_sk^2  -  pb_sk^2 )
+    end
+
+    γ_pt_sk = √( (pt_sk*o_o_mc)^2  +  1 )
+
+
+    # xyz (new) plasma frame components
+    px_pf = ( (γ_usf - 1) * (ux_sk/utot)^2  +  1 ) * px_sk + (γ_usf - 1) * (ux_sk*uz_sk/utot^2) * pz_sk -  γ_usf * γ_pt_sk * aa*mp_cgs * ux_sk
+    py_pf = py_sk
+    pz_pf = (γ_usf - 1) * (ux_sk*uz_sk/utot^2) * px_sk + ( (γ_usf - 1) * (uz_sk/utot)^2  +  1 ) * pz_sk -  γ_usf * γ_pt_sk * aa*mp_cgs * uz_sk
+
+
+    # Parallel/perpendicular (new) plasma frame components, including new phase angle
+    pt_pf = hypot(px_pf, py_pf, pz_pf)
+    pb_pf = px_pf*b_cosθ + pz_pf*b_sinθ
+
+    if pt_pf < abs(pb_pf)
+        p_perp_b_pf = 1e-6 * pt_pf
+        pb_pf        = copysign( √( pt_pf^2 - p_perp_b_pf^2 ), pb_pf )
+        @warn "pt_pf < pb_pf in transform_p_PSP"
+    else
+        p_perp_b_pf = √( pt_pf^2 - pb_pf^2 )
+    end
+
+    γ_pt_pf = √( (pt_pf*o_o_mc)^2 + 1 )
+
+    p_p_z = -px_pf*b_sinθ + pz_pf*b_cosθ
+    p_p_y =  py_pf
+
+    # See Figure 14 of Ellison, Baring, Jones (1996) [1996ApJ...473.1029E]
+    # for more details on φ_p
+    φ_p = atan(p_p_y, p_p_z)
+    φ_rad = φ_p - π/2
+
+    return pt_pf, pt_sk, px_sk, py_sk, pz_sk, pb_sk, p_perp_b_sk, γ_pt_sk, pb_pf, p_perp_b_pf, γ_pt_pf, φ_rad
+end
+
+#----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
+
+"""
+Given a relative Lorentz factor between two frames, transform the corners of the PSD into
+the new frame. Outputs total momentum as log of cgs values.
+
+TODO: remove conversion to/from log space here and in get_dndp_cr
+
+### Arguments
+FIXME with actual argument list
+- γ_in: relative Lorentz factor between shock and resultant frame
+
+### Returns
+
+- transform_corn_pt: total momenta at the corners
+- transform_corn_ct: cos(θ) (NOT θ!!!) values at the corners
+"""
+function transform_psd_corners(
+        γ_in,
+        aa_ion, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
+        num_psd_mom_bins, psd_mom_bounds, i_ion)
+
+    # Administrative constants
+    rest_mass_energy = aa_ion[i_ion] * E₀_proton
+    β_u = γ_in ≥ 1.000001 ? √( 1 - 1/γ_in^2 ) : 0.0 # Prevent floating point issues
+
+    # Fill transform_corn_** arrays, looping over angle outermost
+    transform_corn_pt = OffsetMatrix{Float64}(undef, 0:psd_max, 0:psd_max)
+    transform_corn_ct = OffsetMatrix{Float64}(undef, 0:psd_max, 0:psd_max)
+    for j in 0:num_psd_θ_bins+1
+
+        # Determine current cosine, remembering that psd_θ_bounds has both a linearly-spaced
+        # region in cosine and logarithmically-spaced region in θ. Also need to remember that
+        # the most finely spaced bins should occur in the UpS-pointing direction, so need to
+        # negate psd_θ_bounds to get true cosine value.
+        if j > (num_psd_θ_bins - psd_lin_cos_bins)
+            cosθ = -psd_θ_bounds[j]
+        else
+            cosθ = -cos( psd_θ_bounds[j] )
+        end
+
+        # With angle fixed, loop over total momenta
+        for i in 0:num_psd_mom_bins+1
+
+            # psd_mom_bounds uses logarithmic spacing for its bins, so undo that before
+            # continuing the calculation
+            pt_sk_cgs = exp10(psd_mom_bounds[i])
+
+            #if i == 0
+            #    pt_sk_cgs = 0.0 # Edge case when i = 0
+            #end
+
+            px_sk_cgs   = pt_sk_cgs * cosθ
+            etot_sk_cgs = hypot(pt_sk_cgs*c_cgs, rest_mass_energy)
+
+            px_Xf_cgs  = γ_in * (px_sk_cgs - β_u*etot_sk_cgs/c_cgs)
+            pt_Xf_cgs  = √(pt_sk_cgs^2 + px_Xf_cgs^2 - px_sk_cgs^2)
+
+            # Transform to log space because get_dNdp_cr expects it
+            transform_corn_pt[i,j] = log10(pt_Xf_cgs)
+            transform_corn_ct[i,j] = px_Xf_cgs / pt_Xf_cgs
+
+
+        end # loop over momentum
+    end # loop over θ
+
+    return transform_corn_pt, transform_corn_ct
+end
+end # module transformers
