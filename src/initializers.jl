@@ -10,7 +10,7 @@ using ..constants: mp_cgs, me_cgs, kB_cgs, c_cgs, kB_cgs, keV2erg, E₀_proton
 
 export init_pop, set_in_dist
 export calc_DwS, calc_rRH
-export set_psd_bins, set_photon_shells, setup_grid, setup_profile
+export set_psd_mom_bins, set_psd_angle_bins, set_photon_shells, setup_grid, setup_profile
 export upstream_machs, upstream_fluxes
 
 """
@@ -330,47 +330,23 @@ function calc_rRH(
     return r_RH, γ_adiab_2_RH
 end
 
-
 """
 Sets the BOUNDARIES of the bins of the phase space distribution. The bins are numbered from
-0 to num_psd_***_bins, each boundary denotes the lower edge of that # bin; the indices thus
-run from 0 to num_psd_***_bins + 1.
+0 to num_psd_mom_bins, each boundary denotes the lower edge of that # bin; the indices thus
+run from 0 to num_psd_mom_bins + 1.
 
-!!! warning
-    for angles, the number stored in psd_θ_bounds increases at first (increasing θ),
-    then decreases because increasing the angle means decreasing the cosine.
-
-- For total momentum: logarithmic spacing over all decades from Emin_keV to Emax_keV.
-- For angle: linear spacing of cosine values for angles between psd_θ_fine and π.
-  Below psd_θ_fine spacing is logarithmic in θ for some # of decades down to psd_θ_min.
-- For both: values less than the minimum are equivalent to 0.0.
+Logarithmic spacing over all decades from Emin_keV to Emax_keV is used.
+Values less than the minimum are equivalent to 0.0.
 
 ### Arguments
-
 - psd_mom_min: minimum momentum[cgs] to use in PSD
 - psd_mom_max: maximum momentum[cgs] to use in PSD
-- psd_bins_per_dec_***: # of bins per decade to use in logarithmically-spaced regions of PSD
-- psd_lin_cos_bins: # of bins to divide range [-1,cos(psd_θ_fine)] into
-- psd_cos_fine: cutoff between lin/cos and log/θ spacing of PSD bins
-- psd_θ_min: minimum angle for PSD
+- psd_bins_per_dec_mom: # of bins per decade to use in logarithmically-spaced regions of PSD
 
 ### Returns
-- num_psd_***_bins: total number of bins along given dimension, not counting bin 0
-- Δcos: size of each linear cosine bin
-- psd_***_bounds: boundaries between bins, and upper edge of final bin
+- num_psd_mom_bins: total number of bins along given dimension, not counting bin 0
+- psd_mom_bounds: boundaries between bins, and upper edge of final bin
 """
-function set_psd_bins(
-        psd_mom_min, psd_mom_max, psd_bins_per_dec_mom, psd_bins_per_dec_θ,
-        psd_lin_cos_bins, psd_cos_fine, psd_θ_min)
-
-    num_psd_mom_bins, psd_mom_bounds = set_psd_mom_bins(
-        psd_mom_min, psd_mom_max, psd_bins_per_dec_mom) # Set the momentum bins
-    num_psd_θ_bins, Δcos, psd_θ_bounds = set_psd_angle_bins(
-        psd_bins_per_dec_θ, psd_lin_cos_bins, psd_cos_fine, psd_θ_min) # Set angle bins
-
-    return (num_psd_mom_bins, num_psd_θ_bins, Δcos, psd_mom_bounds, psd_θ_bounds)
-end
-
 function set_psd_mom_bins(psd_mom_min, psd_mom_max, psd_bins_per_dec_mom)
     num_psd_mom_bins = trunc(Int, log10(psd_mom_max / psd_mom_min) *  psd_bins_per_dec_mom)
     num_psd_mom_bins += 2   # Add two extra bins just to be safe
@@ -389,6 +365,30 @@ function set_psd_mom_bins(psd_mom_min, psd_mom_max, psd_bins_per_dec_mom)
     return num_psd_mom_bins, psd_mom_bounds
 end
 
+"""
+Sets the BOUNDARIES of the bins of the phase space distribution. The bins are numbered from
+0 to num_psd_θ_bins, each boundary denotes the lower edge of that # bin; the indices thus
+run from 0 to num_psd_θ_bins + 1.
+
+!!! warning
+    the number stored in psd_θ_bounds increases at first (increasing θ),
+    then decreases because increasing the angle means decreasing the cosine.
+
+Linear spacing of cosine values for angles between psd_θ_fine and π. Below psd_θ_fine
+spacing is logarithmic in θ for some number of decades down to psd_θ_min. Values less than
+the minimum are equivalent to 0.0.
+
+### Arguments
+- psd_bins_per_dec_θ: # of bins per decade to use in logarithmically-spaced regions of PSD
+- psd_lin_cos_bins: # of bins to divide range [-1,cos(psd_θ_fine)] into
+- psd_cos_fine: cutoff between lin/cos and log/θ spacing of PSD bins
+- psd_θ_min: minimum angle for PSD
+
+### Returns
+- num_psd_θ_bins: total number of bins along given dimension, not counting bin 0
+- Δcos: size of each linear cosine bin
+- psd_θ_bounds: boundaries between bins, and upper edge of final bin
+"""
 function set_psd_angle_bins(psd_bins_per_dec_θ, psd_lin_cos_bins, psd_cos_fine, psd_θ_min)
     psd_θ_fine = acos(psd_cos_fine)
     ten_root_θ = exp10(1 / psd_bins_per_dec_θ)

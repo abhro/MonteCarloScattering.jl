@@ -84,9 +84,10 @@ end
 
 # Adjust max momentum based on a SF->PF Lorentz transform
 psd_mom_max *= 2γ_Z
-(num_psd_mom_bins, num_psd_θ_bins, Δcos, psd_mom_bounds, psd_θ_bounds) = set_psd_bins(
-    psd_mom_min, psd_mom_max, psd_bins_per_dec_mom, psd_bins_per_dec_θ,
-    psd_lin_cos_bins, psd_cos_fine, psd_θ_min)
+num_psd_mom_bins, psd_mom_bounds = set_psd_mom_bins(
+    psd_mom_min, psd_mom_max, psd_bins_per_dec_mom)
+num_psd_θ_bins, Δcos, psd_θ_bounds = set_psd_angle_bins(
+    psd_bins_per_dec_θ, psd_lin_cos_bins, psd_cos_fine, psd_θ_min) # Set angle bins
 
 # Set the boundaries of the shells to use for photon calculation
 if do_photons
