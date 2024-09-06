@@ -3,236 +3,248 @@ using TOML
 # FIXME the purpose of this file is to be include()-d in mc_cr.jl
 # This populates the global variables.
 # XXX THIS IS A BAD DESIGN.
-# Design another way to pass data around
+# TODO Design another way to pass data around -> maybe all const?
 
 cfg_toml = TOML.parsefile("mc_in.toml")
 
-let skspd = cfg_toml["SKSPD"]
-    global u_Z, γ_Z, β_Z
-    if skspd[1] > 0 && skspd[1] < c_cgs*1e-5 # km/sec
-        u_Z = skspd[1] * 1e5
-        β_Z = u_Z / c_cgs
-        γ_Z = 1 / √(1 - γ_Z^2)
-    elseif skspd[2] > 1                      # Lorentz factor
-        γ_Z = skspd[2]
-        β_Z = √(1 - 1/γ_Z^2)
-        u_Z = β_Z * c_cgs
-    elseif skspd[3] > 0 && skspd[3] < 1      # in units of c
-        β_Z = skspd[3]
-        u_Z = β_Z * c_cgs
-        γ_Z = 1 / √(1 - β_Z^2)
+const u₀, β₀, γ₀ = let
+
+    skspd = cfg_toml["SKSPD"]
+    skspd > 0 || error("Shock speed must be positive")
+
+    skspd_unit = cfg_toml["SKSPD_UNIT"]
+    if skspd_unit == "gamma" || skspd_unit == "γ"
+        skspd > 1 || error("SKSPD: Lorentz factor must be > 1")
+        γ = skspd
+        β = √(1 - 1/γ^2)
+        u = β * Unitful.c |> u"cm/s"
     else
-        error("ERROR in 'SKSPD': at least one choice must be non-zero and physically reasonable.")
+        if skspd_unit == "km/s"
+            0 < skspd < ustrip(u"km/s", Unitful.c0) || error("SKSPD: u must be between 0 and c")
+            u = (skspd * 1e5)u"cm/s"
+            β = u / c_cgs
+        elseif skspd_unit == "c"
+            0 < skspd < 1 || error("SKSPD: β must be between 0 and 1")
+            β = skspd
+            u = β * unitful.c |> u"cm/s"
+        else
+            error("SKSPD: unknown units provided with SKSPD_UNIT")
+        end
+        γ = lorentz(β)
     end
+
+    (u, β, γ)
 end
 
-begin # just for grouping and better understanding of code, no actual scoping rules here
-    n_ions = cfg_toml["NIONS"]
-    aa_ion = cfg_toml["AA_ION"]
-    replace!(aa_ion, -99.0 => me_cgs/mp_cgs)
+const species = let
+    masses = cfg_toml["AA_ION"] # species mass in units of proton mass
+    electron_index = findfirst(isnan, masses)
+    masses[electron_index] = NoUnits(u"me/mp") # electron mass over proton mass
 
-    zz_ion = cfg_toml["ZZ_ION"]
-    zz_ion[aa_ion .< 1] .= 1
+    charges = cfg_toml["ZZ_ION"]
+    charges[electron_index] = -1
 
-    tZ_ion = cfg_toml["TZ_ION"]
-    denZ_ion = cfg_toml["DENZ_ION"]
-end
+    temperatures = cfg_toml["TZ_ION"] # temperature of each species
+    densities = cfg_toml["DENZ_ION"] # number density of each species
 
-begin
-    sc_electron = (minimum(aa_ion) < 1)
-    if sc_electron
-        tZ_electron = 0.0
+    if !(length(masses) == length(charges) == length(temperatures) == length(densities))
+        error("Inconsistent number of ion parameters given (AA_ION, ZZ_ION, TZ_ION, DENZ_ION)")
     end
+
+    Species.(masses*u"mp", charges*u"q", temperatures*u"K", densities*u"cm^-3")
 end
+const n_ions = length(species)
 
-inp_distr = cfg_toml["INDST"]
+const inp_distr = cfg_toml["INDST"]
+const energy_inj = cfg_toml["ENINJ"]
+const inj_weight = get(cfg_toml, "INJWT", true)
 
-energy_inj = cfg_toml["ENINJ"]
-
-inj_wt = get(cfg_toml, "INJWT", true)
-
-let enmax = cfg_toml["ENMAX"]
-    global Emax_keV, Emax_keV_per_aa, pmax_cgs
-    if enmax[1] > 0      # All species have same max energy
-        Emax_keV        = enmax[1]
+const Emax_keV, Emax_keV_per_aa, pmax_cgs = let
+    energy_max = cfg_toml["ENMAX"]
+    if energy_max[1] > 0      # All species have same max energy
+        Emax_keV        = energy_max[1]
         Emax_keV_per_aa = 0.0
         pmax_cgs        = 0.0
 
-    elseif enmax[2] > 0  # Max energy depends on aa
+    elseif energy_max[2] > 0  # Max energy depends on aa
         Emax_keV        = 0.0
-        Emax_keV_per_aa = enmax[2]
+        Emax_keV_per_aa = energy_max[2]
         pmax_cgs        = 0.0
 
-    elseif enmax[3] > 0  # All species have same max momentum
+    elseif energy_max[3] > 0  # All species have same max momentum
         Emax_keV        = 0.0
         Emax_keV_per_aa = 0.0
-        pmax_cgs        = enmax[3] * mp_cgs * c_cgs
+        pmax_cgs        = energy_max[3] * mₚ_cgs * c_cgs
     else
-        error("ERROR in 'ENMAX': at least one choice must be non-zero.")
+        error("ENMAX: at least one choice must be non-zero.")
+    end
+    (Emax_keV, Emax_keV_per_aa, pmax_cgs)
+end
+
+const η_mfp = get(cfg_toml, "GYFAC", 1)
+
+
+const bmag₀ = cfg_toml["BMAGZ"]
+# rg₀ below is the gyroradius of a proton whose speed is u₀ that is gyrating in a field
+# of strength bmag₀. Note that this formula is relativistically correct
+const rg₀ = (γ₀ * mₚ_cgs * c_cgs^2 * β₀) / (qₚ_cgs * bmag₀)
+
+
+begin
+    const θ_B₀ = cfg_toml["THTBZ"] # must be zero
+    if θ_B₀ > 0
+        error("program cannot currently handle oblique shocks. Adjust THTBZ.")
+    elseif θ_B₀ < 0
+        error("unphysical value for THTBZ. Must be at least 0.")
     end
 end
 
-η_mfp = get(cfg_toml, "GYFAC", 1)
-
 begin
-    bmag_Z = cfg_toml["BMAGZ"]
-    # rg0 below is the gyroradius of a proton whose speed is u_Z that is gyrating in a field of strength bmag_Z
-    # Note that this formula is relativistically correct
-    rg0 = (γ_Z * mp_cgs * c_cgs^2 * β_Z) / (qp_cgs * bmag_Z)
+    const x_grid_start_rg = cfg_toml["XGDUP"]
+    const x_grid_stop_rg  = cfg_toml["XGDDW"]
+    x_grid_start_rg ≥ 0 && error("XGDUP: x_grid_start must be negative.")
+    x_grid_stop_rg  ≤ 0 && error("XGDDW: x_grid_stop must be positive.")
 end
 
-begin
-    θ_BZ = cfg_toml["THTBZ"]
-    if θ_BZ > 0
-        oblique = true
-        error("program cannot currently handle oblique shocks. Adjust 'THTBZ'.")
-    elseif θ_BZ < 0
-        error("unphysical value for 'THTBZ'. Must be at least 0.")
-    else
-        oblique = false
-    end
-end
-
-begin
-    x_grid_start_rg = cfg_toml["XGDUP"]
-    x_grid_stop_rg  = cfg_toml["XGDDW"]
-    x_grid_start_rg ≥ 0 && error("ERROR in 'XGDUP': x_grid_start must be negative.")
-    x_grid_stop_rg  ≤ 0 && error("ERROR in 'XGDDW': x_grid_stop must be positive.")
-end
-
-let febup = get(cfg_toml, "FEBUP", nothing)
-    global feb_UpS
+const feb_UpS = let
+    febup = get(cfg_toml, "FEBUP", nothing)
     if isnothing(febup)
-        feb_UpS = x_grid_start_rg * rg0 # default value
+        feb_UpS = x_grid_start_rg * rg₀ # default value
         return
     end
     if febup[1] < 0
-        feb_UpS = febup[1] * rg0
+        feb_UpS = febup[1] * rg₀
     elseif febup[2] < 0
-        feb_UpS = febup[2] * pc2cm
+        feb_UpS = ustrip(u"cm", febup[2] * u"pc")
     else
-        error("ERROR in 'FEBUP': at least one choice must be negative.")
+        error("FEBUP: at least one choice must be negative.")
     end
-    ( (feb_UpS/rg0) < x_grid_start_rg ) && error("ERROR in 'FEBUP': UpS FEB must be within x_grid_start")
+    ((feb_UpS/rg₀) < x_grid_start_rg) && error("FEBUP: UpS FEB must be within x_grid_start")
+
+    feb_UpS
 end
 
-let febdw = get(cfg_toml, "FEBDW", nothing)
-    global feb_DwS
-    global use_prp = false
+const feb_DwS, use_prp = let
+    febdw = get(cfg_toml, "FEBDW", nothing)
+    use_prp = false
     if isnothing(febdw)
         feb_DwS = -1 # default value
         return
     end
     if febdw[1] > 0
-        feb_DwS = febdw[1] * rg0
+        feb_DwS = febdw[1] * rg₀
     elseif febdw[2] > 0
-        feb_DwS = febdw[2] * pc2cm
+        feb_DwS = ustrip(u"cm", febdw[2] * u"pc")
     else
         feb_DwS = 0.0
         use_prp = true
     end
+    (feb_DwS, use_prp)
 end
 
 begin
-    n_xspec = get(cfg_toml, "NSPEC", 0)
-    x_spec = get(cfg_toml, "XSPEC", Float64[])
-    length(x_spec) == n_xspec || error("x_spec should have length n_xspec")
+    const x_spec = get(cfg_toml, "XSPEC", Float64[])
+    const n_xspec = length(x_spec)
 end
 
-n_itrs = cfg_toml["NITRS"]
-xn_per_coarse = cfg_toml["XN_PER_COARSE"]
-xn_per_fine = cfg_toml["XN_PER_FINE"]
+const n_itrs = cfg_toml["NITRS"]
+const xn_per_coarse = cfg_toml["XN_PER_COARSE"]
+const xn_per_fine = cfg_toml["XN_PER_FINE"]
 
 begin
-    n_pts_inj = cfg_toml["N_PTS_INJ"]
-    n_pts_pcut = cfg_toml["N_PTS_PCUT"]
+    const n_pts_inj = cfg_toml["N_PTS_INJ"]
+    const n_pts_pcut = cfg_toml["N_PTS_PCUT"]
     max(n_pts_inj,n_pts_pcut) > na_particles && error("Array size na_particles too small.")
 end
 
 begin
-    n_pts_pcut_hi = cfg_toml["N_PTS_PCUT_HI"]
-    energy_pcut_hi = cfg_toml["EN_PCUT_HI"]
+    const n_pts_pcut_hi = cfg_toml["N_PTS_PCUT_HI"]
+    const energy_pcut_hi = cfg_toml["EN_PCUT_HI"]
     n_pts_pcut_hi > na_particles && error("Array size na_particles too small.")
 end
 
 begin
-    pcuts_in = cfg_toml["PCUTS"]
-    n_pcuts = length(pcuts_in)
-    n_pcuts+1 > na_c && error("ERROR in 'PCUTS': parameter na_c smaller than desired number of pcuts.")
+    const pcuts_in = cfg_toml["PCUTS"]
+    const n_pcuts = length(pcuts_in)
+    n_pcuts+1 > na_c && error("PCUTS: parameter na_c smaller than desired number of pcuts.")
 
     if Emax_keV > 0
-        # Convert from momentum[m_pc/aa] to energy[keV]
-        Emax_eff = 56 * pcuts_in[n_pcuts-1] * mp_cgs*c_cgs * c_cgs * erg2keV
+        # Convert from momentum[mₚc/aa] to energy[keV]
+        Emax_eff = 56 * pcuts_in[n_pcuts-1] * ustrip(u"keV", E₀_proton*u"erg")
 
         if Emax_keV > Emax_eff
-            error("ERROR in 'PCUTS': max energy exceeds highest pcut. Add more pcuts or lower Emax_keV.",
-                  "  Emax_keV (assuming Fe) = ", Emax_keV,"; Emax_eff = ",Emax_eff)
+            error("PCUTS: max energy exceeds highest pcut. Add more pcuts or lower Emax_keV. ",
+                  "Emax_keV (assuming Fe) = $Emax_keV; Emax_eff = $Emax_eff")
         end
     elseif Emax_keV_per_aa > 0   # Limit was on energy per nucleon
-        # Convert from momentum[m_pc/aa] to energy[keV/aa]
-        Emax_eff = pcuts_in[n_pcuts-1] * mp_cgs*c_cgs * c_cgs * erg2keV
+        # Convert from momentum[mₚc/aa] to energy[keV/aa]
+        Emax_eff = pcuts_in[n_pcuts-1] * ustrip(u"keV", E₀_proton*u"erg")
 
         if Emax_keV_per_aa > Emax_eff
-            error("ERROR in 'PCUTS': max energy per aa exceeds highest pcut. Add more pcuts or lower Emax_keV_per_aa.",
-                  "  Emax_keV_per_aa = ", Emax_keV_per_aa, "; Emax_eff/aa = ",Emax_eff)
+            error("PCUTS: max energy per aa exceeds highest pcut. Add more pcuts or lower Emax_keV_per_aa. ",
+                  "Emax_keV_per_aa = $Emax_keV_per_aa; Emax_eff/aa = $Emax_eff")
         end
 
     elseif pmax_cgs > 0 # Limit was on total momentum. Assume Fe for strictest limit on mom/nuc.
-        pmax_eff = 56*mp_cgs*c_cgs * pcuts_in[n_pcuts-1]
+        pmax_eff = 56*mₚ_cgs*c_cgs * pcuts_in[n_pcuts-1]
         if pmax_cgs > pmax_eff
-            error("ERROR in 'PCUTS': max momentum exceeds highest pcut. Add more pcuts or lower pmax.",
-                  "  pmax[m_pc] = ",pmax_cgs, "; pmax_eff (for Fe) = ",pmax_eff)
+            error("PCUTS: max momentum exceeds highest pcut. Add more pcuts or lower pmax. ",
+                  "pmax[m_pc] = $pmax_cgs; pmax_eff (for Fe) = $pmax_eff")
         end
     else   # Something unexpected has happened
-        error("Unexpected result when comparing pcut max to en/mom max")
+        error("Unexpected result when comparing pcut max to energy/momentum max")
     end
 end
 
-dont_shock = (get(cfg_toml, "NOSHK", 0) == 66)
+const dont_shock = (get(cfg_toml, "NOSHK", 0) == 66)
 
-dont_scatter = (get(cfg_toml, "NOSCT", 0) == 66)
+const dont_scatter = (get(cfg_toml, "NOSCT", 0) == 66)
 
-dont_DSA = (get(cfg_toml, "NODSA", 0) == 66)
+const dont_DSA = (get(cfg_toml, "NODSA", 0) == 66)
 
-do_smoothing = (cfg_toml["SMSHK"] != 66)
+const do_smoothing = (cfg_toml["SMSHK"] != 66)
 
-prof_wt_fac = get(cfg_toml, "SMIWT", 1.0)
+const prof_weight_fac = get(cfg_toml, "SMIWT", 1.0)
 
-do_prof_fac_damp = (get(cfg_toml, "SMVWT", 0) == 66)
+const do_prof_fac_damp = (get(cfg_toml, "SMVWT", 0) == 66)
 
 begin
-    smooth_mom_energy_fac = get(cfg_toml, "SMMOE", 0.0)
+    const smooth_mom_energy_fac = get(cfg_toml, "SMMOE", 0.0)
     if smooth_mom_energy_fac < 0 || smooth_mom_energy_fac > 1
         throw(DomainError(smooth_mom_energy_fac, "smooth_mom_energy_fac/SMMOE must be in [0, 1]"))
     end
 end
 
 begin
-    smooth_pressure_flux_psd_fac = get(cfg_toml, "SMPFP", 0)
+    const smooth_pressure_flux_psd_fac = get(cfg_toml, "SMPFP", 0)
     if smooth_pressure_flux_psd_fac < 0 || smooth_pressure_flux_psd_fac > 1
-        throw(DomainError(smooth_pressure_flux_psd_fac, "smooth_pressure_flux_psd_fac/SMPFP must be in [0, 1]"))
+        throw(DomainError(smooth_pressure_flux_psd_fac,
+                          "smooth_pressure_flux_psd_fac/SMPFP must be in [0, 1]"))
     end
     # TODO: actually get pressure calculation working properly
     if smooth_pressure_flux_psd_fac > 0
-        error("ERROR in 'SMPFP': code does not properly calculate pressure from PSD. ",
+        error("SMPFP: code does not properly calculate pressure from PSD. ",
               "Set to 0 or get this code working")
     end
 end
 
-begin #let
-    #global r_comp, rRH, γ_adiab_2_RH, β_2, γ_2, bmag_2, θ_B2, θ_u2, u_2
+const r_comp, r_RH, Γ₂_RH = let
     r_comp = cfg_toml["RCOMP"]
-    rRH, γ_adiab_2_RH = calc_rRH(β_Z, γ_Z, n_ions, aa_ion, zz_ion, denZ_ion, tZ_ion,
-                                 sc_electron, tZ_electron, oblique)
+    r_RH, Γ₂_RH = calc_rRH(u₀, β₀, γ₀, species, oblique)
     if r_comp == -1
-        r_comp = rRH
+        r_comp = r_RH
     end
-    β_2, γ_2, bmag_2, θ_B2, θ_u2 = calc_DwS(oblique, bmag_Z, r_comp, β_Z)
-    u_2 = β_2 * c_cgs
+    (r_comp, r_RH, Γ₂_RH) # shadowed variables
 end
 
 begin
-    do_old_prof = (get(cfg_toml, "OLDIN", 0) == 66)
+    const β₂, γ₂, bmag₂, θ_B₂, θᵤ₂ = calc_DwS(oblique, bmag₀, r_comp, β₀)
+    const u₂ = β₂ * c_cgs
+    @debug("Results from calc_DwS()", u₂, β₂, γ₂, bmag₂, θ_B₂, θᵤ₂)
+end
+
+begin
+    const do_old_prof = (get(cfg_toml, "OLDIN", 0) == 66)
     if do_old_prof
         n_old_skip, n_old_profs, n_old_per_prof = cfg_toml["OLDDT"]
     else
@@ -240,160 +252,158 @@ begin
     end
 end
 
-begin
+const age_max = let
     age_max = get(cfg_toml, "AGEMX", -1.0)
     if age_max < 0
         age_max = -1.0
     end
-    # default behavior of do_retro is dependent on age_max
-    do_retro = (get(cfg_toml, "RETRO", age_max > 0 ? 66 : 0) == 66)
+    age_max
 end
+# default behavior of do_retro is dependent on age_max
+const do_retro = (get(cfg_toml, "RETRO", age_max > 0 ? 66 : 0) == 66)
 
-begin
-    do_fast_push = (get(cfg_toml, "FPUSH", 0) == 66)
-    if do_fast_push
-        x_fast_stop_rg = cfg_toml["FPSTP"]
-    else
-        x_fast_stop_rg = 0.0
-    end
-end
+const do_fast_push = (get(cfg_toml, "FPUSH", 0) == 66)
+const x_fast_stop_rg = do_fast_push ? cfg_toml["FPSTP"] : 0.0
 
-let art = get(cfg_toml, "ARTSM", nothing)
-    global x_art_start_rg, x_art_scale
+const x_art_start_rg, x_art_scale = let
+    art = get(cfg_toml, "ARTSM", nothing)
     if isnothing(art)
         x_art_start_rg = 0.0
         x_art_scale = 0.0
-        return
     else
         x_art_start_rg, x_art_scale = art
     end
+    (x_art_start_rg, x_art_scale)
 end
 
-let energy_electron_crit_keV = get(cfg_toml, "EMNFP", nothing)
-    global p_electron_crit, γ_electron_crit
+const p_electron_crit, γ_electron_crit = let
+
+    energy_electron_crit_keV = get(cfg_toml, "EMNFP", nothing)
     # If needed, convert input energy[keV] to momentum and Lorentz factor
     if !isnothing(energy_electron_crit_keV) && energy_electron_crit_keV > 0
-        energy_electron_crit_rm = energy_electron_crit_keV * keV2erg / E₀_electron
+        energy_electron_crit_rm = ustrip(u"erg", energy_electron_crit_keV*u"keV") / E₀_electron
 
         # Different forms for nonrel and rel momenta
         if energy_electron_crit_rm < 1e-2
-            p_electron_crit = (me_cgs*c_cgs) * √( 2energy_electron_crit_rm )
+            p_electron_crit = (mₑ_cgs*c_cgs) * √(2energy_electron_crit_rm)
             γ_electron_crit = 1.0
         else
-            p_electron_crit = (me_cgs*c_cgs) * √( (energy_electron_crit_rm + 1)^2 - 1 )
+            p_electron_crit = (mₑ_cgs*c_cgs) * √((energy_electron_crit_rm + 1)^2 - 1)
             γ_electron_crit = energy_electron_crit_rm + 1.0
         end
     else
         energy_electron_crit_keV = -1.0
-        p_electron_crit      = -1.0
-        γ_electron_crit      = -1.0
+        p_electron_crit = -1.0
+        γ_electron_crit = -1.0
     end
+    (p_electron_crit, γ_electron_crit)
 end
 
-do_rad_losses = (get(cfg_toml, "NORAD", 0) != 66)
+const do_rad_losses = (get(cfg_toml, "NORAD", 0) != 66)
 
-do_photons = (get(cfg_toml, "PHOTN", 0) == 66)
+const do_photons = (get(cfg_toml, "PHOTN", 0) == 66)
 
 # JETRD only mandatory if doing photons
-jet_rad_pc = do_photons ? cfg_toml["JETRD"] : get(cfg_toml, "JETRD", 0.0)
+const jet_rad_pc = do_photons ? cfg_toml["JETRD"] : get(cfg_toml, "JETRD", 0.0)
 
-let jetfr = get(cfg_toml, "JETFR", nothing)
-    global jet_sph_frac, jet_openergy_ang_deg
+const jet_sph_frac, jet_open_ang_deg = let
+
+    jetfr = get(cfg_toml, "JETFR", nothing)
     if isnothing(jetfr) # default behavior, handled differently based on PHOTNS
-        if do_photons
-            error("ERROR: If calculating photons, 'JETFR' must be specified manually.")
-        else
-            jet_sph_frac = 0.0
-            jet_openergy_ang_deg = 0.0
-        end
-    end
-    if 0 < jetfr[1] ≤ 1
+        do_photons && error("If calculating photons, 'JETFR' must be specified manually.")
+        jet_sph_frac     = 0.0
+        jet_open_ang_deg = 0.0
+    elseif 0 < jetfr[1] ≤ 1
         jet_sph_frac     = jetfr[1]
-        jet_openergy_ang_deg = acosd(1 - 2jet_sph_frac)
+        jet_open_ang_deg = acosd(1 - 2jet_sph_frac)
     elseif 0 < jetfr[2] ≤ 180
-        jet_openergy_ang_deg = jetfr[2]
-        jet_sph_frac     = ( 1 - cosd(jet_openergy_ang_deg) ) / 2
+        jet_open_ang_deg = jetfr[2]
+        jet_sph_frac     = (1 - cosd(jet_open_ang_deg)) / 2
     else
-        error("ERROR IN 'JETFR': Unphysical values entered.")
+        error("JETFR: Unphysical values entered.")
     end
+    (jet_sph_frac, jet_open_ang_deg)
 end
 
 begin
-    jet_dist_kpc = get(cfg_toml, "JETDS", 1.0)
-    redshift = get(cfg_toml, "RDSHF", 0.0)
+    const jet_dist_kpc = get(cfg_toml, "JETDS", 1.0)
+    const redshift = get(cfg_toml, "RDSHF", 0.0)
     if jet_dist_kpc > 0 && redshift > 0
-        error("ERROR in 'JETDS': At most one of 'JETDS' and 'RDSHF' may be non-zero.")
+        error("JETDS: At most one of 'JETDS' and 'RDSHF' may be non-zero.")
     end
+end
+begin
     # The following option is not in the Fortran program
-    cosmo_var = cfg_toml["COSMO_VAR"]
-    if cosmo_var ≠ 1 && cosmo_var ≠ 2
-        error("Invalid value for cosmo_var")
-    end
+    const cosmo_var = cfg_toml["COSMO_VAR"]
+    cosmo_var ≠ 1 && cosmo_var ≠ 2 && error("Invalid value for cosmo_var")
 end
 
 begin
-    energy_transfer_frac = float(get(cfg_toml, "ENXFR", 0.0))
+    const energy_transfer_frac = float(get(cfg_toml, "ENXFR", 0.0))
     if energy_transfer_frac < 0 || energy_transfer_frac > 1
-        error("ERROR in 'ENXFR': energy_transfer_frac must be in [0,1]")
+        error("ENXFR: energy_transfer_frac must be in [0,1]")
     end
 end
 
-num_UpS_shells, num_DwS_shells = cfg_toml["NSHLS"]
+const num_UpS_shells, num_DwS_shells = cfg_toml["NSHLS"]
 
 begin
-    bturb_comp_frac = get(cfg_toml, "BTRBF", 0.0)
-    bfield_amp = get(cfg_toml, "BAMPF", 1.0)
-    bfield_amp < 1 && error("ERROR in 'BAMPF': must be ≥ 1.d0")
+    const bturb_comp_frac = get(cfg_toml, "BTRBF", 0.0)
+    const bfield_amp = get(cfg_toml, "BAMPF", 1.0)
+    bfield_amp < 1 && error("BAMPF: must be ≥ 1.d0")
     if bfield_amp > 1 && iszero(bturb_comp_frac)
-        error("ERROR in 'BTRBF': bfield_amp > 1 has no effect if 'BTRBF' = 0")
+        error("BTRBF: bfield_amp > 1 has no effect if BTRBF = 0")
     end
 end
 
-let psd_bins = get(cfg_toml, "PSDBD", [10, 10])
-    global psd_bins_per_dec_mom, psd_bins_per_dec_θ
+const psd_bins_per_dec_mom, psd_bins_per_dec_θ = let
+    psd_bins = get(cfg_toml, "PSDBD", [10, 10])
     psd_bins_per_dec_mom::Int = psd_bins[1]
     psd_bins_per_dec_θ::Int   = psd_bins[2]
     if psd_bins_per_dec_mom ≤ 0 || psd_bins_per_dec_θ ≤ 0
-        error("ERROR in 'PSDBD': both values must be positive.")
+        error("PSDBD: both values must be positive.")
     end
+    (psd_bins_per_dec_mom::Int, psd_bins_per_dec_θ::Int)
 end
 
-let psd_bins = get(cfg_toml, "PSDTB", [119, 4])
-    global psd_lin_cos_bins, psd_log_θ_decs
-    psd_lin_cos_bins::Int = psd_bins[1]
-    psd_log_θ_decs::Int   = psd_bins[2]
+const psd_lin_cos_bins, psd_log_θ_decs = let
+    psd_bins = get(cfg_toml, "PSDTB", [119, 4])
+    psd_lin_cos_bins = psd_bins[1]
+    psd_log_θ_decs   = psd_bins[2]
     if psd_lin_cos_bins ≤ 0 || psd_log_θ_decs ≤ 0
-        error("ERROR in 'PSDTB': both values must be positive.")
+        error("PSDTB: both values must be positive.")
     end
+    (psd_lin_cos_bins::Int, psd_log_θ_decs::Int)
 end
 
-use_custom_frg = (get(cfg_toml, "NWFRG", 0) == 66)
+const use_custom_frg = (get(cfg_toml, "NWFRG", 0) == 66)
 
-emin_therm_fac = get(cfg_toml, "EMNFC", 0.01)
+const emin_therm_fac = get(cfg_toml, "EMNFC", 0.01)
 
-do_multi_dNdps = (get(cfg_toml, "DNDPS", 0) == 66)
+const do_multi_dNdps = (get(cfg_toml, "DNDPS", 0) == 66)
 
-begin
+const do_tcuts, tcuts, n_tcuts = let
     do_tcuts = haskey(cfg_toml, "TCUTS")
     if do_tcuts
         tcuts = cfg_toml["TCUTS"]
         n_tcuts = length(tcuts)
 
-        age_max < 0 && error("ERROR: tcut tracking must be used with anaccel time limit. Adjust keyword 'AGEMX'.")
+        age_max < 0 && error("tcut tracking must be used with anaccel time limit. Adjust keyword 'AGEMX'.")
         # Check to make sure we haven't used more tcuts than allowed by na_c
-        (n_tcuts+1) > na_c && error("ERROR in 'TCUTS': parameter na_c smaller than desired number of tcuts.")
+        (n_tcuts+1) > na_c && error("TCUTS: parameter na_c smaller than desired number of tcuts.")
         # Check to make sure final tcut is much larger than age_max so that
         #   we never have to worry about exceeding it
-        tcuts[end] ≤ (10age_max) && error("ERROR in 'TCUTS': final tcut must be much (10x) larger than age_max.")
+        tcuts[end] ≤ 10age_max && error("TCUTS: final tcut must be much (10x) larger than age_max.")
     else
         tcuts = Float64[]
         n_tcuts = 0
     end
+    (do_tcuts, tcuts, n_tcuts)
 end
 
 begin
-    inj_fracs = get(cfg_toml,"INJFR", fill(1.0, n_ions))
+    const inj_fracs = get(cfg_toml,"INJFR", fill(1.0, n_ions))
     length(inj_fracs) == n_ions || error("Number of injection probabilities must match NIONS")
 end
 
-use_custom_εB = (get(cfg_toml, "NWEPB", 0) == 66)
+const use_custom_εB = (get(cfg_toml, "NWEPB", 0) == 66)

@@ -53,12 +53,12 @@ function identify_corners(i, j, transform_corn_pt, transform_corn_ct, ii_sk_pf)
 
     # Count number of corners with identified lowest momentum; if this number
     # isn't 1, flag as needing additional attention
-    if count( corn_pts .== pt_lo_pt ) > 1
+    if count(corn_pts .== pt_lo_pt) > 1
         # There was a tie, so set flag for special handling later
         @error("Multiple corners with lowest momentum", ii_sk_pf, i, j, corn_pts)
         pt_lo_tied = 1
         #exit()
-    elseif count( corn_pts .== pt_lo_pt ) < 1
+    elseif count(corn_pts .== pt_lo_pt) < 1
         # Who knows what happened
         error("No corner with lowest momentum", ii_sk_pf, i, j, pt_lo_pt, corn_pts)
     end
@@ -74,12 +74,12 @@ function identify_corners(i, j, transform_corn_pt, transform_corn_ct, ii_sk_pf)
 
     # Count number of corners with identified highest momentum;
     # if this number isn't 1, flag as needing additional attention
-    if count( corn_pts .== pt_hi_pt ) > 1
+    if count(corn_pts .== pt_hi_pt) > 1
         # There was a tie, so set flag for special handling later
         @error("multiple corners with highest momentum", ii_sk_pf, i, j, corn_pts)
         pt_hi_tied = 1
         #exit()
-    elseif count( corn_pts .== pt_hi_pt ) < 1
+    elseif count(corn_pts .== pt_hi_pt) < 1
         # Who knows what happened
         error("No corner with highest momentum", ii_sk_pf, i, j, pt_hi_pt, corn_pts)
     end
@@ -199,7 +199,8 @@ function identify_corners(i, j, transform_corn_pt, transform_corn_ct, ii_sk_pf)
             elseif pt_hi_ct < ct_lo_ct
                 # Nothing to do here. Assignment is correct
             else
-                error("ERROR: pt_hi and ct_lo identical", i, j, pt_hi_pt, pt_hi_ct, ct_lo_pt, ct_lo_ct,
+                error("pt_hi and ct_lo identical",
+                      i, j, pt_hi_pt, pt_hi_ct, ct_lo_pt, ct_lo_ct,
                       "\nIf $i = 0, reduce EMNFC in mc_in.dat")
             end
 
@@ -215,7 +216,7 @@ function identify_corners(i, j, transform_corn_pt, transform_corn_ct, ii_sk_pf)
             elseif pt_hi_ct < ct_hi_ct
                 # Nothing to do here. Assignment is correct
             else
-                error("ERROR: pt_hi and ct_lo identical",
+                error("pt_hi and ct_lo identical",
                       i, j, pt_hi_pt, pt_hi_ct, ct_hi_pt, ct_hi_ct,
                       "If $i = 0, reduce EMNFC in mc_in.dat")
             end
