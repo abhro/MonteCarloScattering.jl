@@ -1,6 +1,10 @@
 module io
 using Printf: @sprintf
-using ..constants: mp_cgs, c_cgs, pc2cm
+using Unitful, UnitfulAstro
+using Unitful: cm
+using UnitfulAstro: pc
+
+using ..constants: mₚ_cgs, c_cgs
 using ..parameters: na_c, na_particles, na_ions, psd_max, na_grid, na_c
 
 export print_input, print_plot_vals, tcut_print
@@ -9,24 +13,25 @@ export print_input, print_plot_vals, tcut_print
 If tcuts were tracked during the run, print out the particle counts and spectra at each tcut
 
 ### Arguments
-- wts_fileunit
+FIXME
+- weights_fileunit
 - spectra_fileunit
 - n_tcuts - Number of times to use in particle tracking
 - tcuts - Array to hold cutoff times for particle tracking
 - n_ions - Number of ion species
 """
 function tcut_print(
-        wts_fileunit, spectra_fileunit,
+        weights_fileunit, spectra_fileunit,
         n_tcuts, tcuts, n_ions,
         num_psd_mom_bins, psd_mom_bounds,
-        i_iter, wt_coupled, spectra_coupled,
+        i_iter, weight_coupled, spectra_coupled,
     )
 
     # Set a floor on the array values, and normalize spectra_coupled so that each spectrum
-    #  has a total weight of 1 (actual weight, of course, is the entry in wt_coupled)
+    # has a total weight of 1 (actual weight, of course, is the entry in weight_coupled)
     for i_ion in 1:n_ions, i_cut in 1:n_tcuts
-        if wt_coupled[i_cut,i_ion] < 1e-60
-            wt_coupled[i_cut,i_ion] = 1e-99
+        if weight_coupled[i_cut,i_ion] < 1e-60
+            weight_coupled[i_cut,i_ion] = 1e-99
         end
 
         if sum(spectra_coupled[:,i_cut,i_ion]) > 1e-99
@@ -42,11 +47,11 @@ function tcut_print(
 
     # Write out the particle counts at each tcut, as a histogram
     j_plot = 0
-    wts_fileunit["i_iter"] = i_iter
-    wts_fileunit["tcuts_log"] = log10.(tcuts)           # 1     tcut times
-    wts_fileunit["wt_coupled_log"] = log10.(wt_coupled) # 2-?   wts by species
+    weights_fileunit["i_iter"] = i_iter
+    weights_fileunit["tcuts_log"] = log10.(tcuts)           # 1     tcut times
+    weights_fileunit["weight_coupled_log"] = log10.(weight_coupled) # 2-?   weights by species
 
-    print_plot_vals(wts_fileunit)
+    print_plot_vals(weights_fileunit)
 
 
     # Write out the spectra at each tcut, as a histogram. Split into groups
@@ -55,7 +60,7 @@ function tcut_print(
         # XXX how does hdf5 actually index these things? probably two levels of
         # indexing isn't even necessasry
         spectra_fileunit[i_ion]["psd_mom_bounds"] = psd_mom_bounds     # cgs units
-        spectra_fileunit[i_ion]["psd_mom_bounds_nat"] = psd_mom_bounds - log10.(mp_cgs*c_cgs)  # nat units
+        spectra_fileunit[i_ion]["psd_mom_bounds_nat"] = psd_mom_bounds - log10.(mₚ_cgs*c_cgs)  # nat units
         spectra_fileunit[i_ion]["spectra"] = log10.(spectra_coupled)
 
         print_plot_vals(spectra_fileunit)
@@ -64,7 +69,7 @@ function tcut_print(
 
     # If this is the last iteration, close the files
     #if i_iter == n_itrs
-    #    close(wts_fileunit)
+    #    close(weights_fileunit)
     #    close(spectra_fileunit)
     #end
 end
@@ -74,29 +79,30 @@ Prints a whole mess of information to the screen and to mc_out
 
 ### Arguments
 
-- n_pts_inj: target # of particles for injection distribution
-- n_pts_pcut: target # of particle for low-E pcuts
-- n_pts_pcut_hi: target # of particles for hi-E pcuts
-- n_ions: # of ion species run
-- num_psd_***_bins: # of bins in momentum/θ directions in psd
-- n_xspec: # of additional locations to track particle spectra
-- n_pcuts: # of pcuts
-- n_grid: # of grid zone BOUNDARIES, including x_grid_stop
-- rRH: Rankine-Hugoniot compression ratio for this shock
+- n_pts_inj: target number of particles for injection distribution
+- n_pts_pcut: target number of particle for low-E pcuts
+- n_pts_pcut_hi: target number of particles for hi-E pcuts
+- n_ions: number of ion species run
+- num_psd_mom_bins: number of bins in momentum directions in psd
+- num_psd_θ_bins: number of bins in θ directions in psd
+- n_xspec: number of additional locations to track particle spectra
+- n_pcuts: number of pcuts
+- n_grid: number of grid zone BOUNDARIES, including x_grid_stop
+- r_RH: Rankine-Hugoniot compression ratio for this shock
 - r_comp: the compression ratio being used
-- u/β/γ _Z/_2: total fluid velocity[cm/s, /c] and Lorentz factor for far UpS and DwS regions
+- u/β/γ ₀/₂: total fluid velocity[cm/s, /c] and Lorentz factor for far UpS and DwS regions
 
 ### Returns
 Nothing (it's all to the screen/file)
 """
 function print_input(
         n_pts_inj, n_pts_pcut, n_pts_pcut_hi, n_ions,
-        num_psd_mom_bins, num_psd_θ_bins, n_xspec, n_pcuts, n_grid, rRH,
-        r_comp, u_Z, β_Z, γ_Z, u_2, β_2, γ_2, denZ_ion, bmag_Z,
-        bmag_2, θ_BZ, θ_B2, θ_u2, aa_ion, tZ_ion, tZ_electron,
+        num_psd_mom_bins, num_psd_θ_bins, n_xspec, n_pcuts, n_grid, r_RH,
+        r_comp, u₀, β₀, γ₀, u₂, β₂, γ₂, ρ_N₀_ion, bmag₀,
+        bmag₂, θ_B₀, θ_B₂, θ_u₂, aa_ion, T₀_ion,
         mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine, feb_UpS,
-        feb_DwS, rg0, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac,
-        sc_electron, outfileunit)
+        feb_DwS, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac,
+        outfileunit)
 
 
     # Print array parameters & usage
@@ -129,22 +135,22 @@ Array parameters/usage:
     # Shock speeds, escaping fluxes, and key densities
     shock_speeds_str = @sprintf("""
 
-   rRH = %f
+  r_RH = %f
 r_comp = %f
 
-""", rRH, r_comp)
+""", r_RH, r_comp)
 
     @info(shock_speeds_str)
     println(outfileunit, shock_speeds_str)
 
     fluxes_str = @sprintf("""
 
-     u_Z[cm/s] = %f    u_2[cm/s]       = %f
-           β_Z = %f       β_2          = %f
-           γ_Z = %f        γ_2         = %f
-ρ_Z[prot/cm^3] = %f     ρ_2[prot/cm^3] = %f
+u₀ = %f cm/s            u₂ = %f cm/s
+β₀ = %f                 β₂ = %f
+γ₀ = %f                 γ₂ = %f
+ρ₀ = %f prot/cm³        ρ₂ = %f prot/cm³
 
-""", u_Z, u_2, β_Z, β_2, γ_Z, γ_2, denZ_ion[1], denZ_ion[1]*γ_Z*β_Z/(γ_2*β_2))
+""", u₀, u₂, β₀, β₂, γ₀, γ₂, ρ_N₀_ion[1], ρ_N₀_ion[1]*γ₀*β₀/(γ₂*β₂))
 
     @info(fluxes_str)
     println(outfileunit, fluxes_str)
@@ -152,27 +158,23 @@ r_comp = %f
     # Relevant angles and field strengths
     magfield_str = @sprintf("""
 
-    bmag_Z[G] = %f             bmag_2[G] = %f
-      θ_BZ[°] = %f         θ_B2[°](calc) = %f
-θ_u2[°](calc) = %f
+bmag₀ = %f G             bmag₂ = %f G
+ θ_B₀ = %f°         θ_B₂(calc) = %f°
+                    θ_u₂(calc) = %f°
 
-""", bmag_Z, bmag_2, θ_BZ, θ_B2, θ_u2)
+""", bmag₀, bmag₂, θ_B₀, θ_B₂, θ_u₂)
     @info(magfield_str)
     println(outfileunit, magfield_str)
 
     # Temperatures and Mach numbers
-    if sc_electron
-        _, i_electron = findmin(aa_ion)
-        temp_electron = tZ_ion[i_electron]
-    else
-        temp_electron = tZ_electron
-    end
+    _, i_electron = findmin(aa_ion)
+    temp_electron = T₀_ion[i_electron]
     temp_str = @sprintf("""
 
-Temp_Z[K](proton)   = %f
-Temp_Z[K](electron) = %f
+T₀(proton)   = %f K
+T₀(electron) = %f K
 
-""", tZ_ion[1], temp_electron)
+""", T₀_ion[1], temp_electron)
 
     @info(temp_str)
     println(outfileunit, temp_str)
@@ -202,24 +204,25 @@ N_g(fine)   = %f
     # FEB info and max age
     feb_str = @sprintf("""
 
-UpS FEB[rg0] = %f   UpS FEB[pc] = %f
-DwS FEB[rg0] = %f   DwS FEB[pc] = %f
-Max CR age[sec] = %f
+UpS FEB = %f rg₀ = %f pc
+DwS FEB = %f rg₀ = %f pc
 
-""", feb_UpS/rg0, feb_UpS / pc2cm, feb_DwS/rg0, feb_DwS / pc2cm, age_max)
+Max CR age[s] = %f
+
+""", feb_UpS/rg₀, ustrip(pc, feb_UpS*cm), feb_DwS/rg₀, ustrip(pc, feb_DwS*cm), age_max)
     @info(feb_str)
     println(outfileunit, feb_str)
 
 
     # Test-particle index from Keshet & Waxman (2005) [2005PhRvL..94k1102K] Eq 23
     kw_idx_str = @sprintf("  Keshet & Waxman (2005) index = %f",
-                          ( 3β_Z  -  2*β_Z*β_2^2  +  β_2^3 ) / (β_Z - β_2))
+                          (3β₀ - 2*β₀*β₂^2 + β₂^3) / (β₀ - β₂))
     @info(kw_idx_str)
     println(outfileunit, kw_idx_str)
 
 
     # Energy to switch between low- and high-pcut particle counts
-    pcut_str = @sprintf("  High pcut energy[keV/aa] = %f", energy_pcut_hi)
+    pcut_str = @sprintf("  High pcut energy = %f keV/aa", energy_pcut_hi)
     @info(pcut_str)
     println(outfileunit, pcut_str)
 
@@ -243,12 +246,12 @@ by the plotting program to display information about the run.
 function print_plot_vals(
         iunit,
         n_pts_inj, n_pts_pcut, do_fast_push, inp_distr,
-        dont_DSA, u_Z, γ_Z, r_comp, rRH, θ_BZ, θ_B2, θ_u2,
-        bmag_Z, feb_UpS, rg0, Emax_keV, Emax_keV_per_aa, pmax_cgs,
+        dont_DSA, u₀, γ₀, r_comp, r_RH, θ_B₀, θ_B₂, θ_u₂,
+        bmag₀, feb_UpS, rg₀, Emax_keV, Emax_keV_per_aa, pmax_cgs,
         xn_per_coarse, xn_per_fine, mach_sonic, mach_alfven, x_grid_start_rg,
         x_grid_stop_rg, x_fast_stop_rg, η_mfp, x_art_start_rg, x_art_scale,
         feb_DwS, jet_rad_pc, jet_sph_frac, jet_dist_kpc, n_ions, aa_ion,
-        zz_ion, denZ_ion, tZ_ion, smooth_mom_energy_fac, energy_inj,
+        zz_ion, ρ_N₀_ion, T₀_ion, smooth_mom_energy_fac, energy_inj,
         smooth_pressure_flux_psd_fac, energy_transfer_frac, iseed_in
     )
 
@@ -269,18 +272,18 @@ function print_plot_vals(
     write(iunit,
           (
            iannt, idum,
-           u_Z/1e5,                         # 1
-           γ_Z,                             # 2
+           u₀/1e5,                          # 1
+           γ₀,                              # 2
            r_comp,                          # 3
-           rRH,                             # 4
-           θ_BZ,                            # 5
-           θ_B2,                            # 6
-           θ_u2,                            # 7
-           bmag_Z,                          # 8
-           feb_UpS/rg0,                     # 9
+           r_RH,                            # 4
+           θ_B₀,                            # 5
+           θ_B₂,                            # 6
+           θ_u₂,                            # 7
+           bmag₀,                           # 8
+           feb_UpS/rg₀,                     # 9
            Emax_keV,                        # 10
            Emax_keV_per_aa,                 # 11
-           pmax_cgs/(mp_cgs*c_cgs),         # 12
+           pmax_cgs/(mₚ_cgs*c_cgs),         # 12
            x_pts_inj,                       # 13
            x_pts_pcut,                      # 14
            xn_per_coarse,                   # 15
@@ -295,7 +298,7 @@ function print_plot_vals(
            η_mfp,                           # 24
            x_art_start_rg,                  # 25
            x_art_scale,                     # 26
-           feb_DwS/rg0,                     # 27
+           feb_DwS/rg₀,                     # 27
            jet_rad_pc,                      # 28
            jet_sph_frac,                    # 29
            jet_dist_kpc,                    # 30
@@ -304,13 +307,13 @@ function print_plot_vals(
            energy_inj,                      # 33
            smooth_pressure_flux_psd_fac,    # 34
            x_DSA,                           # 35
-           energy_transfer_frac,                # 36
+           energy_transfer_frac,            # 36
 
            x_ions,
            aa_ion,
            zz_ion,
-           denZ_ion,
-           tZ_ion,
+           ρ_N₀_ion,
+           T₀_ion,
           )
          )
 

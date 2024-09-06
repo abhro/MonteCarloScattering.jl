@@ -1,4 +1,6 @@
-using .constants: mp_cgs, eV2erg, E₀_proton, erg2eV, T_th, rmp
+using Unitful, UnitfulAstro
+using UnitfulAstro: GeV, erg
+using .constants: mₚ_cgs, E₀_proton, T_th, rmp
 using .parameters: psd_max, na_photons, na_ions
 using .KATV2014: get_σ_π, get_Ffunc, get_Amax
 
@@ -32,11 +34,8 @@ function pion_kafexhiu(
         num_hist_bins, p_pf_cgs_therm, dN_therm,
         num_psd_mom_bins, p_pf_cgs_cr, dN_cr, n_photon_pion,
         target_density, ID, photon_pion_min_MeV, bins_per_dec_photon, aa,
-        n_ions, aa_ion, denZ_ion, o_o_mc
+        n_ions, aa_ion, ρ_N₀_ion, mc
     )
-
-    energy_γ_cgs = zeros(na_photons)
-    pion_emis = zeros(na_photons)
 
 
     # ID != 1 is yet to be implemented
@@ -50,27 +49,22 @@ function pion_kafexhiu(
     # using [both aa's] greater than 1 is unknown".
     # The target density passed to the subroutine is number of *protons* per
     # cubic centimeter. This must be modified as well:
-    #   n_targ*σ -->  n_p*σ_Xp  +  n_He*σ_X-He  +  ...
-    #         = n_p * [n_p/n_p * σ_Xp  +  n_He/n_p * σ_X-He ...]
-    #         = n_p * σ_pp * [ den1_in[1]*SF_Xp  +  den1_in[2]*SF_X-He ...]
+    #   n_targ*σ -->  n_p*σ_Xp + n_He*σ_X-He + ...
+    #         = n_p * [n_p/n_p * σ_Xp + n_He/n_p * σ_X-He ...]
+    #         = n_p * σ_pp * [ den1_in[1]*SF_Xp + den1_in[2]*SF_X-He ...]
     scaling_factor = 0.0
     for i in 1:n_ions
         if aa_ion[i] ≥ 1
-            scaling_factor += (aa^0.375 + aa_ion[i]^0.375 - 1)^2 * denZ_ion[i]/denZ_ion[1]
+            scaling_factor += (aa^0.375 + aa_ion[i]^0.375 - 1)^2 * ρ_N₀_ion[i]/ρ_N₀_ion[1]
         end
     end
 
-    aa_inv = 1 / aa
-
     # Set parameters that affect energy_γ_cgs and "zero" out emission prior to the calculation
     γ_min_log = log10(photon_pion_min_MeV)
-
-    for i in 1:n_photon_pion
-        pion_emis[i] = 1e-99
-
-        # Photon energy in ergs
-        energy_γ_cgs[i] = exp10(γ_min_log + (i-1)/bins_per_dec_photon) * 1e6 * eV2erg
-    end
+    energy_γ_cgs = ustrip(u"erg", exp10.(range(start = γ_min_log,
+                                               step = 1/bins_per_dec_photon,
+                                               length = n_photon_pion)) * u"MeV")
+    pion_emis = fill(1e-99, n_photon_pion)
 
     # "1" to use GEANT 4 data
     # "2" to use PYTHIA 8 data
@@ -94,16 +88,16 @@ function pion_kafexhiu(
         bin_count ≤ 1e-99 && continue # skip empty bins
 
         p_pf_sq = p_pf_cgs_therm[i_fp] * p_pf_cgs_therm[i_fp+1] # Geometric mean
-        γ = √(p_pf_sq*o_o_mc^2 + 1)
-        Tp  = (γ - 1) * aa*E₀_proton * erg2eV * 1e-9 # particle K.E. in GeV
-        Tp  = Tp * aa_inv  # kinetic energy per nucleon
-        vel = √(p_pf_sq)/(γ*aa*mp_cgs)
+        γ = √(p_pf_sq/mc^2 + 1)
+        Tp  = (γ - 1) * aa*ustrip(GeV, E₀_proton*erg) # particle K.E. in GeV
+        Tp  = Tp / aa  # kinetic energy per nucleon
+        vel = √p_pf_sq / (γ*aa*mₚ_cgs)
 
         # Tp must be at T_th; otherwise no possibility to produce pions/photons
         Tp < T_th && continue
 
         # Square of proton energy in center-of-mass frame will be used repeatedly
-        s_ECM = 2rmp * ( Tp + 2rmp )
+        s_ECM = 2rmp * (Tp + 2rmp)
 
         # Calculate inclusive pion production cross section using material from section 4
         σ_π = get_σ_π(Tp, i_data, s_ECM)
@@ -119,7 +113,7 @@ function pion_kafexhiu(
         #-----------------------------------------------------------------------
         for i_γ in 1:n_photon_pion
 
-            Eγ = energy_γ_cgs[i_γ] * erg2eV * 1e-9  # in GeV
+            Eγ = ustrip(u"GeV", energy_γ_cgs[i_γ]*u"erg")  # in GeV
 
             # Calculate F function for current value of Tp and Eγ
             F_func = get_Ffunc(Tp, Eγ, i_data, Eγ_max)
@@ -162,23 +156,23 @@ function pion_kafexhiu(
         bin_count ≤ 1e-99 && continue # skip empty bins
 
         p_pf_sq = p_pf_cgs_cr[i_fp] * p_pf_cgs_cr[i_fp+1] # Geometric mean
-        γ = √(p_pf_sq*o_o_mc^2 + 1)
-        Tp  = (γ - 1) * aa*E₀_proton * erg2eV * 1e-9 # particle K.E. in GeV
-        Tp  = Tp * aa_inv  # kinetic energy per nucleon
-        vel = √(p_pf_sq)/(γ*aa*mp_cgs)
+        γ = √(p_pf_sq/mc^2 + 1)
+        Tp  = (γ - 1) * aa*ustrip(GeV, E₀_proton*erg) # particle K.E. in GeV
+        Tp  = Tp / aa  # kinetic energy per nucleon
+        vel = √(p_pf_sq)/(γ*aa*mₚ_cgs)
 
         # Tp must be at T_th; otherwise no possibility to produce pions/photons
         Tp < T_th && continue
 
         # Square of proton energy in center-of-mass frame will be used repeatedly
-        s_ECM = 2rmp * ( Tp + 2rmp )
+        s_ECM = 2rmp * (Tp + 2rmp)
 
         # Calculate inclusive pion production cross section using material from section 4
         σ_π = get_σ_π(Tp, i_data, s_ECM)
 
-        # γ-ray production is parametrized as Amax(Tp) * F(Tp, Eγ). Since Amax
-        # doesn't depend on photon energy, calculate it here; note that Eγ_max,
-        # the maximum photon energy allowed for this value of Tp, is also an output
+        # γ-ray production is parametrized as Amax(Tp)⋅F(Tp, Eγ). Since Amax doesn't depend
+        # on photon energy, calculate it here; note that Eγ_max, the maximum photon energy
+        # allowed for this value of Tp, is also an output
         get_Amax(Tp, i_data, s_ECM, σ_π, Eγ_max, Amax)
 
 
@@ -187,7 +181,7 @@ function pion_kafexhiu(
         #-----------------------------------------------------------------------
         for i_γ in 1:n_photon_pion
 
-            Eγ = energy_γ_cgs[i_γ] * erg2eV * 1e-9  # in GeV
+            Eγ = ustrip(GeV, energy_γ_cgs[i_γ]*erg)  # in GeV
 
             # Calculate F function for current value of Tp and Eγ
             F_func = get_Ffunc(Tp, Eγ, i_data, Eγ_max)
@@ -210,7 +204,7 @@ function pion_kafexhiu(
             pion_emis_photon = target_density * bin_count * vel * (σ_total*1e-27)
 
 
-            # As calculated previously, pion_emis_photon is d2N/d(lnE)dt.
+            # As calculated previously, pion_emis_photon is d²N/d(lnE)dt.
             # Multiplying by energy makes it an energy production rate (power)
             # per logarithmic energy bin, dP/d(lnE). This is what
             # photon_pion_decay expects as output, with units of [erg/sec].
@@ -228,13 +222,11 @@ function pion_kafexhiu(
 
     # Put floor on emission for plotting purposes
     for i_γ in 1:n_photon_pion
-
         if pion_emis[i_γ] < 1e-99
             pion_emis[i_γ] = 1e-99
         else # Incorporate the scaling factor calculated at the beginning of the subroutine
             pion_emis[i_γ] *= scaling_factor
         end
-
     end
 
     return energy_γ_cgs, pion_emis

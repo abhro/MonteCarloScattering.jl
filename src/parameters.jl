@@ -9,14 +9,14 @@ export β_rel_fl, energy_rel_pt
 # maximum values for their respective quantity; the code will quite
 # happily run if not all the array is used.
 
-const na_particles = 100_000    # Max no. of particles at each pcut
-const na_ions = 5               # Max no. of different ion species
-const na_grid = 110                # Max no. of elements in grid arrays
-const na_c = 100                # Max no. elements in pcut array
-const na_itrs = 50              # Max no. of iterations
+const na_particles = 100_000    # Max number of particles at each pcut
+const na_ions = 5               # Max number of different ion species
+const na_grid = 110             # Max number of elements in grid arrays
+const na_c = 100                # Max number elements in pcut array
+const na_itrs = 50              # Max number of iterations
 
-# Max # of bins usable for phase space distribution and associated calcs.
-# Applies to both momentm and angular dimensions
+# Max # of bins usable for phase space distribution and associated calculations.
+# Applies to both momentum and angular dimensions
 const psd_max = 200
 
 const num_therm_bins = 150 # number of bins in thermal dist
@@ -26,7 +26,7 @@ const na_cr = 10 * na_particles
 
 const na_photons = 300  # Max size of photon array
 
-# Cutoffs for non-rel vs rel eqs, for fluid & for particles
+# Cutoffs for nonrelativistic vs relativistic equations, for fluid & for particles
 const β_rel_fl = 0.02
 const energy_rel_pt = 0.005
 end

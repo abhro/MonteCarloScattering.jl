@@ -1,8 +1,8 @@
 # Seed for random number generator
 ISEED = 210
 
-# Shock speed as: km/sec, Lorentz factor, or beta. 1st nonzero value used
-SKSPD = [0.0, 5.0,  0.0]
+# Shock speed as: km/s, Lorentz factor, or beta. 1st nonzero value used
+SKSPD = [0.0, 5.0, 0.0]
 
 # Number of iterations to perform
 NITRS = 20
@@ -12,15 +12,14 @@ NITRS = 20
 XN_PER_COARSE = 100.0
 XN_PER_FINE = 2000.0
 
-# no. of different ion species. 1st MUST be protons. Search "NIONS" for details.
-NIONS = 2
-# A(-99.0 for e⁻) each species
-AA_ION = [1.0, -99.0]
+# mass for each species, in units of proton mass (nan for e⁻)
+# this also determines the number of ions
+AA_ION = [1.0, nan]
 # Z for each species
-ZZ_ION = [1.0, 1.0]
-# T0[K] for each species
+ZZ_ION = [1.0, -1.0]
+# T₀[K] for each species
 TZ_ION = [1e6, 1e6]
-# den0[/cc] for each species
+# den₀[/cc] for each species
 DENZ_ION = [1.0, 0.0]
 
 # Far UpS elec temp. Is set to 0 if e- is a separate species.

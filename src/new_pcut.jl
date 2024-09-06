@@ -13,8 +13,8 @@ TODO
 - l_save
 - DwS_sav
 - inj_sav
-- xwt_sav
-- pt_pf_sav
+- xweight_sav
+- ptot_pf_sav
 - pb_pf_sav
 - x_PT_cm_sav
 - xn_per_sav
@@ -26,36 +26,35 @@ TODO
 TODO
 
 ### Modifies
-- wt_running: weight factor of each particle remaining after this pcut
+- weight_running: weight factor of each particle remaining after this pcut
 """
 function new_pcut(
         n_pts_target, n_saved, l_save, grid_sav, DwS_sav,
-        inj_sav, xwt_sav, pt_pf_sav, pb_pf_sav, x_PT_cm_sav, xn_per_sav,
+        inj_sav, xweight_sav, ptot_pf_sav, pb_pf_sav, x_PT_cm_sav, xn_per_sav,
         prp_x_cm_sav, acctime_sec_sav, φ_rad_sav, tcut_sav,
-        n_pts_use, wt_running)
-
-    grid_new        = zeros(Int, na_particles)
-    tcut_new        = zeros(Int, na_particles)
-    DwS_new         = zeros(Bool, na_particles)
-    inj_new         = zeros(Bool, na_particles)
-    xwt_new         = zeros(na_particles)
-    pt_pf_new        = zeros(na_particles)
-    pb_pf_new        = zeros(na_particles)
-    x_PT_cm_new     = zeros(na_particles)
-    xn_per_new      = zeros(na_particles)
-    prp_x_cm_new    = zeros(na_particles)
-    acctime_sec_new = zeros(na_particles)
-    φ_rad_new       = zeros(na_particles)
+        n_pts_use, weight_running)
 
     # Determine multiplicity of splitting; perhaps none needed
     i_mult = max(n_pts_target ÷ n_saved, 1) # In case n_pts_target drops btwn pcuts
+
+    grid_new        = zeros(Int,     n_pts_use*i_mult)
+    tcut_new        = zeros(Int,     n_pts_use*i_mult)
+    DwS_new         = zeros(Bool,    n_pts_use*i_mult)
+    inj_new         = zeros(Bool,    n_pts_use*i_mult)
+    weight_new      = zeros(Float64, n_pts_use*i_mult)
+    ptot_pf_new       = zeros(Float64, n_pts_use*i_mult)
+    pb_pf_new       = zeros(Float64, n_pts_use*i_mult)
+    x_PT_cm_new     = zeros(Float64, n_pts_use*i_mult)
+    xn_per_new      = zeros(Float64, n_pts_use*i_mult)
+    prp_x_cm_new    = zeros(Float64, n_pts_use*i_mult)
+    acctime_sec_new = zeros(Float64, n_pts_use*i_mult)
+    φ_rad_new       = zeros(Float64, n_pts_use*i_mult)
 
     # Calculate effect on particle weights and the weighting factor of each
     # remaining particle in the simulation
     # CHECKTHIS: is that last claim still true if old particles are imported
     # into the simulation?
-    wt_running /= i_mult
-
+    weight_running /= i_mult
 
     # Perform the splitting
     n_pts_new = 0
@@ -68,9 +67,9 @@ function new_pcut(
 
             n_pts_new += 1
 
-            xwt_new[n_pts_new]         = xwt_sav[j] / i_mult
-            pt_pf_new[n_pts_new]        = pt_pf_sav[j]
-            pb_pf_new[n_pts_new]        = pb_pf_sav[j]
+            weight_new[n_pts_new]      = xweight_sav[j] / i_mult
+            ptot_pf_new[n_pts_new]       = pt_pf_sav[j]
+            pb_pf_new[n_pts_new]       = pb_pf_sav[j]
             x_PT_cm_new[n_pts_new]     = x_PT_cm_sav[j]
             grid_new[n_pts_new]        = grid_sav[j]
             DwS_new[n_pts_new]         = DwS_sav[j]
@@ -84,22 +83,7 @@ function new_pcut(
         end  # loop over splits
     end  # loop over saved particles
 
-
-    # Zero out the unused portions of the *_new arrays, just as a precaution
-    xwt_new[n_pts_new+1:end]         .= 0.0
-    pt_pf_new[n_pts_new+1:end]        .= 0.0
-    pb_pf_new[n_pts_new+1:end]        .= 0.0
-    x_PT_cm_new[n_pts_new+1:end]     .= 0.0
-    grid_new[n_pts_new+1:end]        .= 0
-    DwS_new[n_pts_new+1:end]         .= false
-    inj_new[n_pts_new+1:end]         .= false
-    xn_per_new[n_pts_new+1:end]      .= 0.0
-    prp_x_cm_new[n_pts_new+1:end]    .= 0.0
-    acctime_sec_new[n_pts_new+1:end] .= 0.0
-    φ_rad_new[n_pts_new+1:end]       .= 0.0
-    tcut_new[n_pts_new+1:end]        .= 0
-
-    return (grid_new, tcut_new, DwS_new, inj_new, xwt_new, pt_pf_new, pb_pf_new,
+    return (grid_new, tcut_new, DwS_new, inj_new, weight_new, ptot_pf_new, pb_pf_new,
             x_PT_cm_new, xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new,
-            n_pts_new, wt_running)
+            n_pts_new, weight_running)
 end

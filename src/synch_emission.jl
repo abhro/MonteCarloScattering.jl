@@ -1,5 +1,5 @@
 using SpecialFunctions: besselk
-using .constants: MeV2erg, E₀_proton, qp_cgs, ħ_cgs, c_cgs
+using .constants: E₀_proton, qₚ_cgs, ħ_cgs, c_cgs
 using .parameters: psd_max, na_photons, na_ions
 
 """
@@ -21,23 +21,23 @@ This subroutine takes an electron distribution and calculates the synchrotron em
 ### Returns
 
 - energy_γ_cgs: energy bin values of resultant photon distribution (in ergs)
-- synch_emis: emitted synchrotron spectrum, units of erg/sec
+- synch_emis: emitted synchrotron spectrum, units of erg/s
 """
 function synch_emission(
         i_grid, num_hist_bins, p_pf_cgs_therm, dN_therm,
         num_psd_mom_bins, p_pf_cgs_cr, dN_cr, n_photon_synch,
         photon_synch_min_MeV, bins_per_dec_photon,
-        n_ions, aa_ion, denZ_ion, γ_Z, u_Z, flux_px_UpS, flux_energy_UpS, u_2,
+        n_ions, aa_ion, ρ_N₀_ion, γ₀, u₀, flux_px_UpS, flux_energy_UpS, u₂,
         n_grid, btot_grid,
-        i_ion, o_o_mc,
+        i_ion, mc,
     )
 
     # Minimum energy for synch photon spectrum.
     # Max set by value of n_γ_synch and bins_per_dec_photon.
-    energy_γ_min_log = log10(photon_synch_min_MeV * MeV2erg) # Min photon energy in log(ergs)
+    energy_γ_min_log = log10(ustrip(u"erg", photon_synch_min_MeV*u"MeV")) # Min photon energy in log(ergs)
     Δγ = 1 / bins_per_dec_photon
 
-    rest_mass_me = aa_ion[i_ion] * E₀_proton  # electron rest mass energy (erg)
+    rest_mass_mₑ = aa_ion[i_ion] * E₀_proton  # electron rest mass energy (erg)
 
 
     # Get strength of magnetic field, which will be used to find p_fac below. Note that
@@ -47,29 +47,29 @@ function synch_emission(
     if i_grid ≤ n_grid
         bmag_curr = btot_grid[i_grid]
     else
-        density_Z = dot(denZ_ion, aa_ion)
-        energy_density = (flux_energy_UpS + γ_Z*u_Z*density_Z*E₀_proton) / u_2 - flux_px_UpS
-        bmag_curr = √( 8π * 1e-3 * energy_density )
+        ρ_N₀ = dot(ρ_N₀_ion, aa_ion)
+        energy_density = (flux_energy_UpS + γ₀*u₀*ρ_N₀*E₀_proton) / u₂ - flux_px_UpS
+        bmag_curr = √(8π * 1e-3 * energy_density)
     end
 
     # Rybicki & Lightman eq. 6.18 without F factor.
     # units are power per unit frequency per electron (cgs)
     # Above: Note there is no sin(α) factor
-    p_fac = (√3 / 2π) * (qp_cgs^3 * bmag_curr/rest_mass_me)
+    p_fac = (√3 / 2π) * (qₚ_cgs^3 * bmag_curr/rest_mass_mₑ)
 
 
     # Initialize emission array and set energy of output photons
     synch_emis = fill(1e-99, n_photon_synch)
-    energy_γ_cgs = exp10.(energy_γ_min_log .+ (0:n_photon_synch-1)*Δγ) # Photon energy in ergs
+    energy_γ_cgs = exp10.(range(start = energy_γ_min_log, step = Δγ, length = n_photon_synch)) # Photon energy in ergs
 
     nu = 5//3
 
     # Now loop over momenta (i.e. energy) of electrons and calculate the synchrotron emission.
     #-------------------------------------------------------------------------
     # First up, the thermal particles.
-    synch_emission_thermal_particles()
+    synch_emission_thermal_particles!(synch_emis)
     # With the thermal particles finished, move on to the cosmic ray population
-    synch_emission_cosmic_ray()
+    synch_emission_cosmic_ray!(synch_emis)
     #-------------------------------------------------------------------------
     # Finished
 
@@ -109,7 +109,7 @@ function synch_emission(
 end
 
 
-function synch_emission_thermal_particles()
+function synch_emission_thermal_particles!(synch_emis)
     for iii in 0:num_hist_bins-1
 
         # Total number of electrons in Δp
@@ -118,41 +118,41 @@ function synch_emission_thermal_particles()
 
         # Assume electrons with E < 3 MeV contribute no synchrotron emission
         p1 = √(p_pf_cgs_therm[iii] * p_pf_cgs_therm[iii+1]) # Geometric mean
-        p1 < 3MeV2erg/c_cgs && continue
+        p1*c_cgs*u"erg" < 3u"MeV" && continue
 
         # Lorentz factor for electron
-        γ_electron = √( (p1 * o_o_mc)^2  +  1 )
+        γ_electron = hypot(p1/mc, 1)
 
         # Eq. 6.17c Rybicki & Lightman without sin(α)
-        ω_c = 3*(γ_electron^2)*qp_cgs*bmag_curr * o_o_mc/2
+        ω_c = 3*(γ_electron^2)*qₚ_cgs*bmag_curr / 2mc
 
         # Calculate F factor in eq. 6.18 Rybicki & Lightman (see Eq 6.31c)
         #     F(x) ≡ x ∫_x^∞ K_{5/3}(ξ) dξ              (6.31c)
         for iit in 1:n_photon_synch
             if bmag_curr < 1e-20 || ω_c < 1e-55
-                x_F = 0.0
+                F = 0.0
             else
                 ω_γ = energy_γ_cgs[iit] / ħ_cgs    # from E = ħω
                 x = ω_γ/ω_c
 
                 xxx_max_set = 30.0
                 if x ≥ xxx_max_set || x < 1e-15
-                    x_F = 0.0
+                    F = 0.0
                 else
-                    x_F = x * quadgk(t -> besselk(nu, t), x, Inf)
+                    F = x * quadgk(t -> besselk(nu, t), x, Inf)
                 end
             end
 
 
             # In the MC code, the electron spectra passed to synch_emission contain the
             # total number of particles in each momentum shell. Therefore, the emission
-            # returned by this subroutine has units of erg/sec. (It would be erg/(sec⋅cm³)
+            # returned by this subroutine has units of erg/s. (It would be erg/(s⋅cm³)
             # if we had passed density instead of number.)
-            # Also, Eq. (6.18) from Rybicki & Lightman, [xnum_electron * p_fac * x_F], is
+            # Also, Eq. (6.18) from Rybicki & Lightman, [xnum_electron * p_fac * F], is
             # energy production rate per frequency, dP/dω. Since ω_γ is E/ħ, dω = dE/ħ, and
             # so ω_γ/dω = E/dE. Then [dP/dω * ω_γ] is equal to [dP/dE * E], or dP/d(lnE).
-            # This is what subroutine synch_emis expects as output. Has units [erg/sec].
-            tmp_add = xnum_electron * ω_γ * p_fac * x_F
+            # This is what subroutine synch_emis expects as output. Has units [erg/s].
+            tmp_add = xnum_electron * ω_γ * p_fac * F
 
             # Only include emission if it's sufficiently positive
             if tmp_add > 1e-55
@@ -163,7 +163,7 @@ function synch_emission_thermal_particles()
     end
 end
 
-function synch_emission_cosmic_ray()
+function synch_emission_cosmic_ray!(synch_emis)
     for iii in 0:num_psd_mom_bins
 
         # Total number of electrons in Δp
@@ -172,42 +172,40 @@ function synch_emission_cosmic_ray()
 
         # Assume electrons with E < 3 MeV contribute no synchrotron emission
         p1 = √(p_pf_cgs_cr[iii] * p_pf_cgs_cr[iii+1]) # Geometric mean
-        p1 < 3MeV2erg/c_cgs && continue
+        p1*c_cgs*u"erg" < 3u"MeV" && continue
 
         # Lorentz factor for electron
-        γ_electron = √( (p1 * o_o_mc)^2  +  1 )
+        γ_electron = hypot(p1/mc,  1)
 
         # Eq. 6.17c Rybicki & Lightman without sin(α)
-        ω_c = 3*(γ_electron^2)*qp_cgs*bmag_curr * o_o_mc/2
+        ω_c = 3*(γ_electron^2)*qₚ_cgs*bmag_curr / 2mc
 
         # Calculate F factor in eq. 6.18 Rybicki & Lightman (see Eq 6.31c)
         #     F(x) ≡ x ∫_x^∞ K_{5/3}(ξ) dξ              (6.31c)
         for iit in 1:n_photon_synch
             if bmag_curr < 1e-20 || ω_c < 1e-55
-                x_F = 0.0
+                F = 0.0
             else
                 ω_γ = energy_γ_cgs[iit] / ħ_cgs    # from E = ħω
                 x = ω_γ/ω_c
 
                 xxx_max_set = 30.0
                 if x ≥ xxx_max_set || x < 1e-15
-                    x_F = 0.0
+                    F = 0.0
                 else
-                    x_F = x * quadgk(t -> besselk(nu, t), x, Inf)
+                    F = x * quadgk(t -> besselk(nu, t), x, Inf)
                 end
             end
 
-            # In the MC code, the electron spectra passed to synch_emission
-            # contain the total number of particles in each momentum shell.
-            # Therefore, the emission returned by this subroutine has units of
-            # erg/sec. (It would be erg/(sec-cm^3) if we had passed density
-            # instead of number.)
-            # Also, Eq. (6.18) from Rybicki & Lightman, [xnum_electron * p_fac * x_F],
-            # is energy production rate per frequency, dP/dω. Since ω_γ is
-            # E/ħ, dω = dE/ħ, and so ω_γ/dω = E/dE. Then
-            # [dP/dω * ω_γ] is equal to [dP/dE * E], or dP/d(lnE). This is
-            # what subroutine synch_emis expects as output. Has units [erg/sec].
-            tmp_add = xnum_electron * ω_γ * p_fac * x_F
+            # In the MC code, the electron spectra passed to synch_emission contain the
+            # total number of particles in each momentum shell. Therefore, the emission
+            # returned by this subroutine has units of erg/sec. (It would be erg/(s⋅cm³)
+            # if we had passed density instead of number.)
+            # Also, Eq. (6.18) from Rybicki & Lightman, [xnum_electron * p_fac * F], is
+            # energy production rate per frequency, dP/dω. Since ω_γ is E/ħ, dω = dE/ħ, and
+            # so ω_γ/dω = E/dE. Then [dP/dω * ω_γ] is equal to [dP/dE * E], or dP/d(lnE).
+            # This is what synch_emis() expects as output. Has units [erg/s].
+            tmp_add = xnum_electron * ω_γ * p_fac * F
 
             # Only include emission if it's sufficiently positive
             if tmp_add > 1e-55
