@@ -1,11 +1,9 @@
 module debug
-using ..parameters: na_grid, na_ions
-
 #export energy_density, therm_energy_density, zone_vol, energy_pool
 
-energy_density = zeros(na_grid, na_ions)
-therm_energy_density = zeros(na_grid, na_ions)
+energy_density = zeros(n_grid, n_ions)
+therm_energy_density = zeros(n_grid, n_ions)
 
-zone_vol = zeros(na_grid)
-energy_pool = zeros(na_grid)
+zone_vol = zeros(n_grid)
+energy_pool = zeros(n_grid)
 end

@@ -1,5 +1,5 @@
 using .constants: c_cgs
-using .parameters: na_ions, na_photons
+using .parameters: na_photons
 using .io: print_plot_vals
 
 """
@@ -48,8 +48,8 @@ function get_summed_emission(
     #-------------------------------------------------------------------------
     # Pion decay first
     skip_pion_read = false
-    i_grid_start = zeros(Int, na_ions)
-    i_grid_end = zeros(Int, na_ions)
+    i_grid_start = zeros(Int, n_ions)
+    i_grid_end = zeros(Int, n_ions)
     if n_pion_specs > 1
         skip_pion_read = true
         pion_emission()

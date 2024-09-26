@@ -62,7 +62,7 @@ if inp_distr == 1
 elseif inp_distr == 2
     # Set minimum PSD energy using δ-function dist for UpS plasma;
     # allow for a few extra zones below the location of the distribution
-    Emin_keV = 0.2 * energy_inj
+    Emin_keV = energy_inj/5
 end
 
 # Determine minimum momentum associated with the given energy, which will occur for
@@ -114,20 +114,20 @@ begin # "module" iteration_vars
     pxx_flux = Vector{Float64}(undef, n_grid)
     pxz_flux = Vector{Float64}(undef, n_grid)
     energy_flux  = Vector{Float64}(undef, n_grid)
-    esc_flux = zeros(na_ions)
-    px_esc_feb = zeros(na_ions, na_itrs)
-    energy_esc_feb = zeros(na_ions, na_itrs)
-    esc_energy_eff = zeros(0:psd_max, na_ions)
-    esc_num_eff = zeros(0:psd_max, na_ions)
+    esc_flux = zeros(n_ions)
+    px_esc_feb = zeros(n_ions, n_itrs)
+    energy_esc_feb = zeros(n_ions, n_itrs)
+    esc_energy_eff = zeros(0:psd_max, n_ions)
+    esc_num_eff = zeros(0:psd_max, n_ions)
 
     # Arrays for holding thermal distribution information; they're set at the start of
     # the run, but included here because of chance they could change due to fast push
-    n_pts_MB   = zeros(Int, na_ions)
-    ptot_inj   = zeros(na_particles, na_ions)
-    weight_inj = zeros(na_particles, na_ions)
+    n_pts_MB   = zeros(Int, n_ions)
+    ptot_inj   = zeros(na_particles, n_ions)
+    weight_inj = zeros(na_particles, n_ions)
     # Arrays for holding information about particle counts and spectra at various tcuts
-    weight_coupled  = Matrix{Float64}(undef, na_c, na_ions)
-    spectra_coupled = zeros(0:psd_max, na_c, na_ions)
+    weight_coupled  = Matrix{Float64}(undef, na_c, n_ions)
+    spectra_coupled = zeros(0:psd_max, na_c, n_ions)
 end # "module" iteration_vars
 
 
@@ -201,8 +201,8 @@ B_CMBz = B_CMB0 * (1 + redshift)^2
 # Zero out total escaping fluxes and calculate the far UpS fluxes
 #px_esc_flux_UpS_tot = 0.0
 #energy_esc_flux_UpS_tot = 0.0
-px_esc_flux_UpS     = zeros(na_itrs)
-energy_esc_flux_UpS = zeros(na_itrs)
+px_esc_flux_UpS     = zeros(n_itrs)
+energy_esc_flux_UpS = zeros(n_itrs)
 (
  flux_px_UpS, flux_pz_UpS, flux_energy_UpS
 ) = upstream_fluxes(oblique, n_ions, ρ_N₀_ion, T₀_ion, aa_ion,
@@ -275,8 +275,8 @@ energy_density_psd = Vector{Float64}(undef, n_grid)
 energy_transfer_pool = Vector{Float64}(undef, n_grid)
 energy_recv_pool     = Vector{Float64}(undef, n_grid)
 
-energy_density       = Matrix{Float64}(undef, na_c, na_ions)
-therm_energy_density = Matrix{Float64}(undef, na_c, na_ions)
+energy_density       = Matrix{Float64}(undef, na_c, n_ions)
+therm_energy_density = Matrix{Float64}(undef, na_c, n_ions)
 
 psd = OffsetArray{Float64}(undef, (psd_mom_axis, psd_θ_axis, n_grid))
 
@@ -373,8 +373,8 @@ for i_iter in 1:n_itrs # loop_itr
     #  Start of loop over particle species
     #
     #  First species always protons. If electrons present they MUST be last species.
-    #  Each species has mass number "aa" and charge number "zz" in units of
-    #  proton mass and charge, respectively.
+    #  Each species has mass "aa" in units of proton mass and charge "zz" in units of
+    #  elementary charge.
     #------------------------------------------------------------------------
     for i_ion in 1:n_ions # loop_ion
 
@@ -397,8 +397,8 @@ for i_iter in 1:n_itrs # loop_itr
             #
             #  weight: weighting value (used in momentum splitting)
             #  ptot_pf: total plasma frame momentum
-            #  pb_pf: momentum along B field in plasma frame. NOT along x-axis
-            #         unless upstream orientation is parallel
+            #  pb_pf: momentum along B field in plasma frame. NOT along x-axis unless
+            #         upstream orientation is parallel
             #  r_PT_cm: current particle position
             #  i_grid: current grid zone number
             #  l_DwS: whether particle has been downstream

@@ -1,5 +1,5 @@
 using .constants: mₚ_cgs, E₀_proton
-using .parameters: na_ions, na_itrs, psd_max, energy_rel_pt
+using .parameters: energy_rel_pt
 using .transformers: transform_p_PS
 
 const _pf_spike_away = 1000.0

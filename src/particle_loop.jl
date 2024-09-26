@@ -99,7 +99,7 @@ function particle_loop()
     #  -1: default
     #   0: particle escapes
     #   1: particle returns from DwS via convection
-    #   2: particle didn't enter return calcs
+    #   2: particle didn't enter return calculations
     i_return = -1
     i_reason = 0
     lose_pt  = false

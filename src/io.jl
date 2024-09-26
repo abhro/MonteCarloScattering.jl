@@ -5,7 +5,7 @@ using Unitful: cm
 using UnitfulAstro: pc
 
 using ..constants: mₚ_cgs, c_cgs
-using ..parameters: na_c, na_particles, na_ions, psd_max, na_grid, na_c
+using ..parameters: na_particles, psd_max, na_c
 
 export print_input, print_plot_vals, tcut_print
 
@@ -111,22 +111,20 @@ function print_input(
 
 Array parameters/usage:
    na_particles = %i
-        na_ions = %i
         psd_max = %i
       n_pts_max = %i
          n_ions = %i
         psd_mom = %i
          θ_bins = %i
 
-        na_grid = %i
            na_c = %i
         n_xpsec = %i
         n_pcuts = %i
          n_grid = %i
 
 """,
-        na_particles, na_ions, psd_max, n_pts_max, n_ions, num_psd_mom_bins, num_psd_θ_bins,
-        na_grid, na_c, n_xspec, n_pcuts, n_grid)
+        na_particles, psd_max, n_pts_max, n_ions, num_psd_mom_bins, num_psd_θ_bins,
+        na_c, n_xspec, n_pcuts, n_grid)
 
     @info(parameter_str)
     println(outfileunit, parameter_str)

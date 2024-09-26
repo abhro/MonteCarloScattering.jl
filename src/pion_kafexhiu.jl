@@ -1,7 +1,6 @@
 using Unitful, UnitfulAstro
 using UnitfulAstro: GeV, erg
-using .constants: mₚ_cgs, E₀_proton, T_th, rmp
-using .parameters: psd_max, na_photons, na_ions
+using .constants: mₚ_cgs, E₀_proton, T_th
 using .KATV2014: get_σ_π, get_Ffunc, get_Amax
 
 """
@@ -73,7 +72,7 @@ function pion_kafexhiu(
     i_data = 1
 
     if i_data < 1 || i_data > 4
-        error("Invalid selection for cross-section data. i_data must be between 1 and 4, not $i_data")
+        throw(ArgumentError("Invalid selection for cross-section data. i_data must be between 1 and 4, not $i_data"))
     end
     #-------------------------------------------------------------------------
     # Constants fixed
@@ -89,8 +88,8 @@ function pion_kafexhiu(
 
         p_pf_sq = p_pf_cgs_therm[i_fp] * p_pf_cgs_therm[i_fp+1] # Geometric mean
         γ = √(p_pf_sq/mc^2 + 1)
-        Tp  = (γ - 1) * aa*ustrip(GeV, E₀_proton*erg) # particle K.E. in GeV
-        Tp  = Tp / aa  # kinetic energy per nucleon
+        Tp = (γ - 1) * aa*ustrip(GeV, E₀_proton*erg) # particle kinetic energy in GeV
+        Tp /= aa  # kinetic energy per nucleon
         vel = √p_pf_sq / (γ*aa*mₚ_cgs)
 
         # Tp must be at T_th; otherwise no possibility to produce pions/photons
@@ -105,7 +104,7 @@ function pion_kafexhiu(
         # γ-ray production is parametrized as Amax(Tp) * F(Tp, Eγ). Since Amax
         # doesn't depend on photon energy, calculate it here; note that Eγ_max,
         # the maximum photon energy allowed for this value of Tp, is also an output
-        get_Amax(Tp, i_data, s_ECM, σ_π, Eγ_max, Amax)
+        Eγ_max, Amax = get_Amax(Tp, i_data, s_ECM, σ_π)
 
 
         # Now, loop over photon energies. Make sure that kinematic limits are
@@ -173,7 +172,7 @@ function pion_kafexhiu(
         # γ-ray production is parametrized as Amax(Tp)⋅F(Tp, Eγ). Since Amax doesn't depend
         # on photon energy, calculate it here; note that Eγ_max, the maximum photon energy
         # allowed for this value of Tp, is also an output
-        get_Amax(Tp, i_data, s_ECM, σ_π, Eγ_max, Amax)
+        Eγ_max, Amax = get_Amax(Tp, i_data, s_ECM, σ_π)
 
 
         # Now, loop over photon energies. Make sure that kinematic limits are respected,

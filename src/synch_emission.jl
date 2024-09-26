@@ -1,6 +1,5 @@
 using SpecialFunctions: besselk
 using .constants: E₀_proton, qₚ_cgs, ħ_cgs, c_cgs
-using .parameters: psd_max, na_photons, na_ions
 
 """
 This subroutine takes an electron distribution and calculates the synchrotron emission.
@@ -55,7 +54,7 @@ function synch_emission(
     # Rybicki & Lightman eq. 6.18 without F factor.
     # units are power per unit frequency per electron (cgs)
     # Above: Note there is no sin(α) factor
-    p_fac = (√3 / 2π) * (qₚ_cgs^3 * bmag_curr/rest_mass_mₑ)
+    p_fac = √3/2π * (qₚ_cgs^3 * bmag_curr/rest_mass_mₑ)
 
 
     # Initialize emission array and set energy of output photons

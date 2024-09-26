@@ -1,6 +1,6 @@
 # using Unitful, UnitfulAstro
 using .constants: E₀_proton, E₀_electron, qₚ_cgs, T_CMB0, h_cgs, c_cgs, kB_cgs
-using .parameters: psd_max, na_photons, energy_rel_pt, na_ions
+using .parameters: na_photons, energy_rel_pt
 using .io: print_plot_vals
 
 """

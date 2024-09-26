@@ -25,7 +25,7 @@ function get_transform_dN(
         psd, m, transform_corn_pt, transform_corn_ct, γᵤ, i_approx::Integer,
         num_psd_mom_bins, psd_mom_bounds)
 
-    dN_out = zeros(0:psd_max)
+    dN_out = zeros(psd_mom_axis)
 
     # Loop over cos(θ) and ptot space to re-bin input PSD slice
     #--------------------------------------------------------------------------
@@ -34,8 +34,8 @@ function get_transform_dN(
 
             psd[i,j] < 1e-66 && continue # Skip empty cells in PSD
 
-            # In the below block, "cell_weight" includes n0*u1 normalization and division by
-            # |vx| to change #/(cm²⋅s) to #/cm³. Divide by γ of flow speed as part of
+            # In the below block, "cell_weight" includes n₀⋅u₁ normalization and division by
+            # |vₓ| to change #/(cm²⋅s) to #/cm³. Divide by γ of flow speed as part of
             # Lorentz transformation of phase-space density (Rybicki & Lightman, p.146)
             #
             # Obtain cell_weight, p_cell_lo and p_cell_hi

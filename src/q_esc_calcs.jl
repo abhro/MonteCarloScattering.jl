@@ -1,5 +1,5 @@
 using .constants: kB_cgs, mₚ_cgs, mₑ_cgs, c_cgs
-using .parameters: β_rel_fl, na_ions
+using .parameters: β_rel_fl
 
 """
 Use the Rankine-Hugoniot relations to calculate the escaping momentum & energy flux.
