@@ -21,9 +21,10 @@ Uses the Rankine-Hugoniot jump conditions to calculate the downstream conditions
 particle shock. Big difference between this subroutine and calc_rRH is that we already know
 what the DwS speed is, courtesy of r_comp in the input.
 
+Shock must be parallel (not oblique).
+
 ### Arguments
 
-- oblique: whether the shock is oblique
 - bmag₀: far UpS magnetic field strength[Gauss]
 - r_comp: compression ratio of shock
 - β₀: UpS bulk fluid speed, over c
@@ -36,26 +37,12 @@ what the DwS speed is, courtesy of r_comp in the input.
 - θ_B: angle[deg] between DwS magnetic field and shock normal
 - θᵤ: angle[deg] between DwS fluid velocity and shock normal
 """
-function calc_DwS(oblique, bmag₀, r_comp, β₀)
-
-    #--------------------------------------------------------------------------
-    #  Possibility 1: Parallel at any shock speed
-    #--------------------------------------------------------------------------
-    if !oblique
-        β    = β₀ / r_comp
-        γ    = 1 / √(1 - β^2)
-        bmag = bmag₀
-        θ_B  = 0.0
-        θᵤ   = 0.0
-
-    #--------------------------------------------------------------------------
-    #  Possibility 2: Oblique at any shock speed. Not currently supported by
-    #  code, but included here in case code is extended in future.
-    #--------------------------------------------------------------------------
-    else
-        error("Not implemented for oblique shocks.")
-    end
-
+function calc_DwS(bmag₀, r_comp, β₀)
+    β    = β₀ / r_comp
+    γ    = 1 / √(1 - β^2)
+    bmag = bmag₀
+    θ_B  = 0.0
+    θᵤ   = 0.0
     return β, γ, bmag, θ_B, θᵤ
 end
 
@@ -71,38 +58,40 @@ non-relativistic thermal speeds to make UpS adiabatic index exactly 5/3.
 - m_ion: array of particle species' mass
 - ρ_N₀_ion: array of far UpS densities for particle species
 - T₀_ion: array of particle species' far UpS temperatures
+
+Shock must be parallel (not oblique)
+
+Unused:
 - oblique: controls whether to use parallel or oblique formulations of R-H relations
 
 ### Returns
 - r_RH: Rankine-Hugoniot compression ratio
 - Γ₂_RH: ratio of specific heats (adiabatic index) for DwS region, assuming r_comp = r_RH
 """
-function calc_rRH(
-        β₀, γ₀, n_ions, m_ion, ρ_N₀_ion,
-        T₀_ion, oblique)
+function calc_rRH(u₀, β₀, γ₀, species)
 
     #--------------------------------------------------------------------------
-    #  Four possibilities for R-H relations: nonrelativistic/relativistic and parallel/oblique.
+    #  Two possibilities for R-H relations: nonrelativistic/relativistic
     #  Determine which of the four to use. Cutoff for nonrelativistic/relativistic is set in module 'parameters'
     #--------------------------------------------------------------------------
     relativistic = (β₀ < β_rel_fl)
 
     # Calculate thermal pressure of far upstream gas
-    P₀ = dot(ρ_N₀_ion, T₀_ion) * kB_cgs
-    ρ₀ = dot(ρ_N₀_ion, m_ion)
+    P₀ = dot(density.(species), temperature(species)) * Unitful.k
+    ρ₀ = dot(density.(species), mass.(species))
 
     #--------------------------------------------------------------------------
     #  Possibility 1: Nonrelativistic, parallel
     #  Solution comes from Ellison (1985) [1985JGR....90...29E].
     #  Uses far UpS Mach number to calculate r_RH.
     #--------------------------------------------------------------------------
-    if !relativistic && !oblique
+    if !relativistic
 
         # Assume an adiabatic index of 5/3, appropriate for non-rel ideal gas,
         # to calculate the far UpS sound speed and Mach number     #assumecold
         Γ_sph = 5//3
-        c_s   = √(Γ_sph * P₀ / ρ₀)
-        M_Z   = β₀ * c_cgs / c_s
+        cₛ    = √(Γ_sph * P₀ / ρ₀)
+        M_Z   = β₀ * Unitful.c / cₛ |> NoUnits
 
         # Finally, use Equation (11) from Ellison (1985) to calculate r_RH.
         # Note that q = 0 here b/c we assume no escaping flux. This simplifies
@@ -130,15 +119,16 @@ function calc_rRH(
     #  Assumes that downstream particle distributions are δ-functions.
     #  Solves for p2 using Newton's method, then works backwards to r_RH.
     #-------------------------------------------------------------------------
-    elseif relativistic && !oblique
+    else
 
         # FIXME the comment refers to old version of variables
         # Calculate two quantities to be used during loop to find r_RH: the
         # rest mass-energy of each species, and the (number) density relative to protons
-        relative_ion_energy = (dot(m_ion, # rest energy of each species (to be multiplied by c²)
-                                   ρ_N₀_ion) # density relative to protons (to be divided by ρ_N₀_proton)
-                               * c_cgs^2    # turn mass into rest energy of all species
-                               / ρ_N₀_ion[1]) # turn densities into density relative to protons
+        relative_ion_energy = (
+            dot(mass.(species), # rest energy of each species (to be multiplied by c²)
+                density.(species)) # density relative to protons (to be divided by ρ_N₀_proton)
+            * c_cgs^2      # turn mass into rest energy of all species
+            / first(density.(species))) # turn densities into density relative to protons
 
         # Assume an adiabatic index of 5/3, appropriate for non-rel ideal gas,
         # to calculate the far UpS enthalpy      #assumecold
@@ -180,13 +170,6 @@ function calc_rRH(
         r_RH = β₀/β₂
         #------------------------------------------------------------------------
         # r_RH found using Newton's method
-
-    #--------------------------------------------------------------------------
-    #  Possibility 3: Oblique at any shock speed. Not currently supported by
-    #  code, but included here in case code is extended in future.
-    #--------------------------------------------------------------------------
-    else
-        error("Not implemented for oblique shocks.")
     end
 
     return r_RH, Γ₂_RH
@@ -437,6 +420,8 @@ shocks would induce some z-velocity in the shock profile even though particles i
 arrive with no bulk z component. Also assumes isotropic initial pressure, so no off-diagonal
 components in pressure tensor.
 
+Shock must be parallel (not oblique). Set `oblique` to `false`.
+
 ### Arguments
 
 FIXME
@@ -448,13 +433,7 @@ No inputs; pulls everything from module 'controls'
 - flux_pz_UpS: far UpS momentum flux, z component
 - flux_energy_UpS: far UpS energy flux
 """
-function upstream_fluxes(
-        oblique, n_ions, ρ_N₀_ion, T₀_ion, m_ion,
-        bmag₀, θ_B₀,
-        u₀, β₀, γ₀
-    )
-
-    oblique && error("Oblique shocks are not supported")
+function upstream_fluxes(n_ions, ρ_N₀_ion, T₀_ion, m_ion, bmag₀, θ_B₀, u₀, β₀, γ₀)
 
     # UpS internal energy density and pressure, assuming isotropic particle distribution.
     # Note that this INCLUDES the mass-energy density, which is typically omitted in
@@ -543,8 +522,8 @@ function upstream_machs(β₀, n_ions, ρ_N₀_ion, T₀_ion, m_ion, bmag₀)
     # Assume cold UpS plasma, so that the adiabatic index is 5/3 identically   #assumecold
     Γ = 5//3
 
-    P₀ = dot(ρ_N₀_ion, T₀_ion) * kB_cgs # pressure
-    ρ₀ = dot(ρ_N₀_ion, m_ion)           # mass density
+    P₀ = dot(number_density.(species), temperature.(species)) * Unitful.k # pressure
+    ρ₀ = dot(number_density.(species), mass.(species))                    # mass density
 
     relativistic = (β₀ ≥ β_rel_fl)
 
@@ -556,6 +535,10 @@ end
 Return sonic mach number (ratio of speed to local speed of sound)
 """
 function mach_sonic(u, P, ρ, Γ, relativistic)
+    cₛ = sound_speed(P, ρ, Γ, relativistic)
+    return u / cₛ
+end
+function sound_speed(P, ρ, Γ, relativistic)
     if relativistic
         # Find FK1979's R factor, the ratio of pressure to rest mass energy density
         R = P / (ρ * c_cgs^2) # dimensionless auxiliary variable
@@ -563,17 +546,21 @@ function mach_sonic(u, P, ρ, Γ, relativistic)
         # Compute the speed of sound using Fujimura & Kennel
         #     cₛ²/c² = ΓR/(aR + 1)                              FK1979 Eq. 13
         a = Γ / (Γ - 1)     # defined near FK1979 Equation (6)
-        cₛ = c_cgs * √(Γ * R / (a*R + 1))
+        return c_cgs * √(Γ * R / (a*R + 1))
     else
-        cₛ = √(Γ * P / ρ) # cₛ = √(K/ρ), where K = ΓP is the bulk modulus
+        return √(Γ * P / ρ) # cₛ = √(K/ρ), where K = ΓP is the bulk modulus
     end
-    return u / cₛ
 end
 
 """
 Return Alfvénic mach number (ratio of speed to Alfvén wave group velocity)
 """
 function mach_alfven(u, P, ρ, Γ, B, relativistic)
+    v_a = alfven_speed(P, ρ, Γ, B, relativistic)
+    return u / v_A
+end
+
+function alfven_speed(P, ρ, Γ, B, relativistic)
     if relativistic
         # And into Gedalin (1993)'s Equation (46); note assumption that
         # equation of state is    e = ρc² + P/(Γ-1)
@@ -589,8 +576,6 @@ function mach_alfven(u, P, ρ, Γ, B, relativistic)
     else
         v_A = B / √(4π * ρ) # Alfvén wave group velocity
     end
-
-    return u / v_A
 end
 
 """
@@ -735,7 +720,9 @@ function set_custom_εB!(
         end
         energy_density = (flux_energy_UpS + γ₀*u₀*ρ_N₀*E₀_proton) / ux_sk_grid[i] - flux_px_UpS
         @debug("Setting εB_grid array elements", i, εB_grid[i], energy_density)
-        btot_grid[i] = √(8π * εB_grid[i] * energy_density)
+        # FIXME this tries to be a square root of a negative number sometimes
+        #btot_grid[i] = √(8π * εB_grid[i] * energy_density)
+        btot_grid[i] = √abs(8π * εB_grid[i] * energy_density)
     end
 
     return εB_grid, btot_grid
@@ -772,7 +759,7 @@ function init_pop(
         do_fast_push, inp_distr, i_ion, m,
         # from controls module
         T₀_ion, energy_inj, inj_weight, n_pts_inj, ρ_N₀_ion, x_grid_start, rg₀, η_mfp,
-        x_fast_stop_rg, β₀, γ₀, u₀, n_ions, m_ion, oblique,
+        x_fast_stop_rg, β₀, γ₀, u₀, n_ions, m_ion,
         # from grid_vars module
         n_grid, x_grid_rg, ux_sk_grid, γ_sf_grid,
         # from iteration_vars module
@@ -849,7 +836,7 @@ function init_pop(
     if i_ion == 1
         flux_update!(
             pxx_flux, pxz_flux, energy_flux,
-            m_ion, ρ_N₀_ion, T₀_ion, oblique, relativistic,
+            m_ion, ρ_N₀_ion, T₀_ion, relativistic,
             i_stop,
             γ₀, u₀, γ_sf_grid, ux_sk_grid,
         )
@@ -909,7 +896,7 @@ end
 
 function flux_update!(
         pxx_flux, pxz_flux, energy_flux,
-        m_ion, ρ_N₀_ion, T₀_ion, oblique, relativistic,
+        m_ion, ρ_N₀_ion, T₀_ion, relativistic,
         i_stop,
         γ₀, u₀, γ_sf_grid, ux_sk_grid
     )
@@ -942,20 +929,16 @@ function flux_update!(
         # WARNING: these fluxes do not include contributions from a strong
         # magnetic field. This is incorporated during the smoothing process.
         #----------------------------------------------------------------------
-        if !oblique
-            flux_pz = 0.0
-            if !relativistic
-                flux_px = ρ_curr * ux_sk_grid[i]^2 * (1 + β_curr^2) + pressure_curr * (1 + Γ_sph/(Γ_sph-1) * β_curr^2)
-                flux_energy = (ρ_curr/2 * ux_sk_grid[i]^3 * (1 + 1.25*β_curr^2)
-                               + pressure_curr * ux_sk_grid[i] * Γ_sph/(Γ_sph-1) * (1 + β_curr^2))
-            else
-                flux_px = pressure_curr + γ_β_curr^2 * (ρ_curr*c_cgs^2 + Γ_sph/(Γ_sph-1)*pressure_curr)
-                flux_energy = (γ_β_curr^2 * c_cgs / (ux_sk_grid[i]/c_cgs) * (ρ_curr*c_cgs^2 + Γ_sph/(Γ_sph-1)*pressure_curr)
-                               # Subtract mass-energy flux from flux_energy to bring it in line with non-rel calculations
-                               - γ_β_curr*c_cgs * ρ_curr * c_cgs^2)
-            end
+        flux_pz = 0.0
+        if !relativistic
+            flux_px = ρ_curr * ux_sk_grid[i]^2 * (1 + β_curr^2) + pressure_curr * (1 + Γ_sph/(Γ_sph-1) * β_curr^2)
+            flux_energy = (ρ_curr/2 * ux_sk_grid[i]^3 * (1 + 1.25*β_curr^2)
+                           + pressure_curr * ux_sk_grid[i] * Γ_sph/(Γ_sph-1) * (1 + β_curr^2))
         else
-            error("Fast push cannot handle oblique shocks yet")
+            flux_px = pressure_curr + γ_β_curr^2 * (ρ_curr*c_cgs^2 + Γ_sph/(Γ_sph-1)*pressure_curr)
+            flux_energy = (γ_β_curr^2 * c_cgs / (ux_sk_grid[i]/c_cgs) * (ρ_curr*c_cgs^2 + Γ_sph/(Γ_sph-1)*pressure_curr)
+                           # Subtract mass-energy flux from flux_energy to bring it in line with non-rel calculations
+                           - γ_β_curr*c_cgs * ρ_curr * c_cgs^2)
         end
         #--------------------------------------------------------------------
         # Fluxes calculated
@@ -1031,8 +1014,8 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, ρ_N₀
     # Find min and max momenta of M-B curve
     if !relativistic
         # In non-rel case, kinetic energy ≈ thermal energy
-        p_min = √(2particle_mass * kT_min)
-        p_max = √(2particle_mass * kT_max)
+        p_min = √(2m * kT_min)
+        p_max = √(2m * kT_max)
     else
         # Once particles are relativistic, rest-mass energy becomes important:
         #     E² = p²c² + m²c⁴  ≈  (kT + mc²)²
@@ -1044,7 +1027,7 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, ρ_N₀
     p_range = range(start = p_min, step = Δp, length = num_therm_bins+1)
     # define energy over kT
     if !relativistic
-        E_range = p_range .^ 2 / (2particle_mass * kT)
+        E_range = p_range.^2 / (2m * kT)
     else
         E_range = hypot.(p_range*c_cgs, rm_energy) / kT
     end

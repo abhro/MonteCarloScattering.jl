@@ -9,6 +9,7 @@ using OffsetArrays
 
 include("parameters.jl"); using .parameters
 include("constants.jl"); using .constants
+include("utils.jl")
 include("initializers.jl"); using .initializers
 include("io.jl"); using .io
 include("transformers.jl"); using .transformers
@@ -24,6 +25,7 @@ begin
     include("iter_init.jl")
     include("iter_finalize.jl")
     include("particle_loop.jl")
+    include("pcut_init.jl")
     include("pcut_finalize.jl")
     include("ion_init.jl")
     include("ion_finalize.jl")
@@ -205,7 +207,7 @@ px_esc_flux_UpS     = zeros(n_itrs)
 energy_esc_flux_UpS = zeros(n_itrs)
 (
  flux_px_UpS, flux_pz_UpS, flux_energy_UpS
-) = upstream_fluxes(oblique, n_ions, ρ_N₀_ion, T₀_ion, aa_ion,
+) = upstream_fluxes(n_ions, ρ_N₀_ion, T₀_ion, aa_ion,
                     bmag₀, θ_B₀, u₀, β₀, γ₀)
 
 # Determine upstream Mach numbers (sonic & Alfvén)
@@ -378,7 +380,7 @@ for i_iter in 1:n_itrs # loop_itr
     #------------------------------------------------------------------------
     for i_ion in 1:n_ions # loop_ion
 
-        ion_init()
+        vals = ion_init(i_iter, i_ion)
 
         #----------------------------------------------------------------------
         #  Start of loop over pcuts
@@ -388,7 +390,7 @@ for i_iter in 1:n_itrs # loop_itr
         #----------------------------------------------------------------------
         for i_cut in 1:n_pcuts # loop_pcut
 
-            pcut_init()
+            pcut_init(i_cut)
 
             #--------------------------------------------------------------------
             #  Start of loop over particles
@@ -413,7 +415,7 @@ for i_iter in 1:n_itrs # loop_itr
             #$omp parallel for default(none), schedule(dynamic,1), num_threads(6)
             for i_prt in 1:n_pts_use # loop_pt
 
-                particle_loop()
+                particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
 
             end # loop_pt
             #$omp end parallel do

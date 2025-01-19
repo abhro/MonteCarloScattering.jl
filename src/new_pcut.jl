@@ -13,7 +13,7 @@ TODO
 - l_save
 - DwS_sav
 - inj_sav
-- xweight_sav
+- weight_sav
 - ptot_pf_sav
 - pb_pf_sav
 - x_PT_cm_sav
@@ -30,7 +30,7 @@ TODO
 """
 function new_pcut(
         n_pts_target, n_saved, l_save, grid_sav, DwS_sav,
-        inj_sav, xweight_sav, ptot_pf_sav, pb_pf_sav, x_PT_cm_sav, xn_per_sav,
+        inj_sav, weight_sav, ptot_pf_sav, pb_pf_sav, x_PT_cm_sav, xn_per_sav,
         prp_x_cm_sav, acctime_sec_sav, φ_rad_sav, tcut_sav,
         n_pts_use, weight_running)
 
@@ -67,8 +67,8 @@ function new_pcut(
 
             n_pts_new += 1
 
-            weight_new[n_pts_new]      = xweight_sav[j] / i_mult
-            ptot_pf_new[n_pts_new]       = pt_pf_sav[j]
+            weight_new[n_pts_new]      = weight_sav[j] / i_mult
+            ptot_pf_new[n_pts_new]     = pt_pf_sav[j]
             pb_pf_new[n_pts_new]       = pb_pf_sav[j]
             x_PT_cm_new[n_pts_new]     = x_PT_cm_sav[j]
             grid_new[n_pts_new]        = grid_sav[j]

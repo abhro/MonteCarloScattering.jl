@@ -1,4 +1,4 @@
-function particle_loop()
+function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
     # To maintain identical results between OpenMP and serial versions,
     # set RNG seed based on current iteration/ion/pcut/particle number
     iseed_mod =  (  (i_iter - 1)*n_ions*n_pcuts*n_pts_max
@@ -6,6 +6,11 @@ function particle_loop()
                   + (i_cut - 1)                *n_pts_max
                   +  i_prt)
     Random.seed!(iseed_mod)
+
+    (
+     aa, zz, m, mc,
+     nc_unit,
+    ) = vals
 
     # Reset the counter for number of times through the main loop
     helix_count = 0
@@ -44,7 +49,7 @@ function particle_loop()
     global gyro_rad_tot_cm = ptot_pf * c_cgs * gyro_denom
 
     # Gyroperiod in seconds
-    gyro_period_sec = 2π * γₚ_pf * aa*mp_cgs * c_cgs * gyro_denom
+    gyro_period_sec = 2π * γₚ_pf * aa*mₚ_cgs * c_cgs * gyro_denom
 
 
     # Get the properties of the grid zone the particle's in
@@ -214,7 +219,7 @@ function particle_loop()
 
               # Calculate the new momentum based on the new energy,
               # and rescale components accordingly
-              ptot_pf_f = aa*mp_cgs * c_cgs * √(γ_pf_f^2 - 1)
+              ptot_pf_f = aa*mₚ_cgs * c_cgs * √(γ_pf_f^2 - 1)
               scale_fac = ptot_pf_f / ptot_pf
 
               pb_pf *= scale_fac
@@ -234,7 +239,7 @@ function particle_loop()
 
               # Calculate the new momentum based on the new energy, and
               # rescale components accordingly
-              ptot_pf_f = aa*mp_cgs * c_cgs * √(γ_pf_f^2 - 1)
+              ptot_pf_f = aa*mₚ_cgs * c_cgs * √(γ_pf_f^2 - 1)
               scale_fac = ptot_pf_f / ptot_pf
 
               pb_pf *= scale_fac
@@ -248,7 +253,7 @@ function particle_loop()
             # recalculate the shock-frame momenta
             ptot_sk, p_sk, γₚ_sk = transform_p_PS(aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
                                                   ux_sk, uz_sk, utot, γᵤ_sf,
-                                                  b_cosθ, b_sinθ, oblique, mc)
+                                                  b_cosθ, b_sinθ, mc)
             px_sk = p_sk.x
             pz_sk = p_sk.z
           end
@@ -271,8 +276,8 @@ function particle_loop()
           if ptot_pf > pmax_cutoff
             # Transform plasma frame momentum into shock frame to test there also
             ptot_sk, p_sk, γₚ_sk = transform_p_PS(aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                                                    ux_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
-                                                    oblique, mc)
+                                                  ux_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
+                                                  mc)
 
             if ptot_sk > pmax_cutoff
               i_reason = 2
@@ -434,7 +439,7 @@ function particle_loop()
           # Remember to take gyration about magnetic field into account
           φ_rad = mod2pi(φ_rad + 2π/xn_per)
 
-          x_move_bpar = pb_pf * t_step / (γₚ_pf * aa*mp_cgs)
+          x_move_bpar = pb_pf * t_step / (γₚ_pf * aa*mₚ_cgs)
 
           r_PT_cm = SVector(r_PT_old.x + γᵤ_sf * (x_move_bpar * b_cosθ
                                                   - gyro_rad_cm * b_sinθ * (cos(φ_rad)-cos(φ_rad_old))
@@ -489,7 +494,7 @@ function particle_loop()
           #    particles in the DwS frame, <u> = u₂ since the average thermal *velocity* of
           #    the population is 0.
           #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
-          L_diff = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp_cgs*γₚ_pf * u₂)
+          L_diff = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mₚ_cgs*γₚ_pf * u₂)
 
           @info "Particle crossing shock going UpS → DwS" prp_x_cm
           prp_x_cm = max(prp_x_cm, L_diff)
@@ -510,7 +515,7 @@ function particle_loop()
             i_grid_feb, pxx_flux, pxz_flux,
             energy_flux, energy_esc_UpS, px_esc_UpS, spectra_sf, spectra_pf,
             n_cr_count, num_crossings, psd,
-            n_xspec, x_spec, feb_UpS, oblique, γ₀, u₀, mc,
+            n_xspec, x_spec, feb_UpS, γ₀, u₀, mc,
             n_grid, x_grid_cm,
             therm_grid, therm_px_sk, therm_pt_sk, therm_weight,
         )
@@ -539,9 +544,9 @@ function particle_loop()
           #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
           if aa < 1 && ptot_pf < p_electron_crit
             gyro_fac = p_electron_crit * c_cgs * gyro_denom
-            v_fac = gyro_fac * p_electron_crit / (aa*mp_cgs*γ_electron_crit * u₂)
+            v_fac = gyro_fac * p_electron_crit / (aa*mₚ_cgs*γ_electron_crit * u₂)
           else
-            v_fac = gyro_rad_tot_cm * ptot_pf / (aa*mp_cgs*γₚ_pf * u₂)
+            v_fac = gyro_rad_tot_cm * ptot_pf / (aa*mₚ_cgs*γₚ_pf * u₂)
           end
           L_diff = η_mfp/3 * v_fac
 
@@ -568,7 +573,7 @@ function particle_loop()
         # If particle escaped DwS, handle final calculations here
         if i_return == 0
 
-            vel = ptot_pf / (aa*mp_cgs)
+            vel = ptot_pf / (aa*mₚ_cgs)
             if (γₚ_pf - 1) ≥ energy_rel_pt
                 vel /= γₚ_pf
             end
@@ -599,7 +604,7 @@ function particle_loop()
                        num_psd_θ_bins,
                        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
                        ux_sk, uz_sk, utot,
-                       γᵤ_sf, b_cosθ, b_sinθ, weight, oblique, mc)
+                       γᵤ_sf, b_cosθ, b_sinθ, weight, mc)
     end
 
 

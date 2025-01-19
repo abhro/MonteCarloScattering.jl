@@ -382,7 +382,7 @@ products along the xyz axes.
 function transform_p_PS(
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, ux_sk, uz_sk, utot,
         γᵤ_sf, b_cosθ, b_sinθ,
-        oblique, mc)
+        mc)
 
     φ_p = φ_rad + π/2
 
@@ -397,22 +397,10 @@ function transform_p_PS(
                    p_perp_b_pf * sin(φ_p),
                    pb_pf*b_sinθ + p_p_cos*b_cosθ)
 
-    @debug("Taking branch for oblique", oblique)
-
     # xyz shock frame components
-    if oblique
-        p_sk = SVector(((γᵤ_sf-1)*(ux_sk/utot)^2 + 1) * p_pf.x +
-                       (γᵤ_sf-1)*(ux_sk*uz_sk/utot^2) * p_pf.z +
-                       γᵤ_sf * γₚ_pf * aa*mₚ_cgs * ux_sk,
-                       p_pf.y,
-                       (γᵤ_sf-1)*(ux_sk*uz_sk/utot^2) * p_pf.x +
-                       ((γᵤ_sf-1)*(uz_sk/utot)^2 + 1) * p_pf.z +
-                       γᵤ_sf * γₚ_pf * aa*mₚ_cgs * uz_sk)
-    else
-        p_sk = SVector(γᵤ_sf * (p_pf.x + γₚ_pf * aa*mₚ_cgs * ux_sk),
-                       p_pf.y,
-                       p_pf.z)
-    end
+    p_sk = SVector(γᵤ_sf * (p_pf.x + γₚ_pf * aa*mₚ_cgs * ux_sk),
+                   p_pf.y,
+                   p_pf.z)
 
     # Parallel/perpendicular (new) shock frame components
     ptot_sk = norm(p_sk)

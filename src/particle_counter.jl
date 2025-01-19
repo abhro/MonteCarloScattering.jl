@@ -636,7 +636,7 @@ The array that would be dNdp_cr_pvals is already set, as psd_mom_bounds
 """
 function get_normalized_dNdp(
         nc_unit,
-        oblique, jet_rad_pc, jet_sph_frac, m_ion, ρ_N₀_ion, β₀, γ₀, n_ions, do_multi_dNdps,
+        jet_rad_pc, jet_sph_frac, m_ion, ρ_N₀_ion, β₀, γ₀, n_ions, do_multi_dNdps,
         num_psd_mom_bins, psd_mom_bounds,
         n_grid, x_grid_cm, ux_sk_grid,
         i_iter,
@@ -647,9 +647,6 @@ function get_normalized_dNdp(
     therm_temp = zeros(0:psd_max, 3)
     therm_pvals_temp = zeros(0:psd_max, 3)
     dNdp_therm_rebin = zeros(0:psd_max, 3)
-
-    # Warning (stop) statement about code
-    oblique && error("Lorentz transforms not written to handle oblique shocks")
 
     # Administrative constants to be used during main computation loops
     #---------------------------------------------------------------------------

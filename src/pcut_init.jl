@@ -1,8 +1,8 @@
-function pcut_init()
+function pcut_init(i_cut)
     # Initialize all of the *_sav arrays to help prevent bleeding over between pcuts or ion species
     l_save .= false  # Whole array must be initialized in case number of particles changes from pcut to pcut
     weight_sav      .= 0.0
-    ptot_pf_sav       .= 0.0
+    ptot_pf_sav     .= 0.0
     pb_pf_sav       .= 0.0
     x_PT_cm_sav     .= 0.0
     grid_sav        .= 0

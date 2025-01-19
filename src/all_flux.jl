@@ -50,7 +50,7 @@ function all_flux!(
         i_grid_feb, pxx_flux, pxz_flux, energy_flux, energy_esc_UpS, px_esc_UpS,
         spectra_sf, spectra_pf, n_cr_count, num_crossings, psd,
         # from controls
-        n_xspec, x_spec, feb_UpS, oblique, γ₀, u₀, mc,
+        n_xspec, x_spec, feb_UpS, γ₀, u₀, mc,
         # from grid_vars
         n_grid, x_grid_cm,
 
@@ -87,7 +87,7 @@ function all_flux!(
     # that will be reused during the call to all_flux
     ptot_sk, p_sk, γₚ_sk = transform_p_PS(
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, ux_sk, uz_sk, utot, γᵤ_sf,
-        b_cosθ, b_sinθ, oblique, mc)
+        b_cosθ, b_sinθ, mc)
 
     if ptot_sk > abs(p_sk.x*all_flux_spike_away)
         pt_o_px_sk = all_flux_spike_away
@@ -125,9 +125,6 @@ function all_flux!(
                 spectra_sf[i_pt, i] += weight * pt_o_px_sk
 
 
-                #TODO: if the shock is oblique, need to replace pb_pf with px_pf below,
-                # as well as changing the outputs from transform_p_PS to include px_pf at all
-                oblique && error("Cannot calculate flux_weight_fac when pb_pf != px_pf")
                 # Spectrum in plasma frame; flux_weight_fac corresponds to vx_pf/vx_sk and
                 # measures relative likelihood of crossing in the plasma frame
                 # given a known crossing in the shock frame

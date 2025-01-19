@@ -143,7 +143,7 @@ r_comp = %f
 
     fluxes_str = @sprintf("""
 
-u₀ = %f cm/s            u₂ = %f cm/s
+u₀ = %.4e cm/s        u₂ = %.4e cm/s
 β₀ = %f                 β₂ = %f
 γ₀ = %f                 γ₂ = %f
 ρ₀ = %f prot/cm³        ρ₂ = %f prot/cm³
@@ -156,9 +156,9 @@ u₀ = %f cm/s            u₂ = %f cm/s
     # Relevant angles and field strengths
     magfield_str = @sprintf("""
 
-bmag₀ = %f G             bmag₂ = %f G
- θ_B₀ = %f°         θ_B₂(calc) = %f°
-                    θ_u₂(calc) = %f°
+bmag₀ = %.4f G             bmag₂ = %.4f G
+ θ_B₀ = %.4f°         θ_B₂(calc) = %.4f°
+                       θ_u₂(calc) = %f°
 
 """, bmag₀, bmag₂, θ_B₀, θ_B₂, θ_u₂)
     @info(magfield_str)
@@ -169,8 +169,8 @@ bmag₀ = %f G             bmag₂ = %f G
     temp_electron = T₀_ion[i_electron]
     temp_str = @sprintf("""
 
-T₀(proton)   = %f K
-T₀(electron) = %f K
+T₀(proton)   = %.4e K
+T₀(electron) = %.4e K
 
 """, T₀_ion[1], temp_electron)
 
@@ -179,8 +179,8 @@ T₀(electron) = %f K
 
     mach_str = @sprintf("""
 
-Mach(sonic)  = %f
-Mach(Alfven) = %f
+Mach(sonic)  = %.3f
+Mach(Alfven) = %.3f
 
 """, mach_sonic, mach_alfven)
 
@@ -191,8 +191,8 @@ Mach(Alfven) = %f
     # Divisions of gyroperiod
     gyroperiod_str = @sprintf("""
 
-N_g(coarse) = %f
-N_g(fine)   = %f
+N_g(coarse) = %i
+N_g(fine)   = %i
 
 """, xn_per_coarse, xn_per_fine)
     @info(gyroperiod_str)

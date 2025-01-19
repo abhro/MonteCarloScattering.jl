@@ -1,8 +1,11 @@
 # Seed for random number generator
 ISEED = 210
 
-# Shock speed as: km/s, Lorentz factor, or beta. 1st nonzero value used
-SKSPD = [0.0, 5.0, 0.0]
+# Shock speed as: km/s, Lorentz factor γ, or β
+SKSPD = 5.0
+# Units of shock speed. One of: "km/s", "gamma", "γ", or "c"
+# gamma and γ are the lorentz factors, and c is in units of c, i.e., β
+SKSPD_UNIT = "gamma"
 
 # Number of iterations to perform
 NITRS = 20
@@ -44,7 +47,7 @@ GYFAC = 1.0
 BMAGZ = 1e-5
 
 # UpS angle[deg] between B-field and shock normal
-THTBZ = 0.0
+#THTBZ = 0.0
 
 # Start of grid[rg0]. Can not be closer than UpS FEB.
 XGDUP = -1e7

@@ -5,14 +5,14 @@ using .parameters: β_rel_fl
 Use the Rankine-Hugoniot relations to calculate the escaping momentum & energy flux.
 """
 function q_esc_calcs(
-        Γ, r_comp, r_RH, u₀, β₀, γ₀, oblique, n_ions,
+        Γ, r_comp, r_RH, u₀, β₀, γ₀, n_ions,
         aa_ion, zz_ion, T₀_ion, ρ_N₀_ion, γ₂, β₂, u₂)
 
     # Quick test first. If r_comp = r_RH, we expect no escaping flux.
     r_comp == r_RH && return 0.0, 0.0
 
     #--------------------------------------------------------------------------
-    #  Four possibilities for R-H relations: relativistic/nonrelativistic and parallel/oblique.
+    #  Two possibilities for R-H relations: relativistic/nonrelativistic.
     #  Determine which of the four to use. Cutoff for relativistic/nonrelativistic is set in
     #  module 'controls'
     #--------------------------------------------------------------------------
@@ -20,18 +20,10 @@ function q_esc_calcs(
 
     Γ_fac = Γ / (Γ - 1)
 
-    if oblique
-        if relativistic     # Possibility 1: Relativistic, oblique
-            return q_esc_calcs_relativistic_oblique()
-        else                # Possibility 2: Nonrelativistic, oblique
-            return q_esc_calcs_nonrelativistic_oblique()
-        end
+    if relativistic
+        return q_esc_calcs_relativistic()
     else
-        if relativistic     # Possibility 3: Relativistic, parallel
-            return q_esc_calcs_relativistic_parallel()
-        else                # Possibility 4: Nonrelativistic, parallel
-            return q_esc_calcs_nonrelativistic_parallel()
-        end
+        return q_esc_calcs_nonrelativistic()
     end
 end
 
@@ -40,7 +32,7 @@ end
 # Note assumption of zero escaping momentum flux, which is good to
 # within a couple percent for strong nonrelativistic shocks.
 # #TODO: check how much of a difference this assumption makes
-function q_esc_calcs_nonrelativistic_parallel()
+function q_esc_calcs_nonrelativistic()
     # Calculate thermal pressure of far upstream gas
     P₀ = dot(ρ_N₀_ion, T₀_ion) * kB_cgs # pressure (thermal)
     ρ₀ = dot(ρ_N₀_ion, m_ion)           # mass density
@@ -79,7 +71,7 @@ end
 # i.e. the geometric mean of the arithmetic mean of u₀ and c. This allows the solution to
 # smoothly join with the non-rel version. Use only fluid component of fluxes, not fluid+EM,
 # for now.
-function q_esc_calcs_relativistic_parallel()
+function q_esc_calcs_relativistic()
     # Factor relating Q_en and Q_px
     q_fac = c_cgs * √((1 + β₀)/2)
 
@@ -107,12 +99,4 @@ function q_esc_calcs_relativistic_parallel()
     q_esc_cal_px = Q_px / F_px_UpS_fl
 
     return q_esc_cal_energy, q_esc_cal_px
-end
-
-function q_esc_calcs_nonrelativistic_oblique()
-    error("Not implemented for oblique shocks yet.")
-end
-
-function q_esc_calcs_relativistic_oblique()
-    error("Not implemented for oblique shocks yet.")
 end

@@ -41,17 +41,13 @@ function iter_finalize()
     energy_flux[1:n_grid] = round(energy_flux[1:n_grid], digits=13)
 
     # Output grid data for this iteration, and smooth the grid for the next iteration
-    if oblique
-        error("grid smoothing not coded for oblique shocks.")
-    else
-        smooth_grid_par(i_iter, i_shock, n_grid, x_grid_rg, x_grid_cm,
-                        Γ_grid, uz_sk_grid, θ_grid,
-                        pressure_psd_par, pressure_psd_perp, flux_px_UpS,
-                        flux_energy_UpS, Γ₂_RH, q_esc_cal_px_avg,
-                        q_esc_cal_energy_avg, pxx_flux, energy_flux, ux_sk_grid,
-                        γ_sf_grid, btot_grid, utot_grid, γ_ef_grid,
-                        β_ef_grid, εB_grid)
-    end
+    smooth_grid_par(i_iter, i_shock, n_grid, x_grid_rg, x_grid_cm,
+                    Γ_grid, uz_sk_grid, θ_grid,
+                    pressure_psd_par, pressure_psd_perp, flux_px_UpS,
+                    flux_energy_UpS, Γ₂_RH, q_esc_cal_px_avg,
+                    q_esc_cal_energy_avg, pxx_flux, energy_flux, ux_sk_grid,
+                    γ_sf_grid, btot_grid, utot_grid, γ_ef_grid,
+                    β_ef_grid, εB_grid)
 
 
     # Compute average escaping flux over last four iterations and write to
