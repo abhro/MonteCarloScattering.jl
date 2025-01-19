@@ -107,7 +107,7 @@ function prob_return(
                     ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, acctime_sec, weight,
                     tcut_curr,
                     use_custom_εB, x_grid_stop, do_rad_losses, do_tcuts, tcuts,
-                    n_grid, ux_sk_grid, γ_sf_grid, γ_ef_grid, θ_grid, btot_grid,
+                    n_grid, uₓ_sk_grid, γ_sf_grid, γ_ef_grid, θ_grid, btot_grid,
                     mc,
                 )
 
@@ -157,5 +157,6 @@ function prob_return(
 
     end # check on position vs x_grid_stop and prp_x_cm
 
-    return i_return, lose_pt, tcut_curr, x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf, gyro_denom, pb_pf, p_perp_b_pf, acctime_sec, φ_rad
+    return (i_return, lose_pt, tcut_curr, x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf,
+            gyro_denom, pb_pf, p_perp_b_pf, acctime_sec, φ_rad)
 end

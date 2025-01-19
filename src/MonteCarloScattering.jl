@@ -117,7 +117,7 @@ begin # "module" iteration_vars
     pxz_flux = Vector{Float64}(undef, n_grid)
     energy_flux  = Vector{Float64}(undef, n_grid)
     esc_flux = zeros(n_ions)
-    px_esc_feb = zeros(n_ions, n_itrs)
+    pₓ_esc_feb = zeros(n_ions, n_itrs)
     energy_esc_feb = zeros(n_ions, n_itrs)
     esc_energy_eff = zeros(0:psd_max, n_ions)
     esc_num_eff = zeros(0:psd_max, n_ions)
@@ -201,12 +201,12 @@ B_CMBz = B_CMB0 * (1 + redshift)^2
 
 
 # Zero out total escaping fluxes and calculate the far UpS fluxes
-#px_esc_flux_UpS_tot = 0.0
+#pₓ_esc_flux_UpS_tot = 0.0
 #energy_esc_flux_UpS_tot = 0.0
-px_esc_flux_UpS     = zeros(n_itrs)
+pₓ_esc_flux_UpS     = zeros(n_itrs)
 energy_esc_flux_UpS = zeros(n_itrs)
 (
- flux_px_UpS, flux_pz_UpS, flux_energy_UpS
+ flux_pₓ_UpS, flux_pz_UpS, flux_energy_UpS
 ) = upstream_fluxes(n_ions, ρ_N₀_ion, T₀_ion, aa_ion,
                     bmag₀, θ_B₀, u₀, β₀, γ₀)
 
@@ -217,19 +217,19 @@ mach_sonic, mach_alfven = upstream_machs(β₀, n_ions, ρ_N₀_ion, T₀_ion, a
 # Set up the initial shock profile, or read it in from a file
 if ! do_old_prof
     (
-     ux_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
+     uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
      β_ef_grid, γ_ef_grid, btot_grid, θ_grid, εB_grid, bmag₂,
     ) = setup_profile(
                       u₀, β₀, γ₀, bmag₀, θ_B₀, r_comp, bturb_comp_frac, bfield_amp, use_custom_εB,
-                      n_ions, aa_ion, ρ_N₀_ion, flux_px_UpS, flux_energy_UpS, grid_axis,
+                      n_ions, aa_ion, ρ_N₀_ion, flux_pₓ_UpS, flux_energy_UpS, grid_axis,
                       x_grid_cm, x_grid_rg,
                      )
 else
     error("Reading old profiles not yet supported")
     (
-     x_grid_rg, x_grid_cm, ux_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid, β_ef_grid, γ_ef_grid,
+     x_grid_rg, x_grid_cm, uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid, β_ef_grid, γ_ef_grid,
      btot_grid, εB_grid, θ_grid, n_grid, u₀, γ₀, rg₀, r_comp, r_RH, β₀, bmag₀,
-     u₂, β₂, γ₂, θᵤ₂, bmag₂, θ_B₀, θ_B₂, flux_px_UpS, flux_pz_UpS, flux_energy_UpS
+     u₂, β₂, γ₂, θᵤ₂, bmag₂, θ_B₀, θ_B₂, flux_pₓ_UpS, flux_pz_UpS, flux_energy_UpS
     ) = read_old_prof(n_old_skip, n_old_profs, n_old_per_prof)
 
     # Must set far UpS and DwS limits manually, since they won't be read in from the file
@@ -287,7 +287,7 @@ begin # "module" species_vars
     #integer :: n_cr_count
     num_crossings = zeros(Int, n_grid)
     therm_grid = zeros(Int, na_cr)
-    therm_px_sk = zeros(na_cr)
+    therm_pₓ_sk = zeros(na_cr)
     therm_pt_sk = zeros(na_cr)
     therm_weight = zeros(na_cr)
 

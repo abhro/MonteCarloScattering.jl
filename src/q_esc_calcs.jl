@@ -38,12 +38,12 @@ function q_esc_calcs_nonrelativistic()
     ρ₀ = dot(ρ_N₀_ion, m_ion)           # mass density
 
     # Calculate UpS incoming energy flux   #assumecold
-    F_px_UpS_fl     = ρ₀ * u₀^2 + P₀
+    F_pₓ_UpS_fl     = ρ₀ * u₀^2 + P₀
     F_energy_UpS_fl = ρ₀ * u₀^3 / 2 + 5//2 * P₀ * u₀
 
     # Calculate far DwS density (Eq 8) and pressure (Eq 9)
     ρ₂ = ρ₀ * γ₀*β₀ / (γ₂*β₂)           # mass density
-    P₂ = F_px_UpS_fl - ρ₂*u₂^2          # pressure
+    P₂ = F_pₓ_UpS_fl - ρ₂*u₂^2          # pressure
 
     # Calculate escaping energy flux using Eq (10)
     Q_en = F_energy_UpS_fl - ρ₀ * u₀ * u₂^2 / 2 - P₂ * u₂ * Γ_fac
@@ -80,23 +80,23 @@ function q_esc_calcs_relativistic()
     ρ₀ = dot(ρ_N₀_ion, m_ion)           # mass density
 
     # Two terms to simplify the calculation of pressure₂.   #assumecold
-    F_px_UpS_fl     = γ₀^2 * β₀^2 * (ρ₀*c_cgs^2 + 5//2*P₀) + P₀
+    F_pₓ_UpS_fl     = γ₀^2 * β₀^2 * (ρ₀*c_cgs^2 + 5//2*P₀) + P₀
     F_energy_UpS_fl = γ₀^2 * u₀   * (ρ₀*c_cgs^2 + 5//2*P₀)
     term_aux = γ₂^2 * (q_fac * β₂^2 - u₂)
 
     # Calculate far DwS density and pressure
     ρ₂ = ρ₀ * γ₀*β₀ / (γ₂*β₂) # mass density
-    P₂ = (q_fac * F_px_UpS_fl - F_energy_UpS_fl - term_aux*ρ₂*c_cgs^2) / (q_fac + Γ_fac*term_aux)
+    P₂ = (q_fac * F_pₓ_UpS_fl - F_energy_UpS_fl - term_aux*ρ₂*c_cgs^2) / (q_fac + Γ_fac*term_aux)
 
     # Calculate Q_px & Q_en (the physical escaping momentum & energy fluxes)
-    Q_px = F_px_UpS_fl - (γ₂*β₂)^2 * (ρ₂ * c_cgs^2 + Γ_fac * P₂) - P₂
+    Q_px = F_pₓ_UpS_fl - (γ₂*β₂)^2 * (ρ₂ * c_cgs^2 + Γ_fac * P₂) - P₂
     Q_en = Q_px * q_fac
 
     # Convert Q_en & Q_px into q_esc_cal_**, which involves dividing by the far UpS values.
     # Subtract off mass-energy flux from F_energy_UpS_fl to bring results in line with
     # non-relativistic calculation.
     q_esc_cal_energy = Q_en / (F_energy_UpS_fl - γ₀ * u₀ * ρ₀*c_cgs^2)
-    q_esc_cal_px = Q_px / F_px_UpS_fl
+    q_esc_cal_px = Q_px / F_pₓ_UpS_fl
 
     return q_esc_cal_energy, q_esc_cal_px
 end

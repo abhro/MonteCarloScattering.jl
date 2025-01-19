@@ -53,7 +53,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
 
 
     # Get the properties of the grid zone the particle's in
-    ux_sk = ux_sk_grid[i_grid]
+    uₓ_sk = uₓ_sk_grid[i_grid]
     uz_sk = uz_sk_grid[i_grid]
     utot  =  utot_grid[i_grid]
     γᵤ_sf =  γ_sf_grid[i_grid]
@@ -143,7 +143,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
           #--------------------------------------------------------------
           # Store values from the previous run through loop_helix; only
           # values needed by subroutine transform_p_PSP are kept here
-          ux_sk_old = ux_sk
+          uₓ_sk_old = uₓ_sk
           uz_sk_old = uz_sk
           utot_old  = utot
           γᵤ_sf_old = γᵤ_sf
@@ -152,7 +152,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
 
 
           # Get new values for this run through loop_helix
-          ux_sk  = ux_sk_grid[i_grid]
+          uₓ_sk  = uₓ_sk_grid[i_grid]
           uz_sk  = uz_sk_grid[i_grid]
           utot   =  utot_grid[i_grid]
           γᵤ_sf  =  γ_sf_grid[i_grid]
@@ -171,20 +171,20 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
           gyro_denom = 1 / (zz*qₚ_cgs * bmag)
 
           # If particle crossed a velocity gradient, find its new shock frame properties
-          if ux_sk != ux_sk_old
+          if uₓ_sk != uₓ_sk_old
             (
              ptot_pf, ptot_sk, p_sk, pb_sk, p_perp_b_sk, γₚ_sk,
              pb_pf, p_perp_b_pf, γₚ_pf, φ_rad
             ) = transform_p_PSP(
                                 aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                                ux_sk_old, uz_sk_old, utot_old, γᵤ_sf_old,
-                                b_cos_old, b_sin_old, ux_sk, uz_sk, utot, γᵤ_sf,
+                                uₓ_sk_old, uz_sk_old, utot_old, γᵤ_sf_old,
+                                b_cos_old, b_sin_old, uₓ_sk, uz_sk, utot, γᵤ_sf,
                                 b_cosθ, b_sinθ,
                                 mc)
 
             global gyro_rad_cm = p_perp_b_pf * c_cgs * gyro_denom
             global gyro_rad_tot_cm = ptot_pf * c_cgs * gyro_denom
-            global px_sk, py_sk, pz_sk = p_sk
+            global pₓ_sk, py_sk, pz_sk = p_sk
           end
 
 
@@ -252,9 +252,9 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
             # Since the plasma-frame momenta have changed,
             # recalculate the shock-frame momenta
             ptot_sk, p_sk, γₚ_sk = transform_p_PS(aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                                                  ux_sk, uz_sk, utot, γᵤ_sf,
+                                                  uₓ_sk, uz_sk, utot, γᵤ_sf,
                                                   b_cosθ, b_sinθ, mc)
-            px_sk = p_sk.x
+            pₓ_sk = p_sk.x
             pz_sk = p_sk.z
           end
           # check on grid zone
@@ -276,7 +276,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
           if ptot_pf > pmax_cutoff
             # Transform plasma frame momentum into shock frame to test there also
             ptot_sk, p_sk, γₚ_sk = transform_p_PS(aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                                                  ux_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
+                                                  uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
                                                   mc)
 
             if ptot_sk > pmax_cutoff
@@ -433,7 +433,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
           # plasma frame, moving to the right along the x axis, and the unprimed frame is the
           # (stationary) shock frame. Take frames to be coincident
           # at t = t' = 0. Then
-          #    x  =  γᵤ_sf * (x' + ux_sk*t'),
+          #    x  =  γᵤ_sf * (x' + uₓ_sk*t'),
           # where t' is t_step and x' is distance moved in plasma
           # frame (i.e. x_move_bpar below).
           # Remember to take gyration about magnetic field into account
@@ -443,7 +443,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
 
           r_PT_cm = SVector(r_PT_old.x + γᵤ_sf * (x_move_bpar * b_cosθ
                                                   - gyro_rad_cm * b_sinθ * (cos(φ_rad)-cos(φ_rad_old))
-                                                  + ux_sk * t_step),
+                                                  + uₓ_sk * t_step),
                             r_PT_cm.y,
                             r_PT_cm.z)
 
@@ -508,16 +508,16 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
 
 
         # Calculate fluxes due to this motion; also locates new grid zone
-        (i_grid, i_grid_old, n_cr_count, px_esc_UpS, energy_esc_UpS) = all_flux!(
+        (i_grid, i_grid_old, n_cr_count, pₓ_esc_UpS, energy_esc_UpS) = all_flux!(
             i_prt, aa, pb_pf, p_perp_b_pf, ptot_pf, γₚ_pf, φ_rad,
-            weight, i_grid, ux_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
+            weight, i_grid, uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
             r_PT_cm.x, r_PT_old.x, inj, nc_unit,
             i_grid_feb, pxx_flux, pxz_flux,
-            energy_flux, energy_esc_UpS, px_esc_UpS, spectra_sf, spectra_pf,
+            energy_flux, energy_esc_UpS, pₓ_esc_UpS, spectra_sf, spectra_pf,
             n_cr_count, num_crossings, psd,
             n_xspec, x_spec, feb_UpS, γ₀, u₀, mc,
             n_grid, x_grid_cm,
-            therm_grid, therm_px_sk, therm_pt_sk, therm_weight,
+            therm_grid, therm_pₓ_sk, therm_pt_sk, therm_weight,
         )
 
 
@@ -598,12 +598,12 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
 
 
     if !l_save[i_prt]
-      particle_finish!(px_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
+      particle_finish!(pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
                        esc_flux, esc_psd_feb_DwS, esc_psd_feb_UpS,
                        i_reason, i_iter, i_ion,
                        num_psd_θ_bins,
                        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                       ux_sk, uz_sk, utot,
+                       uₓ_sk, uz_sk, utot,
                        γᵤ_sf, b_cosθ, b_sinθ, weight, mc)
     end
 

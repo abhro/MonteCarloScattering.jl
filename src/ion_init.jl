@@ -52,7 +52,7 @@ function ion_init(i_iter, i_ion)
         do_fast_push, inp_distr, i_ion, m,
         T₀_ion, energy_inj, inj_weight, n_pts_inj, ρ_N₀_ion, x_grid_start, rg₀, η_mfp,
         x_fast_stop_rg, β₀, γ₀, u₀, n_ions, m_ion,
-        n_grid, x_grid_rg, ux_sk_grid, γ_sf_grid,
+        n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid,
         ptot_inj, weight_inj, n_pts_MB,
     )
     global pxx_flux = globals[1]
@@ -94,7 +94,7 @@ function clear_psd!()
     fill!(psd,             1e-99)
     fill!(esc_psd_feb_UpS, 1e-99)
     fill!(esc_psd_feb_DwS, 1e-99)
-    fill!(therm_px_sk,     0.0)
+    fill!(therm_pₓ_sk,     0.0)
     fill!(therm_pt_sk,     0.0)
     fill!(therm_weight,    0.0)
     n_cr_count = 0

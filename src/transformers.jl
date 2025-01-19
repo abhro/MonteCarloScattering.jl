@@ -276,7 +276,7 @@ function get_transform_dN(
 
             ## Binning shock frame values very easy; just add directly to correct bin of histogram
             #if m == 1
-            #    ct_sk_xw[j,i_pt_sk] += cell_weight
+            #    cθ_sk_xw[j,i_pt_sk] += cell_weight
             #end
             #
             #
@@ -301,9 +301,9 @@ function get_transform_dN(
             #    # Cell fits entirely within bin of ct_bounds
             #    if ct_cell_hi < ct_bounds[l_lo-1]
             #        if m == 2
-            #            ct_pf_xw[l-1, i_pt_pf] += cell_weight
+            #            cθ_pf_xw[l-1, i_pt_pf] += cell_weight
             #        elseif m == 3
-            #            ct_ef_xw[l-1, i_pt_pf] += cell_weight
+            #            cθ_ef_xw[l-1, i_pt_pf] += cell_weight
             #        end
             #        break
             #    end
@@ -313,9 +313,9 @@ function get_transform_dN(
             #        frac_ct_length = (ct_bounds[l-1] - ct_bottom) / ct_length_tot
             #
             #        if m == 2
-            #            ct_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+            #            cθ_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
             #        elseif m == 3
-            #            ct_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+            #            cθ_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
             #        end
             #
             #        # Adjust ct_bottom to mark counting of current bin
@@ -327,9 +327,9 @@ function get_transform_dN(
             #        frac_ct_length = (ct_cell_hi - ct_bounds[l]) / ct_length_tot
             #
             #        if m == 2
-            #            ct_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+            #            cθ_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
             #        elseif m == 3
-            #            ct_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+            #            cθ_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
             #        end
             #
             #        break
@@ -366,7 +366,7 @@ products along the xyz axes.
 - p_perp_b_pf: component of ptot_pf perpendicular to magnetic field
 - γₚ_pf: Lorentz factor associated with ptot_pf
 - φ_rad: phase angle of gyration; looking UpS, counts clockwise from +z axis
-- ux_sk: bulk flow speed along x axis
+- uₓ_sk: bulk flow speed along x axis
 - uz_sk: bulk flow speed along z axis
 - utot: total bulk flow speed
 - γᵤ_sf: Lorentz factor associated with utot
@@ -380,7 +380,7 @@ products along the xyz axes.
 - γₚ_sk: Lorentz factor associated with ptot_sk
 """
 function transform_p_PS(
-        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, ux_sk, uz_sk, utot,
+        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot,
         γᵤ_sf, b_cosθ, b_sinθ,
         mc)
 
@@ -398,7 +398,7 @@ function transform_p_PS(
                    pb_pf*b_sinθ + p_p_cos*b_cosθ)
 
     # xyz shock frame components
-    p_sk = SVector(γᵤ_sf * (p_pf.x + γₚ_pf * aa*mₚ_cgs * ux_sk),
+    p_sk = SVector(γᵤ_sf * (p_pf.x + γₚ_pf * aa*mₚ_cgs * uₓ_sk),
                    p_pf.y,
                    p_pf.z)
 
@@ -441,7 +441,7 @@ scalar products along the xyz axes.
 ### Arguments
 
 - aa: particle atomic mass
-- ux_sk/old: current and old bulk flow speed along x axis
+- uₓ_sk/old: current and old bulk flow speed along x axis
 - uz_sk/old: current and old bulk flow speed along z axis
 - utot/old: current and old total bulk flow speed
 - γᵤ_sf/old: Lorentz factor associated with utot/old
@@ -466,8 +466,8 @@ scalar products along the xyz axes.
 """
 function transform_p_PSP(
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-        ux_sk_old, uz_sk_old, utot_old, γᵤ_sf_old, b_cos_old, b_sin_old,
-        ux_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
+        uₓ_sk_old, uz_sk_old, utot_old, γᵤ_sf_old, b_cos_old, b_sin_old,
+        uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
         mc)
 
     φ_p = φ_rad + π/2
@@ -481,11 +481,11 @@ function transform_p_PSP(
 
     # xyz (new) shock frame components
     p_sk = SVector(
-        (((γᵤ_sf_old-1) * (ux_sk_old/utot_old)^2 + 1) * p_pf.x +
-         (γᵤ_sf_old-1) * (ux_sk_old*uz_sk_old/utot_old^2) * p_pf.z +
-         γᵤ_sf_old * γₚ_pf * aa*mₚ_cgs * ux_sk_old),
+        (((γᵤ_sf_old-1) * (uₓ_sk_old/utot_old)^2 + 1) * p_pf.x +
+         (γᵤ_sf_old-1) * (uₓ_sk_old*uz_sk_old/utot_old^2) * p_pf.z +
+         γᵤ_sf_old * γₚ_pf * aa*mₚ_cgs * uₓ_sk_old),
         p_pf.y,
-        ((γᵤ_sf_old-1) * (ux_sk_old*uz_sk_old/utot_old^2) * p_pf.x +
+        ((γᵤ_sf_old-1) * (uₓ_sk_old*uz_sk_old/utot_old^2) * p_pf.x +
          ((γᵤ_sf_old-1) * (uz_sk_old/utot_old)^2 + 1) * p_pf.z +
          γᵤ_sf_old * γₚ_pf * aa*mₚ_cgs * uz_sk_old)
     )
@@ -507,12 +507,12 @@ function transform_p_PSP(
 
     # xyz (new) plasma frame components
     p_pf = SVector(( # x-component
-                    ((γᵤ_sf - 1) * (ux_sk/utot)^2 + 1) * p_sk.x + (γᵤ_sf - 1) *
-                    (ux_sk*uz_sk/utot^2) * p_sk.z - γᵤ_sf * γₚ_sk * aa*mₚ_cgs * ux_sk
+                    ((γᵤ_sf - 1) * (uₓ_sk/utot)^2 + 1) * p_sk.x + (γᵤ_sf - 1) *
+                    (uₓ_sk*uz_sk/utot^2) * p_sk.z - γᵤ_sf * γₚ_sk * aa*mₚ_cgs * uₓ_sk
                    ),
                    p_sk.y,
                    ( # z-component
-                    (γᵤ_sf - 1) * (ux_sk*uz_sk/utot^2) * p_sk.x +
+                    (γᵤ_sf - 1) * (uₓ_sk*uz_sk/utot^2) * p_sk.x +
                     ((γᵤ_sf - 1) * (uz_sk/utot)^2 + 1) * p_sk.z - γᵤ_sf * γₚ_sk * aa*mₚ_cgs * uz_sk
                    ))
 
@@ -590,15 +590,15 @@ function transform_psd_corners(
             #    pt_sk_cgs = 0.0 # Edge case when i = 0
             #end
 
-            px_sk_cgs   = pt_sk_cgs * cosθ
+            pₓ_sk_cgs   = pt_sk_cgs * cosθ
             etot_sk_cgs = hypot(pt_sk_cgs*c_cgs, rest_mass_energy)
 
-            px_Xf_cgs  = γ_in * (px_sk_cgs - βᵤ*etot_sk_cgs/c_cgs)
-            pt_Xf_cgs  = √(pt_sk_cgs^2 + px_Xf_cgs^2 - px_sk_cgs^2)
+            pₓ_Xf_cgs  = γ_in * (pₓ_sk_cgs - βᵤ*etot_sk_cgs/c_cgs)
+            pt_Xf_cgs  = √(pt_sk_cgs^2 + pₓ_Xf_cgs^2 - pₓ_sk_cgs^2)
 
             # Transform to log space because get_dNdp_cr expects it
             transform_corn_pt[i,j] = log10(pt_Xf_cgs)
-            transform_corn_ct[i,j] = px_Xf_cgs / pt_Xf_cgs
+            transform_corn_ct[i,j] = pₓ_Xf_cgs / pt_Xf_cgs
 
 
         end # loop over momentum

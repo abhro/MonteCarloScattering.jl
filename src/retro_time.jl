@@ -47,7 +47,7 @@ function retro_time(
         ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, acctime_sec, weight,
         tcut_curr,
         use_custom_εB, x_grid_stop, do_rad_losses, do_tcuts, tcuts,
-        n_grid, ux_sk_grid, γ_sf_grid, γ_ef_grid, θ_grid, btot_grid,
+        n_grid, uₓ_sk_grid, γ_sf_grid, γ_ef_grid, θ_grid, btot_grid,
         mc,
         # η_mfp,
     )
@@ -57,10 +57,10 @@ function retro_time(
     φ_step     = 2π / xn_per
     t_step_fac = 2π * aa*mₚ_cgs * c_cgs * gyro_denom / xn_per  # t_step/γₚ_pf
 
-    ux_sk  = -ux_sk_grid[n_grid]
+    uₓ_sk = -uₓ_sk_grid[n_grid]
     γᵤ_sf =   γ_sf_grid[n_grid]
     γᵤ_ef =   γ_ef_grid[n_grid]
-    bmag   =   btot_grid[n_grid]
+    bmag  =   btot_grid[n_grid]
     # Square root corresponds to Blandford-McKee solution, where e ∝ 1/χ ∝ 1/r
     if use_custom_εB
         bmag *= √(x_grid_stop / prp_x_cm)
@@ -114,9 +114,9 @@ function retro_time(
 
 
         # Move particle and update the acceleration time; note that we don't
-        # care about y or z motion here, and that ux_sk is negative per the
+        # care about y or z motion here, and that uₓ_sk is negative per the
         # definition above the loop
-        x_PT = x_PT_old + γᵤ_sf * (x_move_bpar*b_cosθ - gyro_rad_cm*b_sinθ*(cos(φ_rad)-cos(φ_rad_old)) + ux_sk*t_step)
+        x_PT = x_PT_old + γᵤ_sf * (x_move_bpar*b_cosθ - gyro_rad_cm*b_sinθ*(cos(φ_rad)-cos(φ_rad_old)) + uₓ_sk*t_step)
         acctime_sec += t_step * γᵤ_ef
 
         # If tcut tracking is enabled, it should continue even during retro_time

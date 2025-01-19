@@ -8,7 +8,7 @@ calculate the pressure (which may be anisotropic) everywhere on the grid.
 - n_cr_count: total number (up to na_cr) of thermal particle crossings; signals whether
   scratch file was used
 - therm_grid: array of grid zone number for thermal crossings
-- therm_px_sk: array of x-momentum for thermal crossings
+- therm_pₓ_sk: array of x-momentum for thermal crossings
 - therm_pt_sk: array of total momentum for thermal crossings
 - therm_weight: array of flux-adjusted particle weights for thermal particle crossings
 - nc_unit: unit number for the scratch file holding crossing data
@@ -23,7 +23,7 @@ calculate the pressure (which may be anisotropic) everywhere on the grid.
 - energy_density_psd: local kinetic energy density of fluid in every grid zone
 """
 function thermo_calcs(
-        num_crossings, n_cr_count, therm_grid, therm_px_sk,
+        num_crossings, n_cr_count, therm_grid, therm_pₓ_sk,
         therm_pt_sk, therm_weight, nc_unit, psd, zone_pop,
         aa_ion, zz_ion, T₀_ion, ρ_N₀_ion, psd_lin_cos_bins,
         γ₀, β₀
@@ -95,7 +95,7 @@ function thermo_calcs(
         n_cross_fill[i_grid] += 1
 
         # Note: ordering of coordinates chosen to make memory accesses in next loop faster
-        therm_px[n_cross_fill[i_grid], i_grid] = therm_px_sk[i]
+        therm_px[n_cross_fill[i_grid], i_grid] = therm_pₓ_sk[i]
         therm_pt[n_cross_fill[i_grid], i_grid] = therm_pt_sk[i]
         therm_weight[n_cross_fill[i_grid], i_grid] = therm_weight[i]
     end
@@ -104,12 +104,12 @@ function thermo_calcs(
 
         # Need to go into the scratch file for the remainder of the crossings
         for i in 1:ntot_crossings-na_cr
-            read(nc_unit, i_grid, idum, px_sk, ptot_sk, cell_weight)
+            read(nc_unit, i_grid, idum, pₓ_sk, ptot_sk, cell_weight)
 
             n_cross_fill[i_grid] += 1
 
             # Note: ordering of coordinates chosen to make memory accesses in next loop faster
-            therm_px[n_cross_fill[i_grid], i_grid] = px_sk
+            therm_px[n_cross_fill[i_grid], i_grid] = pₓ_sk
             therm_pt[n_cross_fill[i_grid], i_grid] = ptot_sk
             therm_weight[n_cross_fill[i_grid], i_grid] = cell_weight
         end
@@ -126,7 +126,7 @@ function thermo_calcs(
 
         # Get Lorentz factor and speed relating the shock and plasma frames
         γᵤ = γ_sf_grid[i]
-        βᵤ = ux_sk_grid[i] / c_cgs
+        βᵤ = uₓ_sk_grid[i] / c_cgs
 
 
         # Loop over all crossings for this grid zone, binning the thermal particles.
@@ -134,19 +134,19 @@ function thermo_calcs(
 
             # Transform the center of the zone into the new frame
             ptot_sk = therm_pt[n,i]
-            px_sk   = therm_px[n,i]
+            pₓ_sk   = therm_px[n,i]
             etot_sk = hypot(ptot_sk*c_cgs, rest_mass_energy)
 
-            px_Xf   = γᵤ * (px_sk - βᵤ*etot_sk/c_cgs)
-            pt_Xf   = √((ptot_sk^2 - px_sk^2) + px_Xf^2)
-            # In rare cases, floating point roundoff can cause pt_Xf to be smaller than abs(px_Xf)
-            if abs(px_Xf) > pt_Xf
-                px_Xf = copysign(pt_Xf, px_Xf)
+            pₓ_Xf   = γᵤ * (pₓ_sk - βᵤ*etot_sk/c_cgs)
+            pt_Xf   = √((ptot_sk^2 - pₓ_sk^2) + pₓ_Xf^2)
+            # In rare cases, floating point roundoff can cause pt_Xf to be smaller than abs(pₓ_Xf)
+            if abs(pₓ_Xf) > pt_Xf
+                pₓ_Xf = copysign(pt_Xf, pₓ_Xf)
             end
 
             # Get location of center in transformed d²N_pf
             kpt_Xf = get_psd_bin_momentum(pt_Xf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
-            jθ_Xf = get_psd_bin_angle(px_Xf, pt_Xf, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
+            jθ_Xf = get_psd_bin_angle(pₓ_Xf, pt_Xf, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
 
 
             # And add particle count to the appropriate bin in d²N_pf
@@ -172,7 +172,7 @@ function thermo_calcs(
 
         # Get Lorentz factor and speed relating the shock and current frames
         γᵤ = γ_sf_grid[i]
-        βᵤ = ux_sk_grid[i] / c_cgs
+        βᵤ = uₓ_sk_grid[i] / c_cgs
 
         # Loop over cells in d²N_sf
         for jθ in 0:num_psd_mom_bins
@@ -185,15 +185,15 @@ function thermo_calcs(
                 # Transform the center of the zone into the new frame
                 cos_θ_sk = cos_center[jθ]
                 ptot_sk  = pt_cgs_center[k]
-                px_sk    = ptot_sk * cos_θ_sk
+                pₓ_sk    = ptot_sk * cos_θ_sk
                 etot_sk  = hypot(ptot_sk*c_cgs, rest_mass_energy)
 
-                px_Xf    = γᵤ * (px_sk - βᵤ*etot_sk/c_cgs)
-                pt_Xf    = √(ptot_sk^2 - px_sk^2 + px_Xf^2)
+                pₓ_Xf    = γᵤ * (pₓ_sk - βᵤ*etot_sk/c_cgs)
+                pt_Xf    = √(ptot_sk^2 - pₓ_sk^2 + pₓ_Xf^2)
 
                 # Get location of center in transformed d²N_pf
                 kpt_Xf = get_psd_bin_momentum(pt_Xf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
-                jθ_Xf = get_psd_bin_angle(px_Xf, pt_Xf, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
+                jθ_Xf = get_psd_bin_angle(pₓ_Xf, pt_Xf, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
 
                 # And add particle count to the appropriate bin in d²N_pf
                 d²N_pf[jθ_Xf, kpt_Xf, i] += cell_weight
@@ -204,7 +204,7 @@ function thermo_calcs(
         mask = (d²N_pf[:,:,i] .> 1e-66)
         norm_fac = sum(d²N_pf[mask...,i])
         if iszero(num_crossings[i]) && norm_fac > 0
-            norm_fac += ρ_N₀_ion[i_ion] / ux_sk_grid[i]
+            norm_fac += ρ_N₀_ion[i_ion] / uₓ_sk_grid[i]
         end
         if norm_fac > 0
             norm_fac = zone_pop[i] / norm_fac

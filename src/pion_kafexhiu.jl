@@ -52,7 +52,7 @@ function pion_kafexhiu(
     #         = n_p * [n_p/n_p * σ_Xp + n_He/n_p * σ_X-He ...]
     #         = n_p * σ_pp * [ den1_in[1]*SF_Xp + den1_in[2]*SF_X-He ...]
     scaling_factor = 0.0
-    for i in 1:n_ions
+    for i in eachindex(aa_ion)
         if aa_ion[i] ≥ 1
             scaling_factor += (aa^0.375 + aa_ion[i]^0.375 - 1)^2 * ρ_N₀_ion[i]/ρ_N₀_ion[1]
         end
@@ -72,7 +72,9 @@ function pion_kafexhiu(
     i_data = 1
 
     if i_data < 1 || i_data > 4
-        throw(ArgumentError("Invalid selection for cross-section data. i_data must be between 1 and 4, not $i_data"))
+        throw(ArgumentError(
+            "Invalid selection for cross-section data. " *
+            "i_data must be between 1 and 4, not $i_data"))
     end
     #-------------------------------------------------------------------------
     # Constants fixed
@@ -88,23 +90,23 @@ function pion_kafexhiu(
 
         p_pf_sq = p_pf_cgs_therm[i_fp] * p_pf_cgs_therm[i_fp+1] # Geometric mean
         γ = √(p_pf_sq/mc^2 + 1)
-        Tp = (γ - 1) * aa*ustrip(GeV, E₀_proton*erg) # particle kinetic energy in GeV
-        Tp /= aa  # kinetic energy per nucleon
+        Tₚ = (γ - 1) * aa*ustrip(GeV, E₀_proton*erg) # particle kinetic energy in GeV
+        Tₚ /= aa  # kinetic energy per nucleon
         vel = √p_pf_sq / (γ*aa*mₚ_cgs)
 
-        # Tp must be at T_th; otherwise no possibility to produce pions/photons
-        Tp < T_th && continue
+        # Tₚ must be at T_th; otherwise no possibility to produce pions/photons
+        Tₚ < T_th && continue
 
         # Square of proton energy in center-of-mass frame will be used repeatedly
-        s_ECM = 2rmp * (Tp + 2rmp)
+        s_ECM = 2rmp * (Tₚ + 2rmp)
 
         # Calculate inclusive pion production cross section using material from section 4
-        σ_π = get_σ_π(Tp, i_data, s_ECM)
+        σ_π = get_σ_π(Tₚ, i_data, s_ECM)
 
-        # γ-ray production is parametrized as Amax(Tp) * F(Tp, Eγ). Since Amax
+        # γ-ray production is parametrized as Amax(Tₚ) * F(Tₚ, Eγ). Since Amax
         # doesn't depend on photon energy, calculate it here; note that Eγ_max,
-        # the maximum photon energy allowed for this value of Tp, is also an output
-        Eγ_max, Amax = get_Amax(Tp, i_data, s_ECM, σ_π)
+        # the maximum photon energy allowed for this value of Tₚ, is also an output
+        Eγ_max, Amax = get_Amax(Tₚ, i_data, s_ECM, σ_π)
 
 
         # Now, loop over photon energies. Make sure that kinematic limits are
@@ -114,8 +116,8 @@ function pion_kafexhiu(
 
             Eγ = ustrip(u"GeV", energy_γ_cgs[i_γ]*u"erg")  # in GeV
 
-            # Calculate F function for current value of Tp and Eγ
-            F_func = get_Ffunc(Tp, Eγ, i_data, Eγ_max)
+            # Calculate F function for current value of Tₚ and Eγ
+            F_func = get_Ffunc(Tₚ, Eγ, i_data, Eγ_max)
 
             # Per Equation (8), differential cross section is Amax * F_func. Multiply by Eγ
             # (in consistent units!) to go from differential cross-section to differential
@@ -156,23 +158,23 @@ function pion_kafexhiu(
 
         p_pf_sq = p_pf_cgs_cr[i_fp] * p_pf_cgs_cr[i_fp+1] # Geometric mean
         γ = √(p_pf_sq/mc^2 + 1)
-        Tp  = (γ - 1) * aa*ustrip(GeV, E₀_proton*erg) # particle K.E. in GeV
-        Tp  = Tp / aa  # kinetic energy per nucleon
+        Tₚ = (γ - 1) * aa*ustrip(GeV, E₀_proton*erg) # particle K.E. in GeV
+        Tₚ /= aa  # kinetic energy per nucleon
         vel = √(p_pf_sq)/(γ*aa*mₚ_cgs)
 
-        # Tp must be at T_th; otherwise no possibility to produce pions/photons
-        Tp < T_th && continue
+        # Tₚ must be at T_th; otherwise no possibility to produce pions/photons
+        Tₚ < T_th && continue
 
         # Square of proton energy in center-of-mass frame will be used repeatedly
-        s_ECM = 2rmp * (Tp + 2rmp)
+        s_ECM = 2rmp * (Tₚ + 2rmp)
 
         # Calculate inclusive pion production cross section using material from section 4
-        σ_π = get_σ_π(Tp, i_data, s_ECM)
+        σ_π = get_σ_π(Tₚ, i_data, s_ECM)
 
-        # γ-ray production is parametrized as Amax(Tp)⋅F(Tp, Eγ). Since Amax doesn't depend
+        # γ-ray production is parametrized as Amax(Tₚ)⋅F(Tₚ, Eγ). Since Amax doesn't depend
         # on photon energy, calculate it here; note that Eγ_max, the maximum photon energy
-        # allowed for this value of Tp, is also an output
-        Eγ_max, Amax = get_Amax(Tp, i_data, s_ECM, σ_π)
+        # allowed for this value of Tₚ, is also an output
+        Eγ_max, Amax = get_Amax(Tₚ, i_data, s_ECM, σ_π)
 
 
         # Now, loop over photon energies. Make sure that kinematic limits are respected,
@@ -182,8 +184,8 @@ function pion_kafexhiu(
 
             Eγ = ustrip(GeV, energy_γ_cgs[i_γ]*erg)  # in GeV
 
-            # Calculate F function for current value of Tp and Eγ
-            F_func = get_Ffunc(Tp, Eγ, i_data, Eγ_max)
+            # Calculate F function for current value of Tₚ and Eγ
+            F_func = get_Ffunc(Tₚ, Eγ, i_data, Eγ_max)
 
             # Per Equation (8), differential cross section is Amax * F_func. Multiply by Eγ
             # (in consistent units!) to go from differential cross-section to differential
@@ -220,11 +222,11 @@ function pion_kafexhiu(
 
 
     # Put floor on emission for plotting purposes
-    for i_γ in 1:n_photon_pion
-        if pion_emis[i_γ] < 1e-99
-            pion_emis[i_γ] = 1e-99
+    for i in eachindex(pion_emis)
+        if pion_emis[i] < 1e-99
+            pion_emis[i] = 1e-99
         else # Incorporate the scaling factor calculated at the beginning of the subroutine
-            pion_emis[i_γ] *= scaling_factor
+            pion_emis[i] *= scaling_factor
         end
     end
 

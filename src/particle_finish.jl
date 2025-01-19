@@ -13,7 +13,7 @@ Handles particles that leave the system during loop_helix for any reason.
 - p_perp_b_pf: component of ptot_pf perpendicular to magnetic field
 - γₚ_pf: Lorentz factor associated with ptot_pf
 - φ_rad: phase angle of gyration; looking UpS, counts clockwise from +z axis
-- ux_sk: bulk flow speed along x axis
+- uₓ_sk: bulk flow speed along x axis
 - uz_sk: bulk flow speed along z axis
 - utot: total bulk flow speed
 - γᵤ_sf: Lorentz factor associated with utot
@@ -29,23 +29,23 @@ TODO
 Nothing; modifies input argument arrays as needed.
 """
 function particle_finish!(
-        px_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
+        pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
         esc_flux, esc_psd_feb_DwS, esc_psd_feb_UpS,
         i_reason, i_iter, i_ion,
         num_psd_θ_bins,
-        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, ux_sk, uz_sk, utot, γᵤ_sf,
+        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
         b_cosθ, b_sinθ, weight, mc,
     )
 
-    @debug("Input arguments:", aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, ux_sk, uz_sk, utot, γᵤ_sf,
+    @debug("Input arguments:", aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
            b_cosθ, b_sinθ, i_reason, weight, esc_psd_feb_DwS, esc_psd_feb_UpS, esc_flux,
-           px_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
+           pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
            i_iter, i_ion, mc)
 
 
     # Transform plasma frame momentum into shock frame for binning
     ptot_sk, p_sk, γₚ_sk = transform_p_PS(
-        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, ux_sk, uz_sk, utot, γᵤ_sf,
+        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
         b_cosθ, b_sinθ, mc)
     @debug("Values from transform_p_PS:", ptot_sk, p_sk, γₚ_sk)
 
@@ -76,7 +76,7 @@ function particle_finish!(
         end
 
         # Update escape arrays that will be averaged over consecutive iterations
-        px_esc_feb[i_ion, i_iter] += abs(p_sk.x) * weight
+        pₓ_esc_feb[i_ion, i_iter] += abs(p_sk.x) * weight
         energy_esc_feb[i_ion, i_iter] += energy_flux_add
 
         # Update escape arrays to be printed out with spectral information

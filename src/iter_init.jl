@@ -20,7 +20,7 @@ function iter_init()
     sum_KEdensity_DwS = 1e-99
 
     energy_esc_UpS    = 1e-99
-    px_esc_UpS        = 1e-99
+    pₓ_esc_UpS        = 1e-99
 
 
     # To facilitate energy transfer from ions to electrons, calculate here the target energy
@@ -31,8 +31,8 @@ function iter_init()
     # density compression factor) -- so ε_electron should vary roughly linearly with density.
     z_max = γ₀ * β₀ / (γ₂ * β₂)
     for i in eachindex(ε_target)
-        if ux_sk_grid[i] != u₀
-            z_curr = γ₀ * u₀ / (γ_sf_grid[i] * ux_sk_grid[i])
+        if uₓ_sk_grid[i] != u₀
+            z_curr = γ₀ * u₀ / (γ_sf_grid[i] * uₓ_sk_grid[i])
             ε_target[i] = energy_transfer_frac * (z_curr - 1) / (z_max - 1)
         end
     end

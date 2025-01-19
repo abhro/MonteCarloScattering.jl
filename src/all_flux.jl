@@ -19,7 +19,7 @@ TODO
 - γₚ_pf
 - φ_rad
 - weight
-- ux_sk
+- uₓ_sk
 - uz_sk
 - utot
 - γᵤ_sf
@@ -34,7 +34,7 @@ TODO
 - i_grid_old
 - n_cr_count
 - num_crossings (array modified in-place)
-- px_esc_UpS
+- pₓ_esc_UpS
 - energy_esc_UpS
 - pxx_flux (array modified in-place)
 - pxz_flux (array modified in-place)
@@ -45,9 +45,9 @@ TODO
 """
 function all_flux!(
         i_prt, aa, pb_pf, p_perp_b_pf, ptot_pf, γₚ_pf, φ_rad,
-        weight, i_grid, ux_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
+        weight, i_grid, uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
         x_PT_cm, x_PT_old, inj, nc_unit,
-        i_grid_feb, pxx_flux, pxz_flux, energy_flux, energy_esc_UpS, px_esc_UpS,
+        i_grid_feb, pxx_flux, pxz_flux, energy_flux, energy_esc_UpS, pₓ_esc_UpS,
         spectra_sf, spectra_pf, n_cr_count, num_crossings, psd,
         # from controls
         n_xspec, x_spec, feb_UpS, γ₀, u₀, mc,
@@ -58,7 +58,7 @@ function all_flux!(
         # The therm_*** arrays can be pulled from the module because they are inherently
         # thread-safe. Only n_cr_count and num_crossings need protection from race
         # conditions, and so need to be included explicitly in the arguments of all_flux.
-        therm_grid, therm_px_sk, therm_pt_sk, therm_weight,
+        therm_grid, therm_pₓ_sk, therm_pt_sk, therm_weight,
     )
 
     # Very early check to see if particle crossed a grid zone boundary
@@ -80,25 +80,25 @@ function all_flux!(
     ##TODO: remove extra return statement, folding rest of computation into
     # "else" block of if-then
     if i_grid == i_grid_old && i_grid > i_grid_feb && iszero(n_xspec)
-        return (i_grid, i_grid_old, n_cr_count, px_esc_UpS, energy_esc_UpS)
+        return (i_grid, i_grid_old, n_cr_count, pₓ_esc_UpS, energy_esc_UpS)
     end
 
     # Convert plasma frame momentum to shock frame; determine a few values
     # that will be reused during the call to all_flux
     ptot_sk, p_sk, γₚ_sk = transform_p_PS(
-        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, ux_sk, uz_sk, utot, γᵤ_sf,
+        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
         b_cosθ, b_sinθ, mc)
 
     if ptot_sk > abs(p_sk.x*all_flux_spike_away)
-        pt_o_px_sk = all_flux_spike_away
+        pt_o_pₓ_sk = all_flux_spike_away
         # Minimum shock frame velocity is a small fraction of local bulk flow speed
-        abs_inv_vx_sk = abs(all_flux_spike_away/ux_sk)
+        abs_inv_vx_sk = abs(all_flux_spike_away/uₓ_sk)
     else
-        pt_o_px_sk = ptot_sk / p_sk.x
+        pt_o_pₓ_sk = ptot_sk / p_sk.x
         abs_inv_vx_sk = abs(γₚ_sk * aa*mₚ_cgs / p_sk.x)
     end
 
-    pt_o_px_pf = min(abs(ptot_pf/pb_pf), all_flux_spike_away)
+    pt_o_pₓ_pf = min(abs(ptot_pf/pb_pf), all_flux_spike_away)
 
     # Kinetic energy only; rest mass energy NOT included
     if (γₚ_sk - 1) > energy_rel_pt
@@ -122,7 +122,7 @@ function all_flux!(
                 (x_PT_cm  ≤ x_spec[i] && x_PT_old > x_spec[i]))
 
                 # Spectrum in shock frame
-                spectra_sf[i_pt, i] += weight * pt_o_px_sk
+                spectra_sf[i_pt, i] += weight * pt_o_pₓ_sk
 
 
                 # Spectrum in plasma frame; flux_weight_fac corresponds to vx_pf/vx_sk and
@@ -130,7 +130,7 @@ function all_flux!(
                 # given a known crossing in the shock frame
                 flux_weight_fac = abs(pb_pf/p_sk.x) * (γₚ_sk/γₚ_pf)
 
-                spectra_pf[i_pt_pf, i] += weight * pt_o_px_pf * flux_weight_fac
+                spectra_pf[i_pt_pf, i] += weight * pt_o_pₓ_pf * flux_weight_fac
             end
         end
     end
@@ -168,11 +168,11 @@ function all_flux!(
     #$omp critical
     if inj && x_PT_cm < feb_UpS && x_PT_old ≥ feb_UpS
         energy_esc_UpS += energy_flux_add * γ₀*u₀
-        px_esc_UpS     -= p_sk.x * weight * γ₀*u₀
+        pₓ_esc_UpS     -= p_sk.x * weight * γ₀*u₀
     end
     #$omp end critical
 
-    return (i_grid, i_grid_old, n_cr_count, px_esc_UpS, energy_esc_UpS)
+    return (i_grid, i_grid_old, n_cr_count, pₓ_esc_UpS, energy_esc_UpS)
 end
 
 function flux_stream!(
@@ -212,7 +212,7 @@ function flux_stream!(
             if n_cr_count < na_cr
                 n_cr_count += 1
                 therm_grid[n_cr_count] = i
-                therm_px_sk[n_cr_count] = p_sk.x
+                therm_pₓ_sk[n_cr_count] = p_sk.x
                 therm_pt_sk[n_cr_count] = ptot_sk
                 therm_weight[n_cr_count]  = weight * abs_inv_vx_sk
             else

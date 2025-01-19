@@ -429,7 +429,7 @@ FIXME
 No inputs; pulls everything from module 'controls'
 
 ### Returns
-- flux_px_UpS: far UpS momentum flux, x component
+- flux_pₓ_UpS: far UpS momentum flux, x component
 - flux_pz_UpS: far UpS momentum flux, z component
 - flux_energy_UpS: far UpS energy flux
 """
@@ -454,36 +454,36 @@ function upstream_fluxes(n_ions, ρ_N₀_ion, T₀_ion, m_ion, bmag₀, θ_B₀,
     relativistic = β₀ ≥ β_rel_fl
 
     if relativistic
-        flux_px_UpS, flux_pz_UpS = upstream_momentum_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, bmag₀, B_x, B_z)
+        flux_pₓ_UpS, flux_pz_UpS = upstream_momentum_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, bmag₀, B_x, B_z)
         flux_energy_UpS = upstream_energy_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_z)
     else
         # Non-relativistic version. Note that it's missing the ρc² flux present in the
         # relativistic forms above. It is also expanded to second order in β₀ (only in the
         # hydro terms, for now) to allow for more precise matching with the relativistic version
-        flux_px_UpS, flux_pz_UpS = upstream_momentum_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_x, B_z)
+        flux_pₓ_UpS, flux_pz_UpS = upstream_momentum_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_x, B_z)
         flux_energy_UpS = upstream_energy_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀)
     end
 
-    return (flux_px_UpS, flux_pz_UpS, flux_energy_UpS)
+    return (flux_pₓ_UpS, flux_pz_UpS, flux_energy_UpS)
 end
 
 function upstream_momentum_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, bmag₀, B_x, B_z)
 
     # Momentum, x-component
-    F_px_fl = (γ₀*β₀)^2 * (e₀ + P₀) + P₀                    # Fluid part (Double+ Eq 23)
-    F_px_EM = (γ₀^2*β₀^2*bmag₀^2 + γ₀^2*(B_z^2-B_x^2)) / 8π # EM part (Double+ Eq 25)
-    flux_px_UpS = F_px_fl + F_px_EM                         # Total
+    F_pₓ_fl = (γ₀*β₀)^2 * (e₀ + P₀) + P₀                    # Fluid part (Double+ Eq 23)
+    F_pₓ_EM = (γ₀^2*β₀^2*bmag₀^2 + γ₀^2*(B_z^2-B_x^2)) / 8π # EM part (Double+ Eq 25)
+    flux_pₓ_UpS = F_pₓ_fl + F_pₓ_EM                         # Total
 
     # Momentum, z-component (Fluid Part = 0, from Double+ Eq 24)
     # Total = EM part (Double+ Eq 26)
     flux_pz_UpS = -γ₀/4π * B_x * B_z
 
-    return flux_px_UpS, flux_pz_UpS
+    return flux_pₓ_UpS, flux_pz_UpS
 end
 function upstream_momentum_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_x, B_z)
-    flux_px_UpS = ρ₀ * u₀^2 * (1 + β₀^2) + P₀ * (1 + Γ_sph/(Γ_sph-1)*β₀^2) + B_z^2/8π
+    flux_pₓ_UpS = ρ₀ * u₀^2 * (1 + β₀^2) + P₀ * (1 + Γ_sph/(Γ_sph-1)*β₀^2) + B_z^2/8π
     flux_pz_UpS = - B_x * B_z / 4π
-    return flux_px_UpS, flux_pz_UpS
+    return flux_pₓ_UpS, flux_pz_UpS
 end
 
 function upstream_energy_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀)
@@ -586,7 +586,7 @@ Sets the initial values of the shock profile
 TODO
 
 ### Returns
-- ux_sk_grid: bulk fluid velocity along x axis (i.e., perpendicular to shock face) in shock frame
+- uₓ_sk_grid: bulk fluid velocity along x axis (i.e., perpendicular to shock face) in shock frame
 - uz_sk_grid: bulk fluid velocity along z axis (i.e., parallel to shock face) in shock frame
 - utot_grid: total bulk fluid velocity in shock frame
 - γ_sf_grid: bulk flow Lorentz factor in shock frame
@@ -602,11 +602,11 @@ TODO
 function setup_profile(
         u₀, β₀, γ₀, bmag₀, θ_B₀,
         r_comp, bturb_comp_frac, bfield_amp, use_custom_εB,
-        n_ions, aa_ion, ρ_N₀_ion, flux_px_UpS, flux_energy_UpS,
+        n_ions, aa_ion, ρ_N₀_ion, flux_pₓ_UpS, flux_energy_UpS,
         grid_axis, x_grid_cm, x_grid_rg,
     )
 
-    ux_sk_grid = OffsetVector{Float64}(undef, grid_axis)
+    uₓ_sk_grid = OffsetVector{Float64}(undef, grid_axis)
     uz_sk_grid = zeros(grid_axis)
     γ_sf_grid  = OffsetVector{Float64}(undef, grid_axis)
     β_ef_grid  = OffsetVector{Float64}(undef, grid_axis)
@@ -617,14 +617,14 @@ function setup_profile(
     comp_fac = 0.0
     for i in grid_axis
         if x_grid_cm[i] < 0
-            ux_sk_grid[i] = u₀
+            uₓ_sk_grid[i] = u₀
             γ_sf_grid[i] = γ₀
             β_ef_grid[i] = 0.0
             γ_ef_grid[i] = 1.0
             btot_grid[i] = bmag₀
         else
             u = u₀ / r_comp
-            ux_sk_grid[i] = u
+            uₓ_sk_grid[i] = u
             γ_sf_grid[i] = 1 / √(1 - (u/c_cgs)^2)
             β_ef_grid[i] = (β₀ - u/c_cgs) /  (1 - β₀*u/c_cgs)
             γ_ef_grid[i] = 1 / √(1 - β_ef_grid[i]^2)
@@ -638,9 +638,9 @@ function setup_profile(
         end
     end
 
-    utot_grid = copy(ux_sk_grid) # uz_sk_grid is 0, so don't bother adding
-    #utot_grid = ux_sk_grid + uz_sk_grid
-    #utot_grid = hypot.(ux_sk_grid, uz_sk_grid)
+    utot_grid = copy(uₓ_sk_grid) # uz_sk_grid is 0, so don't bother adding
+    #utot_grid = uₓ_sk_grid + uz_sk_grid
+    #utot_grid = hypot.(uₓ_sk_grid, uz_sk_grid)
 
     εB_grid = OffsetVector{Float64}(undef, grid_axis)
     # If directed in data_input, use a custom-defined ε_B to set btot_grid.
@@ -648,7 +648,7 @@ function setup_profile(
     if use_custom_εB
         set_custom_εB!(εB_grid, btot_grid, grid_axis,
                        n_ions, aa_ion, ρ_N₀_ion, bmag₀,
-                       flux_px_UpS, flux_energy_UpS, ux_sk_grid, x_grid_rg,
+                       flux_pₓ_UpS, flux_energy_UpS, uₓ_sk_grid, x_grid_rg,
                        comp_fac,
                        γ₀, β₀, u₀)
     else
@@ -659,7 +659,7 @@ function setup_profile(
 
     bmag₂ = btot_grid[end]
 
-    return (ux_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
+    return (uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
             β_ef_grid, γ_ef_grid, btot_grid, θ_grid, εB_grid, bmag₂)
 end
 
@@ -667,12 +667,12 @@ function set_custom_εB!(
         εB_grid, btot_grid,
         grid_axis,
         n_ions, aa_ion, ρ_N₀_ion, bmag₀,
-        flux_px_UpS, flux_energy_UpS, ux_sk_grid, x_grid_rg,
+        flux_pₓ_UpS, flux_energy_UpS, uₓ_sk_grid, x_grid_rg,
         comp_fac,
         γ₀, β₀, u₀)
 
     @debug("Input parameters", εB_grid, btot_grid, grid_axis, n_ions, aa_ion, ρ_N₀_ion, bmag₀,
-           flux_px_UpS, flux_energy_UpS, ux_sk_grid, x_grid_rg, comp_fac, γ₀, β₀, u₀)
+           flux_pₓ_UpS, flux_energy_UpS, uₓ_sk_grid, x_grid_rg, comp_fac, γ₀, β₀, u₀)
 
     # Calculate ε_B₀ which depends on far UpS magnetic field and mass density. If electrons
     # aren't a separate species, they don't contribute enough mass to be important
@@ -695,7 +695,7 @@ function set_custom_εB!(
     # rearranged to read
     #     energy_density(x) = F_en₀/u(x) - F_px₀
     # assuming flux conservation everywhere.
-    energy_density₂ = (flux_energy_UpS + γ₀*u₀*ρ_N₀*E₀_proton) / ux_sk_grid[end] - flux_px_UpS
+    energy_density₂ = (flux_energy_UpS + γ₀*u₀*ρ_N₀*E₀_proton) / uₓ_sk_grid[end] - flux_pₓ_UpS
     εB₂ = (bmag₀*comp_fac)^2 / (8π * energy_density₂)
     # Use this value to compute the distance downstream at which the field will have decayed to it.
     # Per the Blandford-McKee solution, energy ∝ 1/χ ∝ 1/distance DwS. Since we do not actually
@@ -718,7 +718,7 @@ function set_custom_εB!(
         else
             εB_grid[i] = εB₂
         end
-        energy_density = (flux_energy_UpS + γ₀*u₀*ρ_N₀*E₀_proton) / ux_sk_grid[i] - flux_px_UpS
+        energy_density = (flux_energy_UpS + γ₀*u₀*ρ_N₀*E₀_proton) / uₓ_sk_grid[i] - flux_pₓ_UpS
         @debug("Setting εB_grid array elements", i, εB_grid[i], energy_density)
         # FIXME this tries to be a square root of a negative number sometimes
         #btot_grid[i] = √(8π * εB_grid[i] * energy_density)
@@ -761,7 +761,7 @@ function init_pop(
         T₀_ion, energy_inj, inj_weight, n_pts_inj, ρ_N₀_ion, x_grid_start, rg₀, η_mfp,
         x_fast_stop_rg, β₀, γ₀, u₀, n_ions, m_ion,
         # from grid_vars module
-        n_grid, x_grid_rg, ux_sk_grid, γ_sf_grid,
+        n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid,
         # from iteration_vars module
         ptot_inj, weight_inj, n_pts_MB,
     )
@@ -811,7 +811,7 @@ function init_pop(
     @debug("Found i_stop", i_stop)
 
     relativistic = (β₀ ≥ β_rel_fl)
-    density_ratio = u₀ / ux_sk_grid[i_stop]
+    density_ratio = u₀ / uₓ_sk_grid[i_stop]
     if relativistic
         density_ratio *= γ₀ / γ_sf_grid[i_stop]
     end
@@ -838,7 +838,7 @@ function init_pop(
             pxx_flux, pxz_flux, energy_flux,
             m_ion, ρ_N₀_ion, T₀_ion, relativistic,
             i_stop,
-            γ₀, u₀, γ_sf_grid, ux_sk_grid,
+            γ₀, u₀, γ_sf_grid, uₓ_sk_grid,
         )
     end  # check on i_ion
 
@@ -867,22 +867,22 @@ function init_pop(
             γₚ_pf   = hypot(1, ptot_pf_in[i_prt] / (m*c_cgs))
             vt_pf   = ptot_pf_in[i_prt] / (γₚ_pf * m)
             dist_v_sf = Uniform(
-                                ((ux_sk_grid[i_stop] - vt_pf) / (1 - ux_sk_grid[i_stop]*vt_pf/c_cgs^2))^2, # vmin
-                                ((ux_sk_grid[i_stop] + vt_pf) / (1 + ux_sk_grid[i_stop]*vt_pf/c_cgs^2))^2  # vmax
+                                ((uₓ_sk_grid[i_stop] - vt_pf) / (1 - uₓ_sk_grid[i_stop]*vt_pf/c_cgs^2))^2, # vmin
+                                ((uₓ_sk_grid[i_stop] + vt_pf) / (1 + uₓ_sk_grid[i_stop]*vt_pf/c_cgs^2))^2  # vmax
                                )
 
             vx_sf   = √(rand(dist_v_sf))
-            vx_pf   = (vx_sf - ux_sk_grid[i_stop]) / (1 - vx_sf*ux_sk_grid[i_stop]/c_cgs^2)
+            vx_pf   = (vx_sf - uₓ_sk_grid[i_stop]) / (1 - vx_sf*uₓ_sk_grid[i_stop]/c_cgs^2)
         else
             γₚ_pf   = 1.0
             vt_pf   = ptot_pf_in[i_prt] / m
             dist_v_sf = Uniform(
-                                (ux_sk_grid[i_stop] - vt_pf)^2, # vmin
-                                (ux_sk_grid[i_stop] + vt_pf)^2  # vmax
+                                (uₓ_sk_grid[i_stop] - vt_pf)^2, # vmin
+                                (uₓ_sk_grid[i_stop] + vt_pf)^2  # vmax
                                )
 
             vx_sf   = √(rand(dist_v_sf))
-            vx_pf   = vx_sf - ux_sk_grid[i_stop]
+            vx_pf   = vx_sf - uₓ_sk_grid[i_stop]
         end
 
         pb_pf_in[i_prt] = γₚ_pf * m * vx_pf
@@ -898,7 +898,7 @@ function flux_update!(
         pxx_flux, pxz_flux, energy_flux,
         m_ion, ρ_N₀_ion, T₀_ion, relativistic,
         i_stop,
-        γ₀, u₀, γ_sf_grid, ux_sk_grid
+        γ₀, u₀, γ_sf_grid, uₓ_sk_grid
     )
     # Update the flux arrays as if the particles had actually crossed them
     #-----------------------------------------------------------------------
@@ -914,14 +914,14 @@ function flux_update!(
     # i_stop = 0, and this loop never executes
     for i in 1:i_stop
 
-        density_ratio = (γ₀ * u₀) / (γ_sf_grid[i] * ux_sk_grid[i])
+        density_ratio = (γ₀ * u₀) / (γ_sf_grid[i] * uₓ_sk_grid[i])
         ρ_curr        = ρ₀ * density_ratio
 
         # Note assumption that Γ_sph doesn't change from zone to zone: #assumecold
         pressure_curr = P₀ * density_ratio^Γ_sph
 
-        β_curr   = ux_sk_grid[i] / c_cgs
-        γ_β_curr = γ_sf_grid[i] * ux_sk_grid[i] / c_cgs
+        β_curr   = uₓ_sk_grid[i] / c_cgs
+        γ_β_curr = γ_sf_grid[i] * uₓ_sk_grid[i] / c_cgs
 
         # Determine fluxes while handling different possible orientations and shock speeds.
         # For non-rel fluxes, expand out to β^2 to allow for better matching
@@ -931,12 +931,12 @@ function flux_update!(
         #----------------------------------------------------------------------
         flux_pz = 0.0
         if !relativistic
-            flux_px = ρ_curr * ux_sk_grid[i]^2 * (1 + β_curr^2) + pressure_curr * (1 + Γ_sph/(Γ_sph-1) * β_curr^2)
-            flux_energy = (ρ_curr/2 * ux_sk_grid[i]^3 * (1 + 1.25*β_curr^2)
-                           + pressure_curr * ux_sk_grid[i] * Γ_sph/(Γ_sph-1) * (1 + β_curr^2))
+            flux_px = ρ_curr * uₓ_sk_grid[i]^2 * (1 + β_curr^2) + pressure_curr * (1 + Γ_sph/(Γ_sph-1) * β_curr^2)
+            flux_energy = (ρ_curr/2 * uₓ_sk_grid[i]^3 * (1 + 1.25*β_curr^2)
+                           + pressure_curr * uₓ_sk_grid[i] * Γ_sph/(Γ_sph-1) * (1 + β_curr^2))
         else
             flux_px = pressure_curr + γ_β_curr^2 * (ρ_curr*c_cgs^2 + Γ_sph/(Γ_sph-1)*pressure_curr)
-            flux_energy = (γ_β_curr^2 * c_cgs / (ux_sk_grid[i]/c_cgs) * (ρ_curr*c_cgs^2 + Γ_sph/(Γ_sph-1)*pressure_curr)
+            flux_energy = (γ_β_curr^2 * c_cgs / (uₓ_sk_grid[i]/c_cgs) * (ρ_curr*c_cgs^2 + Γ_sph/(Γ_sph-1)*pressure_curr)
                            # Subtract mass-energy flux from flux_energy to bring it in line with non-rel calculations
                            - γ_β_curr*c_cgs * ρ_curr * c_cgs^2)
         end

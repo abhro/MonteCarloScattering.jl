@@ -7,7 +7,7 @@ determine which bin of psd particle will fall into.
 Binning is done by the value of ptot_sk in code units. All binning is logarithmic.
 
 ### Arguments
-- px_sk: component of momentum parallel to shock normal (to B-field?), in code units
+- pₓ_sk: component of momentum parallel to shock normal (to B-field?), in code units
 - ptot_sk: total particle momentum, in code units
 
 ### Returns
@@ -55,17 +55,17 @@ the parameter bins_per_decade_*** determines the fineness of the bins.
     angles are essentially measured from the -x axis rather than the +x axis.
 
 ### Arguments
-- px_sk: component of momentum parallel to shock normal (to B-field?), in code units
+- pₓ_sk: component of momentum parallel to shock normal (to B-field?), in code units
 - ptot_sk: total particle momentum, in code units
 
 ### Returns
 Bin in angle into which particle falls
 """
-function get_psd_bin_angle(px_sk, ptot_sk, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
+function get_psd_bin_angle(pₓ_sk, ptot_sk, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
     # Bin in angle (bin); note that we negate the pitch angle to provide the
     # finest resolution (i.e. the logarithimcally-spaced angle bins rather than
     # the linearly-spaced cosine bins) for particles that are directed upstream
-    p_cos = -px_sk / ptot_sk
+    p_cos = -pₓ_sk / ptot_sk
 
     if p_cos < psd_cos_fine
         # Pitch angle falls within linear spacing
