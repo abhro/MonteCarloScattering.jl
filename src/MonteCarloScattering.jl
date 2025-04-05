@@ -1,17 +1,18 @@
 import Random
 using Dates
 using JLD2
-using Unitful, UnitfulAstro
+using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
 using Cosmology
 using Statistics: mean
 using StaticArrays
 using OffsetArrays
+using JuliaInterpreter
 
 include("parameters.jl"); using .parameters
 include("constants.jl"); using .constants
 include("utils.jl")
-include("initializers.jl"); using .initializers
-include("io.jl"); using .io
+include("initializers.jl")
+include("io.jl")
 include("transformers.jl"); using .transformers
 include("cosmo_calc.jl"); using .cosmo_calc
 include("all_flux.jl")
@@ -40,9 +41,7 @@ outfile = open("mc_out.dat", "w")
 include("data_input.jl") # FIXME
 
 # Set up the computational grid
-(
- x_grid_rg, x_grid_start, x_grid_stop
-) = setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_DwS, rg₀)
+x_grid_rg, x_grid_start, x_grid_stop = setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_DwS, rg₀)
 const n_grid = length(x_grid_rg) - 2
 const grid_axis = axes(x_grid_rg, 1)
 x_grid_cm = x_grid_rg * rg₀ # Convert everything from rg₀ units to cgs units
@@ -56,7 +55,7 @@ psd_θ_min  = psd_θ_fine / 10^psd_log_θ_decs
 
 if inp_distr == 1
     # Set minimum PSD energy using thermal distribution for UpS plasma
-    Emin_keV = ustrip(u"keV", kB_cgs * minimum(T₀_ion[1:n_ions])*u"erg")
+    Emin_keV = uconvert(u"keV", minimum(temperature.(species)), Thermal())
 
     # Allow for a few extra zones below the thermal peak
     Emin_keV *= emin_therm_fac
@@ -70,29 +69,35 @@ end
 # Determine minimum momentum associated with the given energy, which will occur for
 # the lightest particle species. Use a cutoff of 0.1% of the rest-mass energy for
 # relativistic/nonrelativistic calculation.
-aa_min = minimum(aa_ion)
-if ustrip(u"erg", Emin_keV*u"keV") < 1e-3*aa_min*E₀_proton
-    psd_mom_min = √(2 * aa_min*mₚ_cgs * ustrip(u"erg", Emin_keV*u"keV"))
-else
-    γ           = 1 + ustrip(u"erg", Emin_keV*u"keV")/(aa_min*E₀_proton)
-    psd_mom_min = aa_min * mₚ_cgs * c_cgs * √(γ^2 - 1)
+psd_mom_min = let
+    rest_mass_min = minimum(mass.(species))
+    rest_energy_min = uconvert(u"erg", rest_mass_min, MassEnergy())
+    if Emin_keV < 1e-3*rest_energy_min
+        √(2 * rest_mass_min * Emin_keV)
+    else
+        γ = 1 + Emin_keV/rest_energy_min
+        rest_mass_min*u"c" * √(γ^2 - 1)
+    end
 end
 
 # Now find the maximum momentum for the PSD (this will be adjusted due to SF->PF Lorentz
 # transformation). How to actually calculate it depends on the user-specified maximum energy
 # "ENMAX"
-aa_max = maximum(aa_ion)
-if Emax_keV > 0
-    γ          = 1 + ustrip(u"erg", Emax_keV*u"keV")/(aa_max*E₀_proton)
-    psd_mom_max = aa_max * mₚ_cgs * c_cgs * √(γ^2 - 1)
-elseif Emax_keV_per_aa > 0
-    γ          = 1 + ustrip(u"erg", Emax_keV_per_aa*u"keV")/E₀_proton
-    psd_mom_max = aa_max * mₚ_cgs * c_cgs * √(γ^2 - 1)
-elseif pmax_cgs > 0
-    psd_mom_max = pmax_cgs
-else
-    # Something has gone very wrong.
-    error("Max CR energy not set in data_input, so can not set PSD bins.")
+psd_mom_max = let
+    rest_mass_max = maximum(mass.(species))
+    rest_energy_max = uconvert(u"erg", rest_mass_max, MassEnergy())
+    if Emax_keV > 0u"keV"
+        γ = 1 + Emax_keV/rest_energy_max
+        rest_mass_max*u"c" * √(γ^2 - 1)
+    elseif Emax_keV_per_aa > 0u"keV"
+        γ = 1 + Emax_keV_per_aa/E₀_proton
+        rest_mass_max*u"c" * √(γ^2 - 1)
+    elseif pmax_cgs > 0u"mp*c"
+        pmax_cgs
+    else
+        # Something has gone very wrong.
+        error("Max CR energy not set in data_input, so can not set PSD bins.")
+    end
 end
 
 # Adjust max momentum based on a SF->PF Lorentz transform
@@ -113,7 +118,7 @@ if do_photons
 end
 
 begin # "module" iteration_vars
-    pxx_flux = Vector{Float64}(undef, n_grid)
+    pₓₓ_flux = Vector{Float64}(undef, n_grid)
     pxz_flux = Vector{Float64}(undef, n_grid)
     energy_flux  = Vector{Float64}(undef, n_grid)
     esc_flux = zeros(n_ions)
@@ -181,6 +186,8 @@ jet_dist_Mpc = jet_dist_kpc * 1e-3
 # TODO use cosmology.jl for this instead?
 #jet_dist_Mpc, redshift = cosmo_calc_wrapper(jet_dist_Mpc, redshift)
 if cosmo_var == 1
+    # FIXME redshift is defined as a const in data_input.jl, so it should not be redefined here.
+    # figure out scoping issues
     redshift = get_redshift(jet_dist_Mpc)
 else
     jet_dist_Mpc = ustrip(u"Mpc", comoving_radial_distance(cosmo_calc_params.cosmo, redshift))
@@ -205,13 +212,12 @@ B_CMBz = B_CMB0 * (1 + redshift)^2
 #energy_esc_flux_UpS_tot = 0.0
 pₓ_esc_flux_UpS     = zeros(n_itrs)
 energy_esc_flux_UpS = zeros(n_itrs)
-(
- flux_pₓ_UpS, flux_pz_UpS, flux_energy_UpS
-) = upstream_fluxes(n_ions, ρ_N₀_ion, T₀_ion, aa_ion,
-                    bmag₀, θ_B₀, u₀, β₀, γ₀)
+flux_pₓ_UpS, flux_pz_UpS, flux_energy_UpS = upstream_fluxes(
+    number_density.(species), temperature.(species), mass.(species),
+    bmag₀, θ_B₀, u₀, β₀, γ₀)
 
 # Determine upstream Mach numbers (sonic & Alfvén)
-mach_sonic, mach_alfven = upstream_machs(β₀, n_ions, ρ_N₀_ion, T₀_ion, aa_ion, bmag₀)
+mach_sonic, mach_alfven = upstream_machs(β₀, species, bmag₀)
 
 
 # Set up the initial shock profile, or read it in from a file
@@ -221,7 +227,7 @@ if ! do_old_prof
      β_ef_grid, γ_ef_grid, btot_grid, θ_grid, εB_grid, bmag₂,
     ) = setup_profile(
                       u₀, β₀, γ₀, bmag₀, θ_B₀, r_comp, bturb_comp_frac, bfield_amp, use_custom_εB,
-                      n_ions, aa_ion, ρ_N₀_ion, flux_pₓ_UpS, flux_energy_UpS, grid_axis,
+                      n_ions, species, flux_pₓ_UpS, flux_energy_UpS, grid_axis,
                       x_grid_cm, x_grid_rg,
                      )
 else
@@ -256,14 +262,14 @@ n_pts_max = max(n_pts_pcut, n_pts_pcut_hi)
 
 # Because electrons might have different Monte Carlo weights than protons, set that ratio here
 # WARNING: assumes electrons are last ion species of input file
-electron_weight_fac = 1 / ρ_N₀_ion[end]
+electron_weight_fac = 1 / density(species[end])
 
 
 # Print a bunch of data about the run to screen/file
 print_input(n_pts_inj, n_pts_pcut, n_pts_pcut_hi, n_ions,
             NaN, NaN, n_xspec, n_pcuts, n_grid, r_RH, r_comp,
-            u₀, β₀, γ₀, u₂, β₂, γ₂, ρ_N₀_ion, bmag₀, bmag₂, θ_B₀, θ_B₂, θᵤ₂,
-            aa_ion, T₀_ion, mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine,
+            u₀, β₀, γ₀, u₂, β₂, γ₂, species, bmag₀, bmag₂, θ_B₀, θ_B₂, θᵤ₂,
+            mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine,
             feb_UpS, feb_DwS, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac,
             outfile)
 
@@ -283,7 +289,7 @@ therm_energy_density = Matrix{Float64}(undef, na_c, n_ions)
 psd = OffsetArray{Float64}(undef, (psd_mom_axis, psd_θ_axis, n_grid))
 
 begin # "module" species_vars
-    # Arrays will hold crossing data for thermal particles; px and pt are shock frame values
+    # Arrays will hold crossing data for thermal particles; pₓ and pt are shock frame values
     #integer :: n_cr_count
     num_crossings = zeros(Int, n_grid)
     therm_grid = zeros(Int, na_cr)
@@ -380,7 +386,7 @@ for i_iter in 1:n_itrs # loop_itr
     #------------------------------------------------------------------------
     for i_ion in 1:n_ions # loop_ion
 
-        vals = ion_init(i_iter, i_ion)
+        vals = ion_init(i_iter, i_ion, species)
 
         #----------------------------------------------------------------------
         #  Start of loop over pcuts
@@ -471,4 +477,4 @@ println(outfile)
 println(outfile, " Finished. Run time = ", run_time, ", ", round(run_time, Minute))
 println(outfile)
 
-# vim: set textwidth=92:shiftwidth=2:
+# vim: set textwidth=92:shiftwidth=4:

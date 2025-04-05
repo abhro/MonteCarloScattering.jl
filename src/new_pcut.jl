@@ -68,7 +68,7 @@ function new_pcut(
             n_pts_new += 1
 
             weight_new[n_pts_new]      = weight_sav[j] / i_mult
-            ptot_pf_new[n_pts_new]     = pt_pf_sav[j]
+            ptot_pf_new[n_pts_new]     = ptot_pf_sav[j]
             pb_pf_new[n_pts_new]       = pb_pf_sav[j]
             x_PT_cm_new[n_pts_new]     = x_PT_cm_sav[j]
             grid_new[n_pts_new]        = grid_sav[j]

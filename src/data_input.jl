@@ -13,7 +13,7 @@ const u₀, β₀, γ₀ = let
     skspd > 0 || error("Shock speed must be positive")
 
     skspd_unit = cfg_toml["SKSPD_UNIT"]
-    if skspd_unit == "gamma" || skspd_unit == "γ"
+    if skspd_unit ∈ ("gamma", "γ")
         skspd > 1 || error("SKSPD: Lorentz factor must be > 1")
         γ = skspd
         β = √(1 - 1/γ^2)
@@ -26,7 +26,7 @@ const u₀, β₀, γ₀ = let
         elseif skspd_unit == "c"
             0 < skspd < 1 || error("SKSPD: β must be between 0 and 1")
             β = skspd
-            u = β * unitful.c |> u"cm/s"
+            u = β * Unitful.c |> u"cm/s"
         else
             error("SKSPD: unknown units provided with SKSPD_UNIT")
         end
@@ -56,7 +56,7 @@ end
 const n_ions = length(species)
 
 const inp_distr = cfg_toml["INDST"]
-const energy_inj = cfg_toml["ENINJ"]
+const energy_inj = cfg_toml["ENINJ"] * u"keV"
 const inj_weight = get(cfg_toml, "INJWT", true)
 
 const Emax_keV, Emax_keV_per_aa, pmax_cgs = let
@@ -74,20 +74,20 @@ const Emax_keV, Emax_keV_per_aa, pmax_cgs = let
     elseif energy_max[3] > 0  # All species have same max momentum
         Emax_keV        = 0.0
         Emax_keV_per_aa = 0.0
-        pmax_cgs        = energy_max[3] * mₚ_cgs * c_cgs
+        pmax_cgs        = energy_max[3]
     else
         error("ENMAX: at least one choice must be non-zero.")
     end
-    (Emax_keV, Emax_keV_per_aa, pmax_cgs)
+    (Emax_keV*u"keV", Emax_keV_per_aa*u"keV", pmax_cgs*u"mp*c")
 end
 
 const η_mfp = get(cfg_toml, "GYFAC", 1)
 
 
-const bmag₀ = cfg_toml["BMAGZ"]
+const bmag₀ = cfg_toml["BMAGZ"]*u"G"
 # rg₀ below is the gyroradius of a proton whose speed is u₀ that is gyrating in a field
 # of strength bmag₀. Note that this formula is relativistically correct
-const rg₀ = (γ₀ * mₚ_cgs * c_cgs^2 * β₀) / (qₚ_cgs * bmag₀)
+const rg₀ = (γ₀ * mₚ_cgs * c_cgs^2 * β₀) / (qₚ_cgs * bmag₀) |> u"cm"
 
 
 begin
@@ -115,7 +115,7 @@ const feb_UpS = let
     if febup[1] < 0
         feb_UpS = febup[1] * rg₀
     elseif febup[2] < 0
-        feb_UpS = ustrip(u"cm", febup[2] * u"pc")
+        feb_UpS = uconvert(u"cm", febup[2] * u"pc")
     else
         error("FEBUP: at least one choice must be negative.")
     end
@@ -134,9 +134,9 @@ const feb_DwS, use_prp = let
     if febdw[1] > 0
         feb_DwS = febdw[1] * rg₀
     elseif febdw[2] > 0
-        feb_DwS = ustrip(u"cm", febdw[2] * u"pc")
+        feb_DwS = uconvert(u"cm", febdw[2] * u"pc")
     else
-        feb_DwS = 0.0
+        feb_DwS = 0.0u"cm"
         use_prp = true
     end
     (feb_DwS, use_prp)
@@ -168,7 +168,7 @@ begin
     const n_pcuts = length(pcuts_in)
     n_pcuts+1 > na_c && error("PCUTS: parameter na_c smaller than desired number of pcuts.")
 
-    if Emax_keV > 0
+    if Emax_keV > 0u"keV"
         # Convert from momentum[mₚc/aa] to energy[keV]
         Emax_eff = 56 * pcuts_in[n_pcuts-1] * ustrip(u"keV", E₀_proton*u"erg")
 
@@ -176,7 +176,7 @@ begin
             error("PCUTS: max energy exceeds highest pcut. Add more pcuts or lower Emax_keV. ",
                   "Emax_keV (assuming Fe) = $Emax_keV; Emax_eff = $Emax_eff")
         end
-    elseif Emax_keV_per_aa > 0   # Limit was on energy per nucleon
+    elseif Emax_keV_per_aa > 0u"keV"   # Limit was on energy per nucleon
         # Convert from momentum[mₚc/aa] to energy[keV/aa]
         Emax_eff = pcuts_in[n_pcuts-1] * ustrip(u"keV", E₀_proton*u"erg")
 
@@ -185,8 +185,8 @@ begin
                   "Emax_keV_per_aa = $Emax_keV_per_aa; Emax_eff/aa = $Emax_eff")
         end
 
-    elseif pmax_cgs > 0 # Limit was on total momentum. Assume Fe for strictest limit on mom/nuc.
-        pmax_eff = 56*mₚ_cgs*c_cgs * pcuts_in[n_pcuts-1]
+    elseif pmax_cgs > 0u"mp*c" # Limit was on total momentum. Assume Fe for strictest limit on mom/nuc.
+        pmax_eff = 56u"mp*c" * pcuts_in[n_pcuts-1]
         if pmax_cgs > pmax_eff
             error("PCUTS: max momentum exceeds highest pcut. Add more pcuts or lower pmax. ",
                   "pmax[m_pc] = $pmax_cgs; pmax_eff (for Fe) = $pmax_eff")
@@ -230,7 +230,7 @@ end
 
 const r_comp, r_RH, Γ₂_RH = let
     r_comp = cfg_toml["RCOMP"]
-    r_RH, Γ₂_RH = calc_rRH(u₀, β₀, γ₀, species, oblique)
+    r_RH, Γ₂_RH = calc_rRH(u₀, β₀, γ₀, species)
     if r_comp == -1
         r_comp = r_RH
     end
@@ -238,8 +238,8 @@ const r_comp, r_RH, Γ₂_RH = let
 end
 
 begin
-    const β₂, γ₂, bmag₂, θ_B₂, θᵤ₂ = calc_DwS(oblique, bmag₀, r_comp, β₀)
-    const u₂ = β₂ * c_cgs
+    const β₂, γ₂, bmag₂, θ_B₂, θᵤ₂ = calc_DwS(bmag₀, r_comp, β₀)
+    const u₂ = β₂ * u"c"
     @debug("Results from calc_DwS()", u₂, β₂, γ₂, bmag₂, θ_B₂, θᵤ₂)
 end
 
@@ -278,12 +278,12 @@ end
 
 const p_electron_crit, γ_electron_crit = let
 
-    energy_electron_crit_keV = get(cfg_toml, "EMNFP", nothing)
-    # If needed, convert input energy[keV] to momentum and Lorentz factor
-    if !isnothing(energy_electron_crit_keV) && energy_electron_crit_keV > 0
-        energy_electron_crit_rm = ustrip(u"erg", energy_electron_crit_keV*u"keV") / E₀_electron
+    energy_electron_crit_keV = get(cfg_toml, "EMNFP", nothing) * u"keV"
+    # If needed, convert input energy to momentum and Lorentz factor
+    if !isnothing(energy_electron_crit_keV) && energy_electron_crit_keV > 0u"keV"
+        energy_electron_crit_rm = energy_electron_crit_keV / E₀_electron
 
-        # Different forms for nonrel and rel momenta
+        # Different forms for nonrelativistic and relativstic momenta
         if energy_electron_crit_rm < 1e-2
             p_electron_crit = (mₑ_cgs*c_cgs) * √(2energy_electron_crit_rm)
             γ_electron_crit = 1.0

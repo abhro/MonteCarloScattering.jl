@@ -47,7 +47,7 @@ GYFAC = 1.0
 BMAGZ = 1e-5
 
 # UpS angle[deg] between B-field and shock normal
-#THTBZ = 0.0
+THTBZ = 0.0
 
 # Start of grid[rg0]. Can not be closer than UpS FEB.
 XGDUP = -1e7

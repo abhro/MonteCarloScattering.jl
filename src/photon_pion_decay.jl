@@ -37,7 +37,7 @@ function photon_pion_decay(
         n_grid, num_hist_bins, p_pf_cgs_therm,
         dNdp_pf_therm, num_psd_mom_bins, p_pf_cgs_cr, dNdp_pf_cr,
         n_photon_pion, photon_pion_min_MeV, bins_per_dec_photon, dist_lum, redshift,
-        aa_ion, ρ_N₀_ion, n_ions, β₀, γ₀,
+        aa_ion, n₀_ion, n_ions, β₀, γ₀,
         # from grid_vars
         γ_sf_grid,
         # from species_vars
@@ -56,7 +56,7 @@ function photon_pion_decay(
 
     # Set a handful of constants
     γ_β_loc = √(γ_sf_grid[n_grid]^2 - 1)
-    target_density = ρ_N₀_ion[1] * (γ₀*β₀)/γ_β_loc
+    target_density = n₀_ion[1] * (γ₀*β₀)/γ_β_loc
 
     aa = aa_ion[i_ion]
 

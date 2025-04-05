@@ -512,7 +512,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
             i_prt, aa, pb_pf, p_perp_b_pf, ptot_pf, γₚ_pf, φ_rad,
             weight, i_grid, uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
             r_PT_cm.x, r_PT_old.x, inj, nc_unit,
-            i_grid_feb, pxx_flux, pxz_flux,
+            i_grid_feb, pₓₓ_flux, pxz_flux,
             energy_flux, energy_esc_UpS, pₓ_esc_UpS, spectra_sf, spectra_pf,
             n_cr_count, num_crossings, psd,
             n_xspec, x_spec, feb_UpS, γ₀, u₀, mc,
