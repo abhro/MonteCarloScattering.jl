@@ -1,5 +1,5 @@
 using SpecialFunctions: besselk
-using .constants: E₀_proton, qₚ_cgs, ħ_cgs, c_cgs
+using .constants: E₀_proton, qₚ_cgs, ħ_cgs, c
 
 """
 This subroutine takes an electron distribution and calculates the synchrotron emission.
@@ -36,9 +36,6 @@ function synch_emission(
     energy_γ_min_log = log10(ustrip(u"erg", photon_synch_min_MeV*u"MeV")) # Min photon energy in log(ergs)
     Δγ = 1 / bins_per_dec_photon
 
-    rest_mass_mₑ = aa_ion[i_ion] * E₀_proton  # electron rest mass energy (erg)
-
-
     # Get strength of magnetic field, which will be used to find p_fac below. Note that
     # i_grid may be greater than n_grid. This only happens when this subroutine is called
     # to find the synchrotron emission for SSC purposes, which requires special treatment:
@@ -54,7 +51,7 @@ function synch_emission(
     # Rybicki & Lightman eq. 6.18 without F factor.
     # units are power per unit frequency per electron (cgs)
     # Above: Note there is no sin(α) factor
-    p_fac = √3/2π * (qₚ_cgs^3 * bmag_curr/rest_mass_mₑ)
+    p_fac = √3/2π * (qₚ_cgs^3 * bmag_curr/E₀_electron)
 
 
     # Initialize emission array and set energy of output photons
@@ -117,7 +114,7 @@ function synch_emission_thermal_particles!(synch_emis)
 
         # Assume electrons with E < 3 MeV contribute no synchrotron emission
         p1 = √(p_pf_cgs_therm[iii] * p_pf_cgs_therm[iii+1]) # Geometric mean
-        p1*c_cgs*u"erg" < 3u"MeV" && continue
+        p1*c*u"erg" < 3u"MeV" && continue
 
         # Lorentz factor for electron
         γ_electron = hypot(p1/mc, 1)
@@ -142,7 +139,6 @@ function synch_emission_thermal_particles!(synch_emis)
                 end
             end
 
-
             # In the MC code, the electron spectra passed to synch_emission contain the
             # total number of particles in each momentum shell. Therefore, the emission
             # returned by this subroutine has units of erg/s. (It would be erg/(s⋅cm³)
@@ -150,7 +146,7 @@ function synch_emission_thermal_particles!(synch_emis)
             # Also, Eq. (6.18) from Rybicki & Lightman, [xnum_electron * p_fac * F], is
             # energy production rate per frequency, dP/dω. Since ω_γ is E/ħ, dω = dE/ħ, and
             # so ω_γ/dω = E/dE. Then [dP/dω * ω_γ] is equal to [dP/dE * E], or dP/d(lnE).
-            # This is what subroutine synch_emis expects as output. Has units [erg/s].
+            # This is what `synch_emis()` expects as output. Has units [erg/s].
             tmp_add = xnum_electron * ω_γ * p_fac * F
 
             # Only include emission if it's sufficiently positive
@@ -171,10 +167,10 @@ function synch_emission_cosmic_ray!(synch_emis)
 
         # Assume electrons with E < 3 MeV contribute no synchrotron emission
         p1 = √(p_pf_cgs_cr[iii] * p_pf_cgs_cr[iii+1]) # Geometric mean
-        p1*c_cgs*u"erg" < 3u"MeV" && continue
+        p1*c*u"erg" < 3u"MeV" && continue
 
         # Lorentz factor for electron
-        γ_electron = hypot(p1/mc,  1)
+        γ_electron = hypot(p1/mc, 1)
 
         # Eq. 6.17c Rybicki & Lightman without sin(α)
         ω_c = 3*(γ_electron^2)*qₚ_cgs*bmag_curr / 2mc
@@ -198,12 +194,12 @@ function synch_emission_cosmic_ray!(synch_emis)
 
             # In the MC code, the electron spectra passed to synch_emission contain the
             # total number of particles in each momentum shell. Therefore, the emission
-            # returned by this subroutine has units of erg/sec. (It would be erg/(s⋅cm³)
+            # returned by this subroutine has units of erg/s. (It would be erg/(s⋅cm³)
             # if we had passed density instead of number.)
             # Also, Eq. (6.18) from Rybicki & Lightman, [xnum_electron * p_fac * F], is
             # energy production rate per frequency, dP/dω. Since ω_γ is E/ħ, dω = dE/ħ, and
             # so ω_γ/dω = E/dE. Then [dP/dω * ω_γ] is equal to [dP/dE * E], or dP/d(lnE).
-            # This is what synch_emis() expects as output. Has units [erg/s].
+            # This is what `synch_emis()` expects as output. Has units [erg/s].
             tmp_add = xnum_electron * ω_γ * p_fac * F
 
             # Only include emission if it's sufficiently positive

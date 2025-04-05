@@ -1,6 +1,6 @@
 using Unitful, UnitfulAstro
 using UnitfulAstro: GeV, erg
-using .constants: mₚ_cgs, E₀_proton, T_th
+using .constants: E₀_proton, T_th
 using .KATV2014: get_σ_π, get_Ffunc, get_Amax
 
 """
@@ -92,7 +92,7 @@ function pion_kafexhiu(
         γ = √(p_pf_sq/mc^2 + 1)
         Tₚ = (γ - 1) * aa*ustrip(GeV, E₀_proton*erg) # particle kinetic energy in GeV
         Tₚ /= aa  # kinetic energy per nucleon
-        vel = √p_pf_sq / (γ*aa*mₚ_cgs)
+        vel = √p_pf_sq / (γ*aa*mp)
 
         # Tₚ must be at T_th; otherwise no possibility to produce pions/photons
         Tₚ < T_th && continue
@@ -160,7 +160,7 @@ function pion_kafexhiu(
         γ = √(p_pf_sq/mc^2 + 1)
         Tₚ = (γ - 1) * aa*ustrip(GeV, E₀_proton*erg) # particle K.E. in GeV
         Tₚ /= aa  # kinetic energy per nucleon
-        vel = √(p_pf_sq)/(γ*aa*mₚ_cgs)
+        vel = √(p_pf_sq)/(γ*aa*mp)
 
         # Tₚ must be at T_th; otherwise no possibility to produce pions/photons
         Tₚ < T_th && continue

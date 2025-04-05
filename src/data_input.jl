@@ -22,7 +22,7 @@ const u₀, β₀, γ₀ = let
         if skspd_unit == "km/s"
             0 < skspd < ustrip(u"km/s", Unitful.c0) || error("SKSPD: u must be between 0 and c")
             u = (skspd * 1e5)u"cm/s"
-            β = u / c_cgs
+            β = u / c
         elseif skspd_unit == "c"
             0 < skspd < 1 || error("SKSPD: β must be between 0 and 1")
             β = skspd
@@ -51,7 +51,7 @@ const species = let
         error("Inconsistent number of ion parameters given (AA_ION, ZZ_ION, TZ_ION, DENZ_ION)")
     end
 
-    Species.(masses*u"mp", charges*u"q", temperatures*u"K", densities*u"cm^-3")
+    Species.(masses*u"mp", charges*qₚ_cgs, temperatures*u"K", densities*u"cm^-3")
 end
 const n_ions = length(species)
 
@@ -78,16 +78,16 @@ const Emax_keV, Emax_keV_per_aa, pmax_cgs = let
     else
         error("ENMAX: at least one choice must be non-zero.")
     end
-    (Emax_keV*u"keV", Emax_keV_per_aa*u"keV", pmax_cgs*u"mp*c")
+    (Emax_keV*keV, Emax_keV_per_aa*keV, pmax_cgs*mp*c)
 end
 
 const η_mfp = get(cfg_toml, "GYFAC", 1)
 
 
-const bmag₀ = cfg_toml["BMAGZ"]*u"G"
+const bmag₀ = cfg_toml["BMAGZ"]*G
 # rg₀ below is the gyroradius of a proton whose speed is u₀ that is gyrating in a field
 # of strength bmag₀. Note that this formula is relativistically correct
-const rg₀ = (γ₀ * mₚ_cgs * c_cgs^2 * β₀) / (qₚ_cgs * bmag₀) |> u"cm"
+const rg₀ = (γ₀ * E₀_proton * β₀) / (qₚ_cgs * bmag₀) |> cm
 
 
 begin
@@ -238,8 +238,8 @@ const r_comp, r_RH, Γ₂_RH = let
 end
 
 begin
-    const β₂, γ₂, bmag₂, θ_B₂, θᵤ₂ = calc_DwS(bmag₀, r_comp, β₀)
-    const u₂ = β₂ * u"c"
+    β₂, γ₂, bmag₂, θ_B₂, θᵤ₂ = calc_DwS(bmag₀, r_comp, β₀)
+    const u₂ = β₂*c
     @debug("Results from calc_DwS()", u₂, β₂, γ₂, bmag₂, θ_B₂, θᵤ₂)
 end
 
@@ -285,10 +285,10 @@ const p_electron_crit, γ_electron_crit = let
 
         # Different forms for nonrelativistic and relativstic momenta
         if energy_electron_crit_rm < 1e-2
-            p_electron_crit = (mₑ_cgs*c_cgs) * √(2energy_electron_crit_rm)
+            p_electron_crit = me*c * √(2energy_electron_crit_rm)
             γ_electron_crit = 1.0
         else
-            p_electron_crit = (mₑ_cgs*c_cgs) * √((energy_electron_crit_rm + 1)^2 - 1)
+            p_electron_crit = me*c * √((energy_electron_crit_rm + 1)^2 - 1)
             γ_electron_crit = energy_electron_crit_rm + 1.0
         end
     else
@@ -326,8 +326,8 @@ const jet_sph_frac, jet_open_ang_deg = let
 end
 
 begin
-    const jet_dist_kpc = get(cfg_toml, "JETDS", 1.0)
-    const redshift = get(cfg_toml, "RDSHF", 0.0)
+    jet_dist_kpc = get(cfg_toml, "JETDS", 1.0)
+    redshift = get(cfg_toml, "RDSHF", 0.0)
     if jet_dist_kpc > 0 && redshift > 0
         error("JETDS: At most one of 'JETDS' and 'RDSHF' may be non-zero.")
     end

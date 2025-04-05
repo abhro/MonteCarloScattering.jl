@@ -1,4 +1,4 @@
-using .constants: mₚ_cgs, E₀_proton
+using .constants: E₀_proton
 using .parameters: energy_rel_pt, na_cr
 
 all_flux_spike_away = 1000.0 # Max value for 1/cosine
@@ -58,7 +58,7 @@ function all_flux!(
         # The therm_*** arrays can be pulled from the module because they are inherently
         # thread-safe. Only n_cr_count and num_crossings need protection from race
         # conditions, and so need to be included explicitly in the arguments of all_flux.
-        therm_grid, therm_pₓ_sk, therm_pt_sk, therm_weight,
+        therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight,
     )
 
     # Very early check to see if particle crossed a grid zone boundary
@@ -95,7 +95,7 @@ function all_flux!(
         abs_inv_vx_sk = abs(all_flux_spike_away/uₓ_sk)
     else
         pt_o_pₓ_sk = ptot_sk / p_sk.x
-        abs_inv_vx_sk = abs(γₚ_sk * aa*mₚ_cgs / p_sk.x)
+        abs_inv_vx_sk = abs(γₚ_sk * aa*mp / p_sk.x)
     end
 
     pt_o_pₓ_pf = min(abs(ptot_pf/pb_pf), all_flux_spike_away)
@@ -104,7 +104,7 @@ function all_flux!(
     if (γₚ_sk - 1) > energy_rel_pt
         energy_flux_add = (γₚ_sk - 1) * aa*E₀_proton * weight
     else
-        energy_flux_add = ptot_sk^2 / (2 * aa*mₚ_cgs) * weight
+        energy_flux_add = ptot_sk^2 / (2 * aa*mp) * weight
     end
 
 
@@ -213,7 +213,7 @@ function flux_stream!(
                 n_cr_count += 1
                 therm_grid[n_cr_count] = i
                 therm_pₓ_sk[n_cr_count] = p_sk.x
-                therm_pt_sk[n_cr_count] = ptot_sk
+                therm_ptot_sk[n_cr_count] = ptot_sk
                 therm_weight[n_cr_count]  = weight * abs_inv_vx_sk
             else
                 # Need to write to scratch file, formatted or otherwise
