@@ -1,8 +1,9 @@
 function iter_init()
     # Zero out numerous quantities that will be modified over the course of this iteration.
     # Minimally positive number is used to prevent errors when taking logarithms later
-    fill!(pₓₓ_flux, 1e-99)
-    fill!(pxz_flux, 1e-99)
+    p_unit = unit(eltype(pₓₓ_flux))
+    fill!(pₓₓ_flux, 1e-99*p_unit)
+    fill!(pxz_flux, 1e-99*p_unit)
     fill!(energy_flux, 1e-99)
 
     fill!(esc_spectra_feb_UpS, 1e-99)

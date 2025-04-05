@@ -118,8 +118,9 @@ if do_photons
 end
 
 begin # "module" iteration_vars
-    pₓₓ_flux = Vector{Float64}(undef, n_grid)
-    pxz_flux = Vector{Float64}(undef, n_grid)
+    # units of momentum flux density: [p] * [v] * [n] = [energy density]
+    pₓₓ_flux = Vector{typeof(1.0u"erg/cm^3")}(undef, n_grid)
+    pxz_flux = Vector{typeof(1.0u"erg/cm^3")}(undef, n_grid)
     energy_flux  = Vector{Float64}(undef, n_grid)
     esc_flux = zeros(n_ions)
     pₓ_esc_feb = zeros(n_ions, n_itrs)
@@ -294,7 +295,7 @@ begin # "module" species_vars
     num_crossings = zeros(Int, n_grid)
     therm_grid = zeros(Int, na_cr)
     therm_pₓ_sk = zeros(na_cr)
-    therm_pt_sk = zeros(na_cr)
+    therm_ptot_sk = zeros(na_cr)
     therm_weight = zeros(na_cr)
 
     # Spectra at x_spec locations

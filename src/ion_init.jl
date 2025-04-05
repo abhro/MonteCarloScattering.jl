@@ -12,20 +12,20 @@ function ion_init(i_iter, i_ion, species)
     # particle counts. Recall that energy_pcut_hi has units of keV per aa, so when
     # dividing by particle mass the factor of aa is already present in the denominator.
     # Also set the maximum momentum cutoff based on the values given in keyword "ENMAX"
-    E_pcut_hi_rmproton = ustrip(u"erg", energy_pcut_hi*u"keV") / E₀_proton # FIXME pick better name
+    E_pcut_hi_rmproton = energy_pcut_hi*u"keV" / E₀_proton # FIXME pick better name
     if E_pcut_hi_rmproton < energy_rel_pt
         p_pcut_hi = √(2 * E_pcut_hi_rmproton)
     else
         p_pcut_hi = aa * mₚ_cgs * c_cgs * √((E_pcut_hi_rmproton + 1)^2 - 1)
     end
 
-    if Emax_keV > 0
-        γ = 1 + ustrip(u"erg", Emax_keV*u"keV")/(aa*E₀_proton)
+    if Emax_keV > 0u"keV"
+        γ = 1 + Emax_keV/(aa*E₀_proton)
         pmax_cutoff = aa*mₚ_cgs * c_cgs * √(γ^2 - 1)
-    elseif Emax_keV_per_aa > 0
-        γ = 1 + ustrip(u"erg", Emax_keV_per_aa*u"keV")/E₀_proton
+    elseif Emax_keV_per_aa > 0u"keV"
+        γ = 1 + Emax_keV_per_aa/E₀_proton
         pmax_cutoff = aa*mₚ_cgs * c_cgs * √(γ^2 - 1)
-    elseif pmax_cgs > 0
+    elseif pmax_cgs > 0u"mp*c"
         pmax_cutoff = pmax_cgs
     else
         # Something has gone very wrong.
@@ -50,8 +50,9 @@ function ion_init(i_iter, i_ion, species)
     # the shock structure
     global n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in, x_PT_cm_in, globals... = init_pop(
         do_fast_push, inp_distr, i_ion, m,
-        T₀_ion, energy_inj, inj_weight, n_pts_inj, n₀_ion, x_grid_start, rg₀, η_mfp,
-        x_fast_stop_rg, β₀, γ₀, u₀, n_ions, m_ion,
+        temperature.(species), energy_inj, inj_weight, n_pts_inj,
+        density.(species), x_grid_start, rg₀, η_mfp, x_fast_stop_rg,
+        β₀, γ₀, u₀, n_ions, mass.(species),
         n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid,
         ptot_inj, weight_inj, n_pts_MB,
     )

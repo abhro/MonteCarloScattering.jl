@@ -6,7 +6,7 @@ function ion_finalize()
     get_normalized_dNdp(dNdp_therm, dNdp_therm_pvals, dNdp_cr, nc_unit, zone_pop)
 
     # Get pressure (both components) and kinetic energy density everywhere in the shock profile
-    thermo_calcs(num_crossings, n_cr_count, therm_grid, therm_pₓ_sk, therm_pt_sk,
+    thermo_calcs(num_crossings, n_cr_count, therm_grid, therm_pₓ_sk, therm_ptot_sk,
                  therm_weight, nc_unit, psd, zone_pop,
                  pressure_psd_par, pressure_psd_perp, energy_density_psd)
 

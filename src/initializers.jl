@@ -173,6 +173,12 @@ function calc_rRH(u₀, β₀, γ₀, species)
     return r_RH, Γ₂_RH
 end
 
+# TODO move the code here
+#function calc_rRH_relativistic()
+#end
+#function calc_rRH_nonrelativistic()
+#end
+
 """
 Sets the BOUNDARIES of the bins of the phase space distribution. The bins are numbered from
 0 to num_psd_mom_bins, each boundary denotes the lower edge of that # bin; the indices thus
@@ -884,20 +890,19 @@ function init_pop(
         if relativistic
             γₚ_pf   = hypot(1, ptot_pf_in[i_prt] / (m*c_cgs))
             vt_pf   = ptot_pf_in[i_prt] / (γₚ_pf * m)
-            dist_v_sf = Uniform(
-                                ((uₓ_sk_grid[i_stop] - vt_pf) / (1 - uₓ_sk_grid[i_stop]*vt_pf/c_cgs^2))^2, # vmin
-                                ((uₓ_sk_grid[i_stop] + vt_pf) / (1 + uₓ_sk_grid[i_stop]*vt_pf/c_cgs^2))^2  # vmax
-                               )
+
+            vmin = ((uₓ_sk_grid[i_stop] - vt_pf) / (1 - uₓ_sk_grid[i_stop]*vt_pf/c_cgs^2))^2
+            vmax = ((uₓ_sk_grid[i_stop] + vt_pf) / (1 + uₓ_sk_grid[i_stop]*vt_pf/c_cgs^2))^2
+            dist_v_sf = Uniform(vmin, vmax)
 
             vx_sf   = √(rand(dist_v_sf))
             vx_pf   = (vx_sf - uₓ_sk_grid[i_stop]) / (1 - vx_sf*uₓ_sk_grid[i_stop]/c_cgs^2)
         else
             γₚ_pf   = 1.0
             vt_pf   = ptot_pf_in[i_prt] / m
-            dist_v_sf = Uniform(
-                                (uₓ_sk_grid[i_stop] - vt_pf)^2, # vmin
-                                (uₓ_sk_grid[i_stop] + vt_pf)^2  # vmax
-                               )
+            vmin = (uₓ_sk_grid[i_stop] - vt_pf)^2
+            vmax = (uₓ_sk_grid[i_stop] + vt_pf)^2
+            dist_v_sf = Uniform(vmin, vmax)
 
             vx_sf   = √(rand(dist_v_sf))
             vx_pf   = vx_sf - uₓ_sk_grid[i_stop]
@@ -949,15 +954,19 @@ function flux_update!(
         #----------------------------------------------------------------------
         flux_pz = 0.0
         if !relativistic
-            flux_pₓ = ρ_curr * uₓ_sk_grid[i]^2 * (1 + β_curr^2) + pressure_curr * (1 + Γ_sph/(Γ_sph-1) * β_curr^2)
+            flux_pₓ = (ρ_curr * uₓ_sk_grid[i]^2 * (1 + β_curr^2)
+                       + pressure_curr * (1 + Γ_sph/(Γ_sph-1) * β_curr^2))
             flux_energy = (ρ_curr/2 * uₓ_sk_grid[i]^3 * (1 + 1.25*β_curr^2)
                            + pressure_curr * uₓ_sk_grid[i] * Γ_sph/(Γ_sph-1) * (1 + β_curr^2))
         else
-            flux_pₓ = pressure_curr + γ_β_curr^2 * (ρ_curr*c_cgs^2 + Γ_sph/(Γ_sph-1)*pressure_curr)
-            flux_energy = (γ_β_curr^2 * c_cgs / (uₓ_sk_grid[i]/c_cgs) * (ρ_curr*c_cgs^2 + Γ_sph/(Γ_sph-1)*pressure_curr)
+            e_curr = ρ_curr * float(c_cgs)^2 # energy density
+
+            flux_pₓ = pressure_curr + γ_β_curr^2 * (e_curr + Γ_sph/(Γ_sph-1)*pressure_curr)
+            flux_energy = (γ_β_curr^2 * c_cgs / (uₓ_sk_grid[i]/c_cgs) *
+                           (e_curr + Γ_sph/(Γ_sph-1)*pressure_curr)
                            # Subtract mass-energy flux from flux_energy to bring
                            # it in line with non-relativstic calculations
-                           - γ_β_curr*c_cgs * ρ_curr * c_cgs^2)
+                           - γ_β_curr*c_cgs * e_curr)
         end
         #--------------------------------------------------------------------
         # Fluxes calculated

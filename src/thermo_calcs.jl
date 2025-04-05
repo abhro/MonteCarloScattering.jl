@@ -9,7 +9,7 @@ calculate the pressure (which may be anisotropic) everywhere on the grid.
   scratch file was used
 - therm_grid: array of grid zone number for thermal crossings
 - therm_pₓ_sk: array of x-momentum for thermal crossings
-- therm_pt_sk: array of total momentum for thermal crossings
+- therm_ptot_sk: array of total momentum for thermal crossings
 - therm_weight: array of flux-adjusted particle weights for thermal particle crossings
 - nc_unit: unit number for the scratch file holding crossing data
 - psd: 3-D phase space distribution holding shock-frame ptot and cos(θ) for all recorded CR
@@ -24,7 +24,7 @@ calculate the pressure (which may be anisotropic) everywhere on the grid.
 """
 function thermo_calcs(
         num_crossings, n_cr_count, therm_grid, therm_pₓ_sk,
-        therm_pt_sk, therm_weight, nc_unit, psd, zone_pop,
+        therm_ptot_sk, therm_weight, nc_unit, psd, zone_pop,
         aa_ion, zz_ion, T₀_ion, n₀_ion, psd_lin_cos_bins,
         γ₀, β₀
     )
@@ -96,7 +96,7 @@ function thermo_calcs(
 
         # Note: ordering of coordinates chosen to make memory accesses in next loop faster
         therm_pₓ[n_cross_fill[i_grid], i_grid] = therm_pₓ_sk[i]
-        therm_pt[n_cross_fill[i_grid], i_grid] = therm_pt_sk[i]
+        therm_pt[n_cross_fill[i_grid], i_grid] = therm_ptot_sk[i]
         therm_weight[n_cross_fill[i_grid], i_grid] = therm_weight[i]
     end
 

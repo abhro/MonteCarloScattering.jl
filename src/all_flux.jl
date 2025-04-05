@@ -58,7 +58,7 @@ function all_flux!(
         # The therm_*** arrays can be pulled from the module because they are inherently
         # thread-safe. Only n_cr_count and num_crossings need protection from race
         # conditions, and so need to be included explicitly in the arguments of all_flux.
-        therm_grid, therm_pₓ_sk, therm_pt_sk, therm_weight,
+        therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight,
     )
 
     # Very early check to see if particle crossed a grid zone boundary
@@ -213,7 +213,7 @@ function flux_stream!(
                 n_cr_count += 1
                 therm_grid[n_cr_count] = i
                 therm_pₓ_sk[n_cr_count] = p_sk.x
-                therm_pt_sk[n_cr_count] = ptot_sk
+                therm_ptot_sk[n_cr_count] = ptot_sk
                 therm_weight[n_cr_count]  = weight * abs_inv_vx_sk
             else
                 # Need to write to scratch file, formatted or otherwise

@@ -517,7 +517,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
             n_cr_count, num_crossings, psd,
             n_xspec, x_spec, feb_UpS, γ₀, u₀, mc,
             n_grid, x_grid_cm,
-            therm_grid, therm_pₓ_sk, therm_pt_sk, therm_weight,
+            therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight,
         )
 
 
