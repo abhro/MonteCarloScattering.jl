@@ -6,7 +6,7 @@ Use the Rankine-Hugoniot relations to calculate the escaping momentum & energy f
 """
 function q_esc_calcs(
         Γ, r_comp, r_RH, u₀, β₀, γ₀, n_ions,
-        aa_ion, zz_ion, T₀_ion, ρ_N₀_ion, γ₂, β₂, u₂)
+        aa_ion, zz_ion, T₀_ion, n₀_ion, γ₂, β₂, u₂)
 
     # Quick test first. If r_comp = r_RH, we expect no escaping flux.
     r_comp == r_RH && return 0.0, 0.0
@@ -34,8 +34,8 @@ end
 # #TODO: check how much of a difference this assumption makes
 function q_esc_calcs_nonrelativistic()
     # Calculate thermal pressure of far upstream gas
-    P₀ = dot(ρ_N₀_ion, T₀_ion) * kB_cgs # pressure (thermal)
-    ρ₀ = dot(ρ_N₀_ion, m_ion)           # mass density
+    P₀ = dot(n₀_ion, T₀_ion) * kB_cgs # pressure (thermal)
+    ρ₀ = dot(n₀_ion, m_ion)           # mass density
 
     # Calculate UpS incoming energy flux   #assumecold
     F_pₓ_UpS_fl     = ρ₀ * u₀^2 + P₀
@@ -50,9 +50,9 @@ function q_esc_calcs_nonrelativistic()
 
     # Finally, put in units of F_en₀
     q_esc_cal_energy = Q_en / F_energy_UpS_fl
-    q_esc_cal_px = 0.0
+    q_esc_cal_pₓ = 0.0
 
-    return q_esc_cal_energy, q_esc_cal_px
+    return q_esc_cal_energy, q_esc_cal_pₓ
 end
 
 # Solution comes from Ellison+ (1990) [1991ApJ...378..214E]. Uses relativistic Rankine-Hugoniot
@@ -69,15 +69,15 @@ end
 # For closure, it is assumed that the two escaping fluxes are related by
 #     Q_en = √[(1+β₀)/2] * Q_px * c,
 # i.e. the geometric mean of the arithmetic mean of u₀ and c. This allows the solution to
-# smoothly join with the non-rel version. Use only fluid component of fluxes, not fluid+EM,
-# for now.
+# smoothly join with the non-relativstic version. Use only fluid component of
+# fluxes, not fluid+EM, for now.
 function q_esc_calcs_relativistic()
     # Factor relating Q_en and Q_px
     q_fac = c_cgs * √((1 + β₀)/2)
 
     # Calculate thermal pressure of far upstream gas
-    P₀ = dot(ρ_N₀_ion, T₀_ion) * kB_cgs # pressure (thermal)
-    ρ₀ = dot(ρ_N₀_ion, m_ion)           # mass density
+    P₀ = dot(n₀_ion, T₀_ion) * kB_cgs # pressure (thermal)
+    ρ₀ = dot(n₀_ion, m_ion)           # mass density
 
     # Two terms to simplify the calculation of pressure₂.   #assumecold
     F_pₓ_UpS_fl     = γ₀^2 * β₀^2 * (ρ₀*c_cgs^2 + 5//2*P₀) + P₀
@@ -96,7 +96,7 @@ function q_esc_calcs_relativistic()
     # Subtract off mass-energy flux from F_energy_UpS_fl to bring results in line with
     # non-relativistic calculation.
     q_esc_cal_energy = Q_en / (F_energy_UpS_fl - γ₀ * u₀ * ρ₀*c_cgs^2)
-    q_esc_cal_px = Q_px / F_pₓ_UpS_fl
+    q_esc_cal_pₓ = Q_px / F_pₓ_UpS_fl
 
-    return q_esc_cal_energy, q_esc_cal_px
+    return q_esc_cal_energy, q_esc_cal_pₓ
 end

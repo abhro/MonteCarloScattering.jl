@@ -7,30 +7,32 @@ export T_th, M_res, Γ_res, rmp, rmpi
 export Tₜₕ
 
 using PhysicalConstants: CODATA2018
-using Unitful
+using Unitful, UnitfulGaussian
 using Unitful: g, K, cm, s, erg, GeV
+using UnitfulGaussian: Fr, G
 
 # Physical or arithmetic constants
 
-const mₚ_cgs = ustrip(g,     Unitful.mp)           # Proton mass in grams
-const mₑ_cgs = ustrip(g,     Unitful.me)         # Electron mass in grams
-const qₚ_cgs = 4.803205e-10 # Proton charge in cgs ESU units: statC or Fr
-const kB_cgs = ustrip(erg/K, Unitful.k)    # Boltzmann's constant [erg/K]
-const c_cgs  = ustrip(cm/s,  Unitful.c0) # speed of light [cm/s]
-const h_cgs  = ustrip(erg*s, Unitful.h)       # Planck constant [erg⋅s]
-const ħ_cgs  = ustrip(erg*s, Unitful.ħ)
+const mₚ_cgs = uconvert(g,     Unitful.mp)      # Proton mass in grams
+const mₑ_cgs = uconvert(g,     Unitful.me)      # Electron mass in grams
+const qₚ_cgs = 4.803205e-10Fr                   # Proton charge in cgs ESU units
+const kB_cgs = uconvert(erg/K, Unitful.k)       # Boltzmann's constant
+const c_cgs  = uconvert(cm/s,  convert(Quantity{Int128}, Unitful.c0)) # speed of light
+# ^ Int128 used because usually it's c^2, and in cgs it overflows Int64
+const h_cgs  = uconvert(erg*s, Unitful.h)       # Planck constant
+const ħ_cgs  = uconvert(erg*s, Unitful.ħ)
 
-const E₀_proton   = mₚ_cgs * c_cgs^2 # proton rest mass energy [erg]
-const E₀_electron = mₑ_cgs * c_cgs^2 # electron rest mass energy [erg]
+const E₀_proton   = mₚ_cgs * float(c_cgs)^2 # proton rest mass energy [erg]
+const E₀_electron = mₑ_cgs * float(c_cgs)^2 # electron rest mass energy [erg]
 
-const B_CMB0 = 3.27e-6  # Equivalent B field[G] to CMB energy density at a redshift of 0
-const T_CMB0 = 2.725    # Temperature[K] of CMB at a redshift of 0
+const B_CMB0 = 3.27e-6G  # Equivalent B field to CMB energy density at a redshift of 0
+const T_CMB0 = 2.725K    # Temperature of CMB at a redshift of 0
 
-const T_th  = 0.2797                    # Threshold kinetic energy, GeV, for pion production
-const M_res = 1.1883                    # Resonance mass, GeV
-const Γ_res = 0.2264                    # Resonance width, GeV
-const rmp   = ustrip(GeV, E₀_proton*erg)# Proton rest energy, GeV
-const rmpi  = 0.134976                  # Neutral pion rest energy, GeV
+const T_th  = 0.2797GeV                 # Threshold kinetic energy, for pion production
+const M_res = 1.1883GeV                 # Resonance mass
+const Γ_res = 0.2264GeV                 # Resonance width
+const rmp   = uconvert(GeV, E₀_proton)  # Proton rest energy
+const rmpi  = 0.134976GeV               # Neutral pion rest energy
 
 const Tₜₕ = T_th # alias
 

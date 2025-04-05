@@ -1,7 +1,7 @@
-function ion_init(i_iter, i_ion)
-    aa = aa_ion[i_ion]
-    zz = zz_ion[i_ion]
-    m = m_ion[i_ion]
+function ion_init(i_iter, i_ion, species)
+    zz = charge(species[i_ion])
+    m = mass(species[i_ion])
+    aa = m/u"mp" |> NoUnits
 
     mc = aa*mₚ_cgs * c_cgs
 
@@ -50,18 +50,18 @@ function ion_init(i_iter, i_ion)
     # the shock structure
     global n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in, x_PT_cm_in, globals... = init_pop(
         do_fast_push, inp_distr, i_ion, m,
-        T₀_ion, energy_inj, inj_weight, n_pts_inj, ρ_N₀_ion, x_grid_start, rg₀, η_mfp,
+        T₀_ion, energy_inj, inj_weight, n_pts_inj, n₀_ion, x_grid_start, rg₀, η_mfp,
         x_fast_stop_rg, β₀, γ₀, u₀, n_ions, m_ion,
         n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid,
         ptot_inj, weight_inj, n_pts_MB,
     )
-    global pxx_flux = globals[1]
+    global pₓₓ_flux = globals[1]
     global pxz_flux = globals[2]
     global energy_flux = globals[3]
     @info("Finished init_pop on",
           i_iter, i_ion,
           n_pts_use, i_grid_in, weight_in, ptot_pf_in,
-          pb_pf_in, x_PT_cm_in, pxx_flux, pxz_flux, energy_flux)
+          pb_pf_in, x_PT_cm_in, pₓₓ_flux, pxz_flux, energy_flux)
 
     # Assign the various particle properties to the population
     assign_particle_properties_to_population!(n_pts_use, xn_per_fine, x_grid_stop)
@@ -95,7 +95,7 @@ function clear_psd!()
     fill!(esc_psd_feb_UpS, 1e-99)
     fill!(esc_psd_feb_DwS, 1e-99)
     fill!(therm_pₓ_sk,     0.0)
-    fill!(therm_pt_sk,     0.0)
+    fill!(therm_ptot_sk,   0.0)
     fill!(therm_weight,    0.0)
     n_cr_count = 0
     return n_cr_count

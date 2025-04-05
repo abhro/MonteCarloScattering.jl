@@ -1,5 +1,3 @@
-module initializers
-
 using Random: rand
 using OffsetArrays: OffsetVector, Origin
 using LinearAlgebra: dot
@@ -8,13 +6,13 @@ using Roots
 using Unitful, UnitfulAstro
 using Distributions: Uniform
 
-using ..parameters: β_rel_fl, na_particles, energy_rel_pt, num_therm_bins
-using ..constants: mₚ_cgs, mₑ_cgs, kB_cgs, c_cgs, kB_cgs, E₀_proton
+# using ..parameters: β_rel_fl, na_particles, energy_rel_pt, num_therm_bins
+# using ..constants: mₚ_cgs, mₑ_cgs, kB_cgs, c_cgs, kB_cgs, E₀_proton
 
-export init_pop, set_inj_dist
-export calc_DwS, calc_rRH
-export set_psd_mom_bins, set_psd_angle_bins, set_photon_shells, setup_grid, setup_profile
-export upstream_machs, upstream_fluxes
+# export init_pop, set_inj_dist
+# export calc_DwS, calc_rRH
+# export set_psd_mom_bins, set_psd_angle_bins, set_photon_shells, setup_grid, setup_profile
+# export upstream_machs, upstream_fluxes
 
 """
 Uses the Rankine-Hugoniot jump conditions to calculate the downstream conditions for a test
@@ -56,7 +54,7 @@ non-relativistic thermal speeds to make UpS adiabatic index exactly 5/3.
 - β₀, γ₀: shock speed and Lorentz factor
 - n_ions: number of different ion species
 - m_ion: array of particle species' mass
-- ρ_N₀_ion: array of far UpS densities for particle species
+- n₀_ion: array of far UpS densities for particle species
 - T₀_ion: array of particle species' far UpS temperatures
 
 Shock must be parallel (not oblique)
@@ -77,7 +75,7 @@ function calc_rRH(u₀, β₀, γ₀, species)
     relativistic = (β₀ < β_rel_fl)
 
     # Calculate thermal pressure of far upstream gas
-    P₀ = dot(density.(species), temperature(species)) * Unitful.k
+    P₀ = dot(density.(species), temperature.(species)) * Unitful.k
     ρ₀ = dot(density.(species), mass.(species))
 
     #--------------------------------------------------------------------------
@@ -87,8 +85,8 @@ function calc_rRH(u₀, β₀, γ₀, species)
     #--------------------------------------------------------------------------
     if !relativistic
 
-        # Assume an adiabatic index of 5/3, appropriate for non-rel ideal gas,
-        # to calculate the far UpS sound speed and Mach number     #assumecold
+        # Assume an adiabatic index of 5/3, appropriate for non-relativstic ideal
+        # gas, to calculate the far UpS sound speed and Mach number   #assumecold
         Γ_sph = 5//3
         cₛ    = √(Γ_sph * P₀ / ρ₀)
         M_Z   = β₀ * Unitful.c / cₛ |> NoUnits
@@ -98,7 +96,7 @@ function calc_rRH(u₀, β₀, γ₀, species)
         # the denominator quite a bit from the equation.
         r_RH = 8 / (2 + 6/M_Z^2)
 
-        # In non-rel case, downstream adiabatic index is pegged to 5/3
+        # In non-relativstic case, downstream adiabatic index is pegged to 5/3
         Γ₂_RH = 5//3
 
 
@@ -126,18 +124,18 @@ function calc_rRH(u₀, β₀, γ₀, species)
         # rest mass-energy of each species, and the (number) density relative to protons
         relative_ion_energy = (
             dot(mass.(species), # rest energy of each species (to be multiplied by c²)
-                density.(species)) # density relative to protons (to be divided by ρ_N₀_proton)
+                density.(species)) # density relative to protons (to be divided by n₀_proton)
             * c_cgs^2      # turn mass into rest energy of all species
             / first(density.(species))) # turn densities into density relative to protons
 
-        # Assume an adiabatic index of 5/3, appropriate for non-rel ideal gas,
+        # Assume an adiabatic index of 5/3, appropriate for non-relativstic ideal gas,
         # to calculate the far UpS enthalpy      #assumecold
         Γ_sph = 5//3
         w₀ = ρ₀ * c_cgs^2 + Γ_sph/(Γ_sph-1) * P₀
 
         # Calculate the far UpS momentum flux
         UpS_mom_flux = γ₀^2 * w₀ * β₀^2 + P₀
-        UpS_num_flux = γ₀ * ρ_N₀_ion[1] * β₀ # Protons only here; not strictly correct but appropriate for later use
+        UpS_num_flux = γ₀ * n₀_ion[1] * β₀ # Protons only here; not strictly correct but appropriate for later use
 
         function F(p)
             γβ = p / (mₚ_cgs*c_cgs) # since p is relativistic, p/mc = γmv/mc = γ⋅β
@@ -164,7 +162,7 @@ function calc_rRH(u₀, β₀, γ₀, species)
         Γ₂_RH = 1 + P_fac/e_fac
 
         # Finally, get downstream speed and compression ratio
-        β₂ = √(1 - (ρ_N₀_ion[1] * w_fac/γ₀ * w₀)^2)  # Using only proton density is correct
+        β₂ = √(1 - (n₀_ion[1] * w_fac/γ₀ * w₀)^2)  # Using only proton density is correct
 
 
         r_RH = β₀/β₂
@@ -184,13 +182,13 @@ Logarithmic spacing over all decades from Emin_keV to Emax_keV is used.
 Values less than the minimum are equivalent to 0.0.
 
 ### Arguments
-- psd_mom_min: minimum momentum[cgs] to use in PSD
-- psd_mom_max: maximum momentum[cgs] to use in PSD
-- psd_bins_per_dec_mom: # of bins per decade to use in logarithmically-spaced regions of PSD
+- `psd_mom_min`: minimum momentum[cgs] to use in PSD
+- `psd_mom_max`: maximum momentum[cgs] to use in PSD
+- `psd_bins_per_dec_mom`: # of bins per decade to use in logarithmically-spaced regions of PSD
 
 ### Returns
-- num_psd_mom_bins: total number of bins along given dimension, not counting bin 0
-- psd_mom_bounds: boundaries between bins, and upper edge of final bin
+- `num_psd_mom_bins`: total number of bins along given dimension, not counting bin 0
+- `psd_mom_bounds`: boundaries between bins, and upper edge of final bin
 """
 function set_psd_mom_bins(psd_mom_min, psd_mom_max, psd_bins_per_dec_mom)
     num_psd_mom_bins = trunc(Int, log10(psd_mom_max / psd_mom_min) *  psd_bins_per_dec_mom)
@@ -200,7 +198,7 @@ function set_psd_mom_bins(psd_mom_min, psd_mom_max, psd_bins_per_dec_mom)
     # of that bin
     psd_mom_bounds = Origin(0)(Float64[-99.0])
     append!(psd_mom_bounds,
-            range(start  = log10(psd_mom_min),
+            range(start  = log10(psd_mom_min/u"mp*c"),
                   step   = 1/psd_bins_per_dec_mom,
                   length = num_psd_mom_bins+1))
 
@@ -433,28 +431,30 @@ No inputs; pulls everything from module 'controls'
 - flux_pz_UpS: far UpS momentum flux, z component
 - flux_energy_UpS: far UpS energy flux
 """
-function upstream_fluxes(n_ions, ρ_N₀_ion, T₀_ion, m_ion, bmag₀, θ_B₀, u₀, β₀, γ₀)
+function upstream_fluxes(n₀_ion, T₀_ion, m_ion, bmag₀, θ_B₀, u₀, β₀, γ₀)
 
     # UpS internal energy density and pressure, assuming isotropic particle distribution.
     # Note that this INCLUDES the mass-energy density, which is typically omitted in
     # nonrelativistic calculations
-    P₀ = dot(ρ_N₀_ion, T₀_ion) * kB_cgs # pressure
-    ρ₀ = dot(ρ_N₀_ion, m_ion)           # mass density
+    P₀ = dot(n₀_ion, T₀_ion) * u"k" # pressure
+    ρ₀ = dot(n₀_ion, m_ion)         # mass density
+    @debug "calculated params" P₀ ρ₀
 
-    # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal gas, to
-    # calculate the far UpS internal energy             #assumecold
+    # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal gas,
+    # to calculate the far UpS internal energy             #assumecold
     Γ_sph = 5//3
-    e₀ = ρ₀ * c_cgs^2 + 1/(Γ_sph - 1) * P₀      # internal energy density
+    # internal energy density
+    e₀ = ρ₀*u"c^2" + 1/(Γ_sph - 1) * P₀
 
-    # Quantities related to the UpS magnetic field. Note that B_z is the z-component of the
-    # magnetic field, not B₀
+    # Quantities related to the UpS magnetic field. Note that B_z is the
+    # z-component of the magnetic field, not B₀
     B_x = bmag₀ * cosd(θ_B₀)
     B_z = bmag₀ * sind(θ_B₀)
 
     relativistic = β₀ ≥ β_rel_fl
 
     if relativistic
-        flux_pₓ_UpS, flux_pz_UpS = upstream_momentum_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, bmag₀, B_x, B_z)
+        flux_pₓ_UpS, flux_pz_UpS = upstream_momentum_flux_relativistic(β₀, γ₀, e₀, P₀, bmag₀, B_x, B_z)
         flux_energy_UpS = upstream_energy_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_z)
     else
         # Non-relativistic version. Note that it's missing the ρc² flux present in the
@@ -467,21 +467,28 @@ function upstream_fluxes(n_ions, ρ_N₀_ion, T₀_ion, m_ion, bmag₀, θ_B₀,
     return (flux_pₓ_UpS, flux_pz_UpS, flux_energy_UpS)
 end
 
-function upstream_momentum_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, bmag₀, B_x, B_z)
+function upstream_momentum_flux_relativistic(β₀, γ₀, e₀, P₀, bmag₀, B_x, B_z)
 
-    # Momentum, x-component
-    F_pₓ_fl = (γ₀*β₀)^2 * (e₀ + P₀) + P₀                    # Fluid part (Double+ Eq 23)
-    F_pₓ_EM = (γ₀^2*β₀^2*bmag₀^2 + γ₀^2*(B_z^2-B_x^2)) / 8π # EM part (Double+ Eq 25)
+    # Momentum flux, x-component
+    # Fluid part (Double+ Eq 23)
+    F_pₓ_fl = (γ₀*β₀)^2 * (e₀ + P₀) + P₀ |> u"g/(cm*s^2)"
+    # EM part (Double+ Eq 25)
+    # there is a bug in uconvert that overflows when converting from G^2 to
+    # erg/cm^3, even though it's one-to-one. So bypass that by using ustrip
+    F_pₓ_EM = ustrip(u"G^2", γ₀^2 * ((β₀*bmag₀)^2 + B_z^2 - B_x^2) / 8π) * u"g/(cm*s^2)"
+    @debug "Found partial fluxes" F_pₓ_fl F_pₓ_EM
     flux_pₓ_UpS = F_pₓ_fl + F_pₓ_EM                         # Total
 
-    # Momentum, z-component (Fluid Part = 0, from Double+ Eq 24)
+    # Momentum flux, z-component (Fluid Part = 0, from Double+ Eq 24)
     # Total = EM part (Double+ Eq 26)
     flux_pz_UpS = -γ₀/4π * B_x * B_z
 
     return flux_pₓ_UpS, flux_pz_UpS
 end
 function upstream_momentum_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_x, B_z)
-    flux_pₓ_UpS = ρ₀ * u₀^2 * (1 + β₀^2) + P₀ * (1 + Γ_sph/(Γ_sph-1)*β₀^2) + B_z^2/8π
+    flux_pₓ_UpS = ρ₀ * u₀^2 * (1 + β₀^2) +
+                  P₀ * (1 + Γ_sph/(Γ_sph-1)*β₀^2) +
+                  ustrip(u"G^2", B_z^2/8π)*u"g/(cm*s^2)"
     flux_pz_UpS = - B_x * B_z / 4π
     return flux_pₓ_UpS, flux_pz_UpS
 end
@@ -492,7 +499,7 @@ end
 
 function upstream_energy_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_z)
     F_energy_fl = γ₀^2 * β₀ * (e₀ + P₀) # Fluid part (Double+ Eq 20)
-    F_energy_EM = γ₀^2 * β₀ * B_z^2/4π  # EM part (Double+ Eq 21)
+    F_energy_EM = ustrip(u"G^2", γ₀^2 * β₀ * B_z^2/4π)*u"erg/cm^3"  # EM part (Double+ Eq 21)
     # Total -- convert to cgs units!
     flux_energy_UpS = c_cgs * (F_energy_fl + F_energy_EM)
 
@@ -517,66 +524,77 @@ TODO
 - mach_sonic: sonic Mach number of UpS flow
 - mach_alfven: Alfvénic Mach number of UpS flow
 """
-function upstream_machs(β₀, n_ions, ρ_N₀_ion, T₀_ion, m_ion, bmag₀)
+function upstream_machs(β₀, species, bmag₀)
 
     # Assume cold UpS plasma, so that the adiabatic index is 5/3 identically   #assumecold
     Γ = 5//3
 
-    P₀ = dot(number_density.(species), temperature.(species)) * Unitful.k # pressure
-    ρ₀ = dot(number_density.(species), mass.(species))                    # mass density
+    P₀ = dot(number_density.(species), temperature.(species)) * kB_cgs # pressure
+    ρ₀ = dot(number_density.(species), mass.(species))                 # mass density
+    @debug "Found parameters" P₀ ρ₀
 
     relativistic = (β₀ ≥ β_rel_fl)
 
-    return (mach_sonic(β₀*c_cgs, P₀, ρ₀, Γ, relativistic),
-            mach_alfven(β₀*c_cgs, P₀, ρ₀, Γ, bmag₀, relativistic))
+    return (mach_sonic_func(β₀*c_cgs, P₀, ρ₀, Γ, relativistic),
+            mach_alfven_func(β₀*c_cgs, P₀, ρ₀, Γ, bmag₀, relativistic))
 end
 
+# TODO name these functions better. the `_func` suffix is because there are
+# globals with the same name
 """
+    mach_sonic_func(u, P, ρ, Γ, relativistic)
+
 Return sonic mach number (ratio of speed to local speed of sound)
 """
-function mach_sonic(u, P, ρ, Γ, relativistic)
-    cₛ = sound_speed(P, ρ, Γ, relativistic)
-    return u / cₛ
-end
-function sound_speed(P, ρ, Γ, relativistic)
-    if relativistic
-        # Find FK1979's R factor, the ratio of pressure to rest mass energy density
-        R = P / (ρ * c_cgs^2) # dimensionless auxiliary variable
-
-        # Compute the speed of sound using Fujimura & Kennel
-        #     cₛ²/c² = ΓR/(aR + 1)                              FK1979 Eq. 13
-        a = Γ / (Γ - 1)     # defined near FK1979 Equation (6)
-        return c_cgs * √(Γ * R / (a*R + 1))
-    else
-        return √(Γ * P / ρ) # cₛ = √(K/ρ), where K = ΓP is the bulk modulus
-    end
+function mach_sonic_func(u, P, ρ, Γ, relativistic)
+    cₛ = relativistic ?
+            sound_speed_relativistic(P, ρ, Γ) :
+            sound_speed_nonrelativistic(P, ρ, Γ)
+    return u / cₛ |> NoUnits
 end
 
 """
+    mach_alfven_func(u, P, ρ, Γ, B, relativistic)
+
 Return Alfvénic mach number (ratio of speed to Alfvén wave group velocity)
 """
-function mach_alfven(u, P, ρ, Γ, B, relativistic)
-    v_a = alfven_speed(P, ρ, Γ, B, relativistic)
-    return u / v_A
+function mach_alfven_func(u, P, ρ, Γ, B, relativistic)
+    v_A = relativistic ?
+            alfven_speed_relativistic(P, ρ, Γ, B) :
+            alfven_speed_nonrelativistic(ρ, B)
+    return u / v_A |> NoUnits
 end
 
-function alfven_speed(P, ρ, Γ, B, relativistic)
-    if relativistic
-        # And into Gedalin (1993)'s Equation (46); note assumption that
-        # equation of state is    e = ρc² + P/(Γ-1)
-        #     v_A² = (B²/4π) / (ε + p + B²/4π)                  Gedalin Eq. 46
-        enthalpy = Γ/(Γ-1) * P + ρ * c_cgs^2
-        v_A = c_cgs / √(1 + 4π * enthalpy / B^2)
-        # more on equation of state
-        #    e = ρc² + P/(Γ-1)
-        # where
-        # - e is the (total internal) energy density
-        # - ρc² is the rest energy density
-        # - P/(Γ-1) is the thermal component (internal kinetic energy)
-    else
-        v_A = B / √(4π * ρ) # Alfvén wave group velocity
-    end
+function sound_speed_relativistic(P, ρ, Γ)
+    # Find FK1979's R factor, the ratio of pressure to rest mass energy density
+    R = P / (ρ * float(c_cgs)^2) |> NoUnits # dimensionless auxiliary variable
+
+    # Compute the speed of sound using Fujimura & Kennel
+    #     cₛ²/c² = ΓR/(aR + 1)                              FK1979 Eq. 13
+    a = Γ / (Γ - 1)     # defined near FK1979 Equation (6)
+    @debug "Called with" P ρ Γ
+    @debug "Calculated params" R a
+    return c_cgs * √(Γ * R / (a*R + 1))
 end
+
+sound_speed_nonrelativistic(P, ρ, Γ) = √(Γ * P / ρ) # cₛ = √(K/ρ), where K = ΓP is the bulk modulus
+
+function alfven_speed_relativistic(P, ρ, Γ, B)
+    # And into Gedalin (1993)'s Equation (46); note assumption that
+    # equation of state is    e = ρc² + P/(Γ-1)
+    #     v_A² = (B²/4π) / (ε + p + B²/4π)                  Gedalin Eq. 46
+    enthalpy = Γ/(Γ-1) * P + ρ * c_cgs^2
+    # In principle 1 erg/cm³ == 1 G², but uconvert breaks when doing it
+    v_A = c_cgs / √(1 + 4π * ustrip(u"erg/cm^3", enthalpy) / ustrip(u"G^2", B^2))
+    # more on equation of state
+    #    e = ρc² + P/(Γ-1)
+    # where
+    # - e is the (total internal) energy density
+    # - ρc² is the rest energy density
+    # - P/(Γ-1) is the thermal component (internal kinetic energy)
+    return v_A
+end
+alfven_speed_nonrelativistic(ρ, B) = B / √(4π * ρ) # Alfvén wave group velocity
 
 """
 Sets the initial values of the shock profile
@@ -602,21 +620,21 @@ TODO
 function setup_profile(
         u₀, β₀, γ₀, bmag₀, θ_B₀,
         r_comp, bturb_comp_frac, bfield_amp, use_custom_εB,
-        n_ions, aa_ion, ρ_N₀_ion, flux_pₓ_UpS, flux_energy_UpS,
+        n_ions, species, flux_pₓ_UpS, flux_energy_UpS,
         grid_axis, x_grid_cm, x_grid_rg,
     )
 
-    uₓ_sk_grid = OffsetVector{Float64}(undef, grid_axis)
-    uz_sk_grid = zeros(grid_axis)
+    uₓ_sk_grid = OffsetVector{typeof(u₀)}(undef, grid_axis)
+    uz_sk_grid = zeros(typeof(u₀), grid_axis)
     γ_sf_grid  = OffsetVector{Float64}(undef, grid_axis)
     β_ef_grid  = OffsetVector{Float64}(undef, grid_axis)
     γ_ef_grid  = OffsetVector{Float64}(undef, grid_axis)
-    btot_grid  = OffsetVector{Float64}(undef, grid_axis)
+    btot_grid  = OffsetVector{typeof(bmag₀)}(undef, grid_axis)
     θ_grid     = fill(deg2rad(θ_B₀), grid_axis)
 
     comp_fac = 0.0
     for i in grid_axis
-        if x_grid_cm[i] < 0
+        if x_grid_cm[i] < 0u"cm"
             uₓ_sk_grid[i] = u₀
             γ_sf_grid[i] = γ₀
             β_ef_grid[i] = 0.0
@@ -647,7 +665,7 @@ function setup_profile(
     #-------------------------------------------------------------------------------
     if use_custom_εB
         set_custom_εB!(εB_grid, btot_grid, grid_axis,
-                       n_ions, aa_ion, ρ_N₀_ion, bmag₀,
+                       n_ions, species, bmag₀,
                        flux_pₓ_UpS, flux_energy_UpS, uₓ_sk_grid, x_grid_rg,
                        comp_fac,
                        γ₀, β₀, u₀)
@@ -666,43 +684,43 @@ end
 function set_custom_εB!(
         εB_grid, btot_grid,
         grid_axis,
-        n_ions, aa_ion, ρ_N₀_ion, bmag₀,
+        n_ions, species, bmag₀,
         flux_pₓ_UpS, flux_energy_UpS, uₓ_sk_grid, x_grid_rg,
         comp_fac,
         γ₀, β₀, u₀)
 
-    @debug("Input parameters", εB_grid, btot_grid, grid_axis, n_ions, aa_ion, ρ_N₀_ion, bmag₀,
+    @debug("Input parameters", εB_grid, btot_grid, grid_axis, n_ions, species, bmag₀,
            flux_pₓ_UpS, flux_energy_UpS, uₓ_sk_grid, x_grid_rg, comp_fac, γ₀, β₀, u₀)
 
     # Calculate ε_B₀ which depends on far UpS magnetic field and mass density. If electrons
     # aren't a separate species, they don't contribute enough mass to be important
-    ρ_N₀ = dot(ρ_N₀_ion, aa_ion) # total number density
-    εB₀ = bmag₀^2 / (8π * ρ_N₀ * E₀_proton)
+    n₀ = dot(density.(species), mass.(species))/u"mp" # total number density
+    εB₀ = bmag₀^2 / (8π * n₀ * E₀_proton)
 
     # The Monte Carlo length is rg₀ = γ₀ ⋅ β₀ ⋅ E₀_proton / (e ⋅ Bmag₀). The plasma skin
     # depth is λ_SD = γ₀ ⋅ E₀_proton / (4π ⋅ e² ⋅ den₀), where den₀ refers to the upstream
     # number density of electrons. With the definition
-    #     σ = 2εB₀/γ₀ = Bmag₀² / (4π ⋅ γ₀ ⋅ ρ_N₀ ⋅ E₀_proton),
-    # where ρ_N₀ here refers to the number density of *protons*, one can show that in
+    #     σ = 2εB₀/γ₀ = Bmag₀² / (4π ⋅ γ₀ ⋅ n₀ ⋅ E₀_proton),
+    # where n₀ here refers to the number density of *protons*, one can show that in
     # the shock frame (where grid exists),
     #     λ_SD = β₀ / √(σ ⋅ density_p/density_e) ⋅ rg₀.
-    ρ_N₀_electron = ρ_N₀_ion[end] # electron number density
+    n₀_electron = density(species[end]) # electron number density
     σ = 2εB₀ / γ₀
-    rg2sd = β₀ / √(σ*ρ_N₀/ρ_N₀_electron)
+    rg2sd = β₀ / √(σ*n₀/n₀_electron)
 
     # Also need the final value of ε_B downstream, in case our DwS region is long enough
     # that the magnetic field can decay to this value. Note that the R-H relations can be
     # rearranged to read
     #     energy_density(x) = F_en₀/u(x) - F_px₀
     # assuming flux conservation everywhere.
-    energy_density₂ = (flux_energy_UpS + γ₀*u₀*ρ_N₀*E₀_proton) / uₓ_sk_grid[end] - flux_pₓ_UpS
+    energy_density₂ = (flux_energy_UpS + γ₀*u₀*n₀*E₀_proton) / uₓ_sk_grid[end] - flux_pₓ_UpS
     εB₂ = (bmag₀*comp_fac)^2 / (8π * energy_density₂)
     # Use this value to compute the distance downstream at which the field will have decayed to it.
     # Per the Blandford-McKee solution, energy ∝ 1/χ ∝ 1/distance DwS. Since we do not actually
     # modify our pressures and densities according to the BM solution, instead modify εB
     end_decay_rg = (5e-3 / εB₂) / rg2sd
 
-    @debug("Setting custom εB", ρ_N₀, εB₀, ρ_N₀_electron, σ, rg2sd, energy_density₂, εB₂, end_decay_rg)
+    @debug("Setting custom εB", n₀, εB₀, n₀_electron, σ, rg2sd, energy_density₂, εB₂, end_decay_rg)
 
     # Now we can calculate εB_grid and use it to calculate btot_grid. Per the Blandford-McKee
     # solution, energy ∝ 1/χ ∝ 1/distance DwS. Since we do not actually modify our pressures
@@ -718,7 +736,7 @@ function set_custom_εB!(
         else
             εB_grid[i] = εB₂
         end
-        energy_density = (flux_energy_UpS + γ₀*u₀*ρ_N₀*E₀_proton) / uₓ_sk_grid[i] - flux_pₓ_UpS
+        energy_density = (flux_energy_UpS + γ₀*u₀*n₀*E₀_proton) / uₓ_sk_grid[i] - flux_pₓ_UpS
         @debug("Setting εB_grid array elements", i, εB_grid[i], energy_density)
         # FIXME this tries to be a square root of a negative number sometimes
         #btot_grid[i] = √(8π * εB_grid[i] * energy_density)
@@ -751,14 +769,14 @@ TODO
 - ptot_pf_in
 - pb_pf_in
 - x_PT_cm_in
-- pxx_flux
+- pₓₓ_flux
 - pxz_flux
 - energy_flux
 """
 function init_pop(
         do_fast_push, inp_distr, i_ion, m,
         # from controls module
-        T₀_ion, energy_inj, inj_weight, n_pts_inj, ρ_N₀_ion, x_grid_start, rg₀, η_mfp,
+        T₀_ion, energy_inj, inj_weight, n_pts_inj, n₀_ion, x_grid_start, rg₀, η_mfp,
         x_fast_stop_rg, β₀, γ₀, u₀, n_ions, m_ion,
         # from grid_vars module
         n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid,
@@ -778,19 +796,19 @@ function init_pop(
         end
 
         ptot_inj[:,i_ion], weight_inj[:,i_ion], n_pts_MB[i_ion] = set_inj_dist(
-            inj_weight, n_pts_inj, inp_distr, T_or_E, m, ρ_N₀_ion[i_ion])
+            inj_weight, n_pts_inj, inp_distr, T_or_E, m, n₀_ion[i_ion])
 
         n_pts_use = n_pts_MB[i_ion]
         weight_in = weight_inj[1:n_pts_use, i_ion]
         ptot_pf_in = ptot_inj[1:n_pts_use, i_ion]
         pb_pf_in = ptot_pf_in[1:n_pts_use] * 2*(rand(n_pts_use) .- 0.5)
         x_PT_cm_in = fill(x_grid_start - 10*rg₀*η_mfp, n_pts_use)
-        pxx_flux = zeros(n_grid)
+        pₓₓ_flux = zeros(n_grid)
         pxz_flux = zeros(n_grid)
         energy_flux = zeros(n_grid)
 
         i_grid_in = zeros(Int, n_pts_use)
-        return n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in, x_PT_cm_in, pxx_flux, pxz_flux, energy_flux
+        return n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in, x_PT_cm_in, pₓₓ_flux, pxz_flux, energy_flux
     end
 
 
@@ -816,8 +834,8 @@ function init_pop(
         density_ratio *= γ₀ / γ_sf_grid[i_stop]
     end
 
-    # Assume an adiabatic index of 5/3, appropriate for non-rel ideal gas,
-    # to calculate the far UpS internal energy   #assumecold
+    # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal
+    # gas, to calculate the far UpS internal energy   #assumecold
     Γ_sph = 5//3
 
     temp_ratio = density_ratio^Γ_sph / density_ratio
@@ -826,7 +844,7 @@ function init_pop(
         error("Fast push cannot work because highest energy thermal particles become mildly relativistic. ",
               "Move fast push location UpS or disable entirely.")
     end
-    pxx_flux = zeros(n_grid)
+    pₓₓ_flux = zeros(n_grid)
     pxz_flux = zeros(n_grid)
     energy_flux = zeros(n_grid)
 
@@ -835,8 +853,8 @@ function init_pop(
     # protons, not that it matters here); skip thereafter
     if i_ion == 1
         flux_update!(
-            pxx_flux, pxz_flux, energy_flux,
-            m_ion, ρ_N₀_ion, T₀_ion, relativistic,
+            pₓₓ_flux, pxz_flux, energy_flux,
+            m_ion, n₀_ion, T₀_ion, relativistic,
             i_stop,
             γ₀, u₀, γ_sf_grid, uₓ_sk_grid,
         )
@@ -848,7 +866,7 @@ function init_pop(
     T_or_E = T₀_ion[i_ion] * temp_ratio
 
     ptot_inj[:,i_ion], weight_inj[:,i_ion], n_pts_MB[i_ion] = set_inj_dist(
-        inj_weight, n_pts_inj, inp_distr, T_or_E, m, ρ_N₀_ion[i_ion])
+        inj_weight, n_pts_inj, inp_distr, T_or_E, m, n₀_ion[i_ion])
     n_pts_use = n_pts_MB[i_ion]
 
     weight_in  = weight_inj[1:n_pts_use, i_ion]
@@ -890,23 +908,23 @@ function init_pop(
         # Velocity-weighted pitch angles finished
     end
 
-    return n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in, x_PT_cm_in, pxx_flux, pxz_flux, energy_flux
+    return n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in, x_PT_cm_in, pₓₓ_flux, pxz_flux, energy_flux
 end
 
 
 function flux_update!(
-        pxx_flux, pxz_flux, energy_flux,
-        m_ion, ρ_N₀_ion, T₀_ion, relativistic,
+        pₓₓ_flux, pxz_flux, energy_flux,
+        m_ion, n₀_ion, T₀_ion, relativistic,
         i_stop,
         γ₀, u₀, γ_sf_grid, uₓ_sk_grid
     )
     # Update the flux arrays as if the particles had actually crossed them
     #-----------------------------------------------------------------------
     # Obtain UpS pressure and density
-    P₀ = dot(ρ_N₀_ion, T₀_ion) * kB_cgs
-    ρ₀ = dot(ρ_N₀_ion, m_ion)
+    P₀ = dot(n₀_ion, T₀_ion) * kB_cgs
+    ρ₀ = dot(n₀_ion, m_ion)
 
-    # Assume an adiabatic index of 5/3, appropriate for non-rel ideal gas,
+    # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal gas,
     # to calculate the far UpS pressure and internal energy   #assumecold
     Γ_sph = 5//3
 
@@ -924,26 +942,27 @@ function flux_update!(
         γ_β_curr = γ_sf_grid[i] * uₓ_sk_grid[i] / c_cgs
 
         # Determine fluxes while handling different possible orientations and shock speeds.
-        # For non-rel fluxes, expand out to β^2 to allow for better matching
-        # with relativistic versions.
+        # For non-relativstic fluxes, expand out to β^2 to allow for better
+        # matching with relativistic versions.
         # WARNING: these fluxes do not include contributions from a strong
         # magnetic field. This is incorporated during the smoothing process.
         #----------------------------------------------------------------------
         flux_pz = 0.0
         if !relativistic
-            flux_px = ρ_curr * uₓ_sk_grid[i]^2 * (1 + β_curr^2) + pressure_curr * (1 + Γ_sph/(Γ_sph-1) * β_curr^2)
+            flux_pₓ = ρ_curr * uₓ_sk_grid[i]^2 * (1 + β_curr^2) + pressure_curr * (1 + Γ_sph/(Γ_sph-1) * β_curr^2)
             flux_energy = (ρ_curr/2 * uₓ_sk_grid[i]^3 * (1 + 1.25*β_curr^2)
                            + pressure_curr * uₓ_sk_grid[i] * Γ_sph/(Γ_sph-1) * (1 + β_curr^2))
         else
-            flux_px = pressure_curr + γ_β_curr^2 * (ρ_curr*c_cgs^2 + Γ_sph/(Γ_sph-1)*pressure_curr)
+            flux_pₓ = pressure_curr + γ_β_curr^2 * (ρ_curr*c_cgs^2 + Γ_sph/(Γ_sph-1)*pressure_curr)
             flux_energy = (γ_β_curr^2 * c_cgs / (uₓ_sk_grid[i]/c_cgs) * (ρ_curr*c_cgs^2 + Γ_sph/(Γ_sph-1)*pressure_curr)
-                           # Subtract mass-energy flux from flux_energy to bring it in line with non-rel calculations
+                           # Subtract mass-energy flux from flux_energy to bring
+                           # it in line with non-relativstic calculations
                            - γ_β_curr*c_cgs * ρ_curr * c_cgs^2)
         end
         #--------------------------------------------------------------------
         # Fluxes calculated
 
-        pxx_flux[i] = flux_px
+        pₓₓ_flux[i] = flux_pₓ
         pxz_flux[i] = flux_pz
         energy_flux[i]  = flux_energy
 
@@ -966,7 +985,7 @@ FIXME
 - inp_distr: thermal, δ-function, or some other distribution
 - T_or_E: if using thermal distribution, this is temperature[K]; if δ function, it's injection energy[keV]
 - m: mass for this particle species
-- ρ_N₀: far UpS number density for this species
+- n₀: far UpS number density for this species
 
 ### Returns
 - ptot_out: array holding plasma frame total momenta for all particles in the distribution
@@ -976,7 +995,7 @@ FIXME
 
 CHECKTHIS: that output distribution matches M-B, just to make sure I haven't made a typo
 """
-function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, ρ_N₀)
+function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
 
     # Error prevention
     0 < inp_distr < 3 || throw(DomainError(inp_distr, "Code can only do inp_distr = 1 or 2."))
@@ -1013,7 +1032,7 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, ρ_N₀
 
     # Find min and max momenta of M-B curve
     if !relativistic
-        # In non-rel case, kinetic energy ≈ thermal energy
+        # In non-relativstic case, kinetic energy ≈ thermal energy
         p_min = √(2m * kT_min)
         p_max = √(2m * kT_max)
     else
@@ -1064,11 +1083,11 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, ρ_N₀
     if inj_weight # First, particles have equal weight
         n_pts_tot = set_inj_dist_particle_equal_weight!(
             ptot_out, weight_out,
-            p_range, E_range, area_tot, n_pts_inj, Δp, ρ_N₀)
+            p_range, E_range, area_tot, n_pts_inj, Δp, n₀)
     else # Bins have equal weight
         set_inj_dist_bin_equal_weight!(
             ptot_out, weight_out,
-            p_range, E_range, area_tot, Δp, ρ_N₀)
+            p_range, E_range, area_tot, Δp, n₀)
     end  # test of inj_weight
 
     n_pts_use = n_pts_tot
@@ -1091,7 +1110,7 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, ρ_N₀
         end
 
         ptot_out[1:n_pts_inj] .= p1
-        weight_out[1:n_pts_inj] .= ρ_N₀ / n_pts_tot
+        weight_out[1:n_pts_inj] .= n₀ / n_pts_tot
 
     end  # check of inp_distr
     #--------------------------------------------------------------------------
@@ -1103,7 +1122,7 @@ end
 
 function set_inj_dist_particle_equal_weight!(
         ptot_out, weight_out,
-        p_range, E_range, area_tot, n_pts_inj, Δp, ρ_N₀)
+        p_range, E_range, area_tot, n_pts_inj, Δp, n₀)
 
     area_per_pt = area_tot / n_pts_inj # Area each particle gets if inj_weight = T
     n_pts_tot   = 1                    # Total number of particles in M-B distribution
@@ -1133,14 +1152,14 @@ function set_inj_dist_particle_equal_weight!(
 
     # If each particle has equal weight, then the total weight of the
     # distribution should be proportional to the density of the species
-    weight_out[1:n_pts_tot] .= ρ_N₀ / n_pts_tot
+    weight_out[1:n_pts_tot] .= n₀ / n_pts_tot
 
     return n_pts_tot
 end
 
 function set_inj_dist_bin_equal_weight!(
         ptot_out, weight_out,
-        p_range, E_range, area_tot, Δp, ρ_N₀)
+        p_range, E_range, area_tot, Δp, n₀)
     for (i, p1) in enumerate(p_range[begin:end-1])
         p2 = p_range[i+1]
 
@@ -1159,8 +1178,7 @@ function set_inj_dist_bin_equal_weight!(
         jstart = (i-1)*n_per_bin + 1
         jend   = jstart + (n_per_bin-1)
         ptot_out[jstart:jend] .= √(p1*p2)
-        weight_out[jstart:jend] .= area_frac / n_per_bin * ρ_N₀
+        weight_out[jstart:jend] .= area_frac / n_per_bin * n₀
 
     end  # loop over i
 end
-end # module

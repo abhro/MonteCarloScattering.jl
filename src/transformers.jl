@@ -14,7 +14,7 @@ Calculate dN(p) (a 1-D array) for the passed slice of PSD in the specified inert
 
 - `psd`: the (2-D) slice of the larger phase space distribution
 - `m`: integer specifying frame into which we're transforming
-- `transform_corn_**`: array holding transformed corner values, both ptot and cos(θ)
+- `transform_corner_**`: array holding transformed corner values, both ptot and cos(θ)
 - `γᵤ`: conversion factor from number density to flux
 - `i_approx`: degree of approximation to use in computing the `dNdp_out`
 
@@ -22,7 +22,7 @@ Calculate dN(p) (a 1-D array) for the passed slice of PSD in the specified inert
 `dN_out`: dN(p) for the given slice of PSD once transformed into the specified frame
 """
 function get_transform_dN(
-        psd, m, transform_corn_pt, transform_corn_ct, γᵤ, i_approx::Integer,
+        psd, m, transform_corner_pt, transform_corner_ct, γᵤ, i_approx::Integer,
         num_psd_mom_bins, psd_mom_bounds)
 
     dN_out = zeros(psd_mom_axis)
@@ -43,7 +43,7 @@ function get_transform_dN(
             cell_weight = psd[i, j] / γᵤ
             (pt_lo_pt, pt_lo_ct, pt_hi_pt, pt_hi_ct,
              ct_lo_pt, ct_lo_ct, ct_hi_pt, ct_hi_ct,
-             pt_lo_tied, pt_hi_tied) = identify_corners(i, j, transform_corn_pt, transform_corn_ct, m)
+             pt_lo_tied, pt_hi_tied) = identify_corners(i, j, transform_corner_pt, transform_corner_ct, m)
             # Use of m in argument list signals what frame we're in; not used except in case of error/printout
 
             p_cell_lo = pt_lo_pt
@@ -552,8 +552,8 @@ FIXME with actual argument list
 
 ### Returns
 
-- transform_corn_pt: total momenta at the corners
-- transform_corn_ct: cos(θ) (NOT θ!!!) values at the corners
+- transform_corner_pt: total momenta at the corners
+- transform_corner_ct: cos(θ) (NOT θ!!!) values at the corners
 """
 function transform_psd_corners(
         γ_in,
@@ -564,9 +564,9 @@ function transform_psd_corners(
     rest_mass_energy = aa_ion[i_ion] * E₀_proton
     βᵤ = γ_in ≥ 1.000001 ? √(1 - 1/γ_in^2) : 0.0 # Prevent floating point issues
 
-    # Fill transform_corn_** arrays, looping over angle outermost
-    transform_corn_pt = OffsetMatrix{Float64}(undef, 0:num_psd_mom_bins+1, 0:num_psd_θ_bins+1)
-    transform_corn_ct = OffsetMatrix{Float64}(undef, 0:num_psd_mom_bins+1, 0:num_psd_θ_bins+1)
+    # Fill transform_corner_** arrays, looping over angle outermost
+    transform_corner_pt = OffsetMatrix{Float64}(undef, 0:num_psd_mom_bins+1, 0:num_psd_θ_bins+1)
+    transform_corner_ct = OffsetMatrix{Float64}(undef, 0:num_psd_mom_bins+1, 0:num_psd_θ_bins+1)
     for j in eachindex(psd_θ_bounds)
 
         # Determine current cosine, remembering that psd_θ_bounds has both a linearly-spaced
@@ -597,13 +597,13 @@ function transform_psd_corners(
             pt_Xf_cgs  = √(pt_sk_cgs^2 + pₓ_Xf_cgs^2 - pₓ_sk_cgs^2)
 
             # Transform to log space because get_dNdp_cr expects it
-            transform_corn_pt[i,j] = log10(pt_Xf_cgs)
-            transform_corn_ct[i,j] = pₓ_Xf_cgs / pt_Xf_cgs
+            transform_corner_pt[i,j] = log10(pt_Xf_cgs)
+            transform_corner_ct[i,j] = pₓ_Xf_cgs / pt_Xf_cgs
 
 
         end # loop over momentum
     end # loop over θ
 
-    return transform_corn_pt, transform_corn_ct
+    return transform_corner_pt, transform_corner_ct
 end
 end # module transformers

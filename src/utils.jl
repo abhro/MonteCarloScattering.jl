@@ -2,10 +2,6 @@
 Functions that might be nice to have when the code base is refactored
 """
 
-include("constants.jl")
-using .constants: c_cgs
-
-
 """
 Return f(x[i], x[i+1]) for each i in x's index, excluding the last i.
 """
@@ -103,7 +99,7 @@ function Base.getproperty(s::Species, sym::Symbol)
     return getfield(s, sym)
 end
 Base.show(io, s::Species) =
-    print(io, "Species(m = ", s.m, ", q = ", s.q, ", T₀ = ", s.T, ", ρ_N₀ = ", s.ρ_N, ")")
+    print(io, "Species(m = ", s.m, ", q = ", s.q, ", T = ", s.T, ", n = ", s.n, ")")
 mass(s::Species) = s.mass
 charge(s::Species) = s.charge
 temperature(s::Species) = s.temperature

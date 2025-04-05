@@ -5,9 +5,12 @@ version = "0.0.0-DEV"
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 Cosmology = "76746363-e552-5dba-9a5a-cef6fa9cc5ab"
+Debugger = "31a5f54b-26ea-5ae9-a837-f05ce5417438"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+Format = "1fa38f19-a742-5d3f-a2b9-30dd87b9d5f8"
 Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+JuliaInterpreter = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
 PhysicalConstants = "5ad8b20f-a522-5ce9-bfc9-ddf1d5bda6ab"
 PolynomialRoots = "3a141323-8675-5d76-9d11-e1df1406c778"
@@ -17,6 +20,11 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
+UnitfulEquivalences = "da9c4bc3-91c8-4f02-8a40-6b990d2a7e0c"
+UnitfulGaussian = "203183ea-d3ea-452b-8588-590cbae10604"
 
 [compat]
 julia = "1.9"
+
+[sources]
+UnitfulGaussian = {url = "https://github.com/abhro/UnitfulGaussian.jl"}

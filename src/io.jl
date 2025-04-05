@@ -1,11 +1,7 @@
-module io
 using Printf: @sprintf
 using Unitful, UnitfulAstro
 using Unitful: cm
 using UnitfulAstro: pc
-
-using ..constants: mₚ_cgs, c_cgs
-using ..parameters: na_particles, psd_max, na_c
 
 export print_input, print_plot_vals, tcut_print
 
@@ -79,18 +75,18 @@ Prints a whole mess of information to the screen and to mc_out
 
 ### Arguments
 
-- n_pts_inj: target number of particles for injection distribution
-- n_pts_pcut: target number of particle for low-E pcuts
-- n_pts_pcut_hi: target number of particles for hi-E pcuts
-- n_ions: number of ion species run
-- num_psd_mom_bins: number of bins in momentum directions in psd
-- num_psd_θ_bins: number of bins in θ directions in psd
-- n_xspec: number of additional locations to track particle spectra
-- n_pcuts: number of pcuts
-- n_grid: number of grid zone BOUNDARIES, including x_grid_stop
-- r_RH: Rankine-Hugoniot compression ratio for this shock
-- r_comp: the compression ratio being used
-- u/β/γ ₀/₂: total fluid velocity[cm/s, /c] and Lorentz factor for far UpS and DwS regions
+- `n_pts_inj`: target number of particles for injection distribution
+- `n_pts_pcut`: target number of particle for low-E pcuts
+- `n_pts_pcut_hi`: target number of particles for hi-E pcuts
+- `n_ions`: number of ion species run
+- `num_psd_mom_bins`: number of bins in momentum directions in psd
+- `num_psd_θ_bins`: number of bins in θ directions in psd
+- `n_xspec`: number of additional locations to track particle spectra
+- `n_pcuts`: number of pcuts
+- `n_grid`: number of grid zone BOUNDARIES, including x_grid_stop
+- `r_RH`: Rankine-Hugoniot compression ratio for this shock
+- `r_comp`: the compression ratio being used
+- `u/β/γ ₀/₂`: total fluid velocity[cm/s, /c] and Lorentz factor for far UpS and DwS regions
 
 ### Returns
 Nothing (it's all to the screen/file)
@@ -98,8 +94,8 @@ Nothing (it's all to the screen/file)
 function print_input(
         n_pts_inj, n_pts_pcut, n_pts_pcut_hi, n_ions,
         num_psd_mom_bins, num_psd_θ_bins, n_xspec, n_pcuts, n_grid, r_RH,
-        r_comp, u₀, β₀, γ₀, u₂, β₂, γ₂, ρ_N₀_ion, bmag₀,
-        bmag₂, θ_B₀, θ_B₂, θ_u₂, aa_ion, T₀_ion,
+        r_comp, u₀, β₀, γ₀, u₂, β₂, γ₂, species, bmag₀,
+        bmag₂, θ_B₀, θ_B₂, θ_u₂,
         mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine, feb_UpS,
         feb_DwS, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac,
         outfileunit)
@@ -141,38 +137,36 @@ r_comp = %f
     @info(shock_speeds_str)
     println(outfileunit, shock_speeds_str)
 
-    fluxes_str = @sprintf("""
+    fluxes_str = ("""
 
-u₀ = %.4e cm/s        u₂ = %.4e cm/s
-β₀ = %f                 β₂ = %f
-γ₀ = %f                 γ₂ = %f
-ρ₀ = %f prot/cm³        ρ₂ = %f prot/cm³
+u₀ = $u₀ cm/s            u₂ = $u₂ cm/s
+β₀ = $β₀                 β₂ = $β₂
+γ₀ = $γ₀                 γ₂ = $γ₂
+ρ₀ = $(density(species[1])) prot/cm³        ρ₂ = $(density(species[1])*γ₀*β₀/(γ₂*β₂)) prot/cm³
 
-""", u₀, u₂, β₀, β₂, γ₀, γ₂, ρ_N₀_ion[1], ρ_N₀_ion[1]*γ₀*β₀/(γ₂*β₂))
+""")
 
     @info(fluxes_str)
     println(outfileunit, fluxes_str)
 
     # Relevant angles and field strengths
-    magfield_str = @sprintf("""
+    magfield_str = ("""
 
-bmag₀ = %.4f G             bmag₂ = %.4f G
- θ_B₀ = %.4f°         θ_B₂(calc) = %.4f°
-                       θ_u₂(calc) = %f°
+bmag₀ = $(bmag₀)              bmag₂ = $(bmag₂)
+θ_B₀ = $(θ_B₀)°          θ_B₂(calc) = $(θ_B₂)°
+                     θ_u₂(calc) = $(θ_u₂)°
 
-""", bmag₀, bmag₂, θ_B₀, θ_B₂, θ_u₂)
+""")
     @info(magfield_str)
     println(outfileunit, magfield_str)
 
     # Temperatures and Mach numbers
-    _, i_electron = findmin(aa_ion)
-    temp_electron = T₀_ion[i_electron]
-    temp_str = @sprintf("""
+    temp_str = ("""
 
-T₀(proton)   = %.4e K
-T₀(electron) = %.4e K
+T₀(proton)   = $(temperature(species[begin]))
+T₀(electron) = $(temperature(species[end]))
 
-""", T₀_ion[1], temp_electron)
+""")
 
     @info(temp_str)
     println(outfileunit, temp_str)
@@ -200,14 +194,14 @@ N_g(fine)   = %i
 
 
     # FEB info and max age
-    feb_str = @sprintf("""
+    feb_str = ("""
 
-UpS FEB = %f rg₀ = %f pc
-DwS FEB = %f rg₀ = %f pc
+UpS FEB = $(feb_UpS/rg₀) rg₀ = $(uconvert(pc, feb_UpS))
+DwS FEB = $(feb_DwS/rg₀) rg₀ = $(uconvert(pc, feb_DwS))
 
-Max CR age[s] = %f
+Max CR age[s] = $(age_max)
 
-""", feb_UpS/rg₀, ustrip(pc, feb_UpS*cm), feb_DwS/rg₀, ustrip(pc, feb_DwS*cm), age_max)
+""")
     @info(feb_str)
     println(outfileunit, feb_str)
 
@@ -249,7 +243,7 @@ function print_plot_vals(
         xn_per_coarse, xn_per_fine, mach_sonic, mach_alfven, x_grid_start_rg,
         x_grid_stop_rg, x_fast_stop_rg, η_mfp, x_art_start_rg, x_art_scale,
         feb_DwS, jet_rad_pc, jet_sph_frac, jet_dist_kpc, n_ions, aa_ion,
-        zz_ion, ρ_N₀_ion, T₀_ion, smooth_mom_energy_fac, energy_inj,
+        zz_ion, n₀_ion, T₀_ion, smooth_mom_energy_fac, energy_inj,
         smooth_pressure_flux_psd_fac, energy_transfer_frac, iseed_in
     )
 
@@ -310,10 +304,9 @@ function print_plot_vals(
            x_ions,
            aa_ion,
            zz_ion,
-           ρ_N₀_ion,
+           n₀_ion,
            T₀_ion,
           )
          )
 
 end
-end # module io
