@@ -25,7 +25,7 @@ calculate the pressure (which may be anisotropic) everywhere on the grid.
 function thermo_calcs(
         num_crossings, n_cr_count, therm_grid, therm_pₓ_sk,
         therm_pt_sk, therm_weight, nc_unit, psd, zone_pop,
-        aa_ion, zz_ion, T₀_ion, ρ_N₀_ion, psd_lin_cos_bins,
+        aa_ion, zz_ion, T₀_ion, n₀_ion, psd_lin_cos_bins,
         γ₀, β₀
     )
 
@@ -73,7 +73,7 @@ function thermo_calcs(
     #----------------------------------------------------------------------------
     # Set up the arrays that will hold the crossing data
     max_cross = maximum(num_crossings, 1)
-    therm_px = zeros(max_cross, 0:n_grid+1)
+    therm_pₓ = zeros(max_cross, 0:n_grid+1)
     therm_pt = zeros(max_cross, 0:n_grid+1)
     therm_weight = zeros(max_cross, 0:n_grid+1)
 
@@ -95,7 +95,7 @@ function thermo_calcs(
         n_cross_fill[i_grid] += 1
 
         # Note: ordering of coordinates chosen to make memory accesses in next loop faster
-        therm_px[n_cross_fill[i_grid], i_grid] = therm_pₓ_sk[i]
+        therm_pₓ[n_cross_fill[i_grid], i_grid] = therm_pₓ_sk[i]
         therm_pt[n_cross_fill[i_grid], i_grid] = therm_pt_sk[i]
         therm_weight[n_cross_fill[i_grid], i_grid] = therm_weight[i]
     end
@@ -109,7 +109,7 @@ function thermo_calcs(
             n_cross_fill[i_grid] += 1
 
             # Note: ordering of coordinates chosen to make memory accesses in next loop faster
-            therm_px[n_cross_fill[i_grid], i_grid] = pₓ_sk
+            therm_pₓ[n_cross_fill[i_grid], i_grid] = pₓ_sk
             therm_pt[n_cross_fill[i_grid], i_grid] = ptot_sk
             therm_weight[n_cross_fill[i_grid], i_grid] = cell_weight
         end
@@ -134,7 +134,7 @@ function thermo_calcs(
 
             # Transform the center of the zone into the new frame
             ptot_sk = therm_pt[n,i]
-            pₓ_sk   = therm_px[n,i]
+            pₓ_sk   = therm_pₓ[n,i]
             etot_sk = hypot(ptot_sk*c_cgs, rest_mass_energy)
 
             pₓ_Xf   = γᵤ * (pₓ_sk - βᵤ*etot_sk/c_cgs)
@@ -204,7 +204,7 @@ function thermo_calcs(
         mask = (d²N_pf[:,:,i] .> 1e-66)
         norm_fac = sum(d²N_pf[mask...,i])
         if iszero(num_crossings[i]) && norm_fac > 0
-            norm_fac += ρ_N₀_ion[i_ion] / uₓ_sk_grid[i]
+            norm_fac += n₀_ion[i_ion] / uₓ_sk_grid[i]
         end
         if norm_fac > 0
             norm_fac = zone_pop[i] / norm_fac
@@ -240,7 +240,7 @@ function thermo_calcs(
     #----------------------------------------------------------------------------
     for i in 1:n_grid
 
-        density_loc = γ₀*β₀*ρ_N₀_ion[i_ion] / √(γ_sf_grid[i]^2 - 1)
+        density_loc = γ₀*β₀*n₀_ion[i_ion] / √(γ_sf_grid[i]^2 - 1)
 
         # Determine the normalization factors to use during the pressure calculation.
         # Three cases: (1) no detected particles, (2) only CRs detected, and

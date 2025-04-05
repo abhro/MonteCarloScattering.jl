@@ -36,7 +36,7 @@ TODO
 - num_crossings (array modified in-place)
 - pₓ_esc_UpS
 - energy_esc_UpS
-- pxx_flux (array modified in-place)
+- pₓₓ_flux (array modified in-place)
 - pxz_flux (array modified in-place)
 - energy_flux (array modified in-place)
 - spectra_sf (array modified in-place)
@@ -47,7 +47,7 @@ function all_flux!(
         i_prt, aa, pb_pf, p_perp_b_pf, ptot_pf, γₚ_pf, φ_rad,
         weight, i_grid, uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
         x_PT_cm, x_PT_old, inj, nc_unit,
-        i_grid_feb, pxx_flux, pxz_flux, energy_flux, energy_esc_UpS, pₓ_esc_UpS,
+        i_grid_feb, pₓₓ_flux, pxz_flux, energy_flux, energy_esc_UpS, pₓ_esc_UpS,
         spectra_sf, spectra_pf, n_cr_count, num_crossings, psd,
         # from controls
         n_xspec, x_spec, feb_UpS, γ₀, u₀, mc,
@@ -141,7 +141,7 @@ function all_flux!(
     # fluxes across all zone boundaries the particle crossed. WARNING: the particle quantity
     # "weight" is the fraction of the far UpS density each particle represents. However, the
     # actual flux is
-    #     γ₀ * u₀ * ρ_N₀,
+    #     γ₀ * u₀ * n₀,
     # which means that the flux contribution of each particle must be increased by a factor
     # of γ₀⋅u₀.
     #--------------------------------------------------------------------------
@@ -157,7 +157,7 @@ function all_flux!(
     end  # check on direction of motion
     n_cr_count = flux_stream!(
         i_range, inj_check, sign_fac,
-        pxx_flux, pxz_flux, energy_flux,
+        pₓₓ_flux, pxz_flux, energy_flux,
         p_sk, ptot_sk, weight, energy_flux_add, inj, n_cr_count, abs_inv_vx_sk)
     #--------------------------------------------------------------------------
     # Finished updating fluxes for crossed grid boundaries
@@ -177,7 +177,7 @@ end
 
 function flux_stream!(
         i_range, inj_check, sign_fac,
-        pxx_flux, pxz_flux, energy_flux,
+        pₓₓ_flux, pxz_flux, energy_flux,
         p_sk, ptot_sk, weight, energy_flux_add, inj, n_cr_count, abs_inv_vx_sk,
     )
 
@@ -195,9 +195,9 @@ function flux_stream!(
         # Then don't count flux contributions to grid zones UpS from FEB
         inj_check && inj && i ≤ i_grid_feb && continue
 
-        # Update fluxes; note the minus signs in sign_fac force pxx_flux to increase
+        # Update fluxes; note the minus signs in sign_fac force pₓₓ_flux to increase
         # (b/c particle is moving UpS and p_sk.x < 0) and force energy_flux to decrease
-        pxx_flux[i]    += sign_fac *  p_sk.x *weight * γ₀*u₀
+        pₓₓ_flux[i]    += sign_fac *  p_sk.x *weight * γ₀*u₀
         pxz_flux[i]    +=         abs(p_sk.z)*weight * γ₀*u₀
         energy_flux[i] += sign_fac * energy_flux_add * γ₀*u₀
 

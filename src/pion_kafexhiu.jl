@@ -33,7 +33,7 @@ function pion_kafexhiu(
         num_hist_bins, p_pf_cgs_therm, dN_therm,
         num_psd_mom_bins, p_pf_cgs_cr, dN_cr, n_photon_pion,
         target_density, ID, photon_pion_min_MeV, bins_per_dec_photon, aa,
-        n_ions, aa_ion, ρ_N₀_ion, mc
+        n_ions, aa_ion, n₀_ion, mc
     )
 
 
@@ -54,7 +54,7 @@ function pion_kafexhiu(
     scaling_factor = 0.0
     for i in eachindex(aa_ion)
         if aa_ion[i] ≥ 1
-            scaling_factor += (aa^0.375 + aa_ion[i]^0.375 - 1)^2 * ρ_N₀_ion[i]/ρ_N₀_ion[1]
+            scaling_factor += (aa^0.375 + aa_ion[i]^0.375 - 1)^2 * n₀_ion[i]/n₀_ion[1]
         end
     end
 

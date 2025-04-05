@@ -94,7 +94,7 @@ function get_dNdp_cr(
                 error("ERROR with frame selection in get_dNdp_cr")
             end
 
-            transform_corn_pt, transform_corn_ct = transform_psd_corners(γᵤ)
+            transform_corner_pt, transform_corner_ct = transform_psd_corners(γᵤ)
             #----------------------------------------------------------------------
             # corners transformed
 
@@ -103,15 +103,15 @@ function get_dNdp_cr(
             # Allocate the cos(θ) arrays based on those values, since particles
             # will be binned according to both cos(θ) and (coarse-grained) momentum.
             # Then zero them out.
-            i_ct_pt_sk_min =   floor(Int, psd_mom_bounds[1])
-            i_ct_pt_sk_max = ceiling(Int, psd_mom_bounds[num_psd_mom_bins+1])
-            cθ_sk_xw = zeros(0:psd_max, i_ct_pt_sk_min:i_ct_pt_sk_max)
-            cθ_pf_xw = zeros(0:psd_max, i_ct_pt_pf_min:i_ct_pt_pf_max)
-            cθ_ef_xw = zeros(0:psd_max, i_ct_pt_pf_min:i_ct_pt_pf_max)
+            i_ct_ptot_sk_min =   floor(Int, psd_mom_bounds[1])
+            i_ct_ptot_sk_max = ceiling(Int, psd_mom_bounds[num_psd_mom_bins+1])
+            cθ_sk_xw = zeros(0:psd_max, i_ct_ptot_sk_min:i_ct_ptot_sk_max)
+            cθ_pf_xw = zeros(0:psd_max, i_ct_ptot_pf_min:i_ct_ptot_pf_max)
+            cθ_ef_xw = zeros(0:psd_max, i_ct_ptot_pf_min:i_ct_ptot_pf_max)
             fill!(cθ_sk_xw, 0)
 
-            i_ct_pt_pf_min =   floor(Int, minimum(transform_corn_pt[begin+1:end, :]))
-            i_ct_pt_pf_max = ceiling(Int, maximum(transform_corn_pt[begin+1:end, :]))
+            i_ct_ptot_pf_min =   floor(Int, minimum(transform_corner_pt[begin+1:end, :]))
+            i_ct_ptot_pf_max = ceiling(Int, maximum(transform_corner_pt[begin+1:end, :]))
             if m == 2
                 fill!(cθ_pf_xw, 0)
             elseif m == 3
@@ -120,7 +120,7 @@ function get_dNdp_cr(
 
             # Note that dNdp_cr as calculated here is dN(p), *not* dN/dp.
             # That conversion happens at the end of this subroutine
-            dNdp_cr[:,k,m] = get_transform_dN(psd[:,:,k], m, transform_corn_pt, transform_corn_ct, γᵤ, i_approx)
+            dNdp_cr[:,k,m] = get_transform_dN(psd[:,:,k], m, transform_corner_pt, transform_corner_ct, γᵤ, i_approx)
 
         end # loop over frames
 
@@ -132,7 +132,7 @@ function get_dNdp_cr(
         # into new version of code
         #------------------------------------------------------------------------
         ## First, histograms of individual momentum decades in the shock frame
-        #for i in i_ct_pt_sk_min:i_ct_pt_sk_max
+        #for i in i_ct_ptot_sk_min:i_ct_ptot_sk_max
         #    for l in 0:num_psd_θ_bins
         #        if cθ_sk_xw[l,i] > 0
         #            cθ_sk_xw[l,i] /= (ct_bounds[l] - ct_bounds[l+1])
@@ -201,7 +201,7 @@ function get_dNdp_cr(
 
 
         ## Now histograms of individual momentum decades, in plasma frame
-        #for i in i_ct_pt_pf_min:i_ct_pt_pf_max
+        #for i in i_ct_ptot_pf_min:i_ct_ptot_pf_max
         #
         #    for l in 0:num_psd_θ_bins
         #        if cθ_pf_xw[l,i] > 0
@@ -332,11 +332,11 @@ comparison against the results of the original dN/dp subroutines.
 - d²N_dpdcos_ef: explosion-frame array holding dN/dp spread out across angular dimension
 """
 function get_dNdp_2D(
-        nc_unit, zone_pop, m_ion, n_ions, ρ_N₀_ion,
+        nc_unit, zone_pop, m_ion, n_ions, n₀_ion,
         psd_lin_cos_bins, γ₀, β₀, psd, num_psd_θ_bins,
         psd_θ_bounds, num_psd_mom_bins, psd_mom_bounds, n_grid,
         γ_sf_grid, i_ion, num_crossings, n_cr_count, therm_grid,
-        therm_pₓ_sk, therm_pt_sk, therm_weight)
+        therm_pₓ_sk, therm_ptot_sk, therm_weight)
 
     # Initialize d²N_dpdcos_sf to "zero"
     # Dimensions of d²N_dpdcos arrays (chosen for maximum speed during loops):
@@ -363,7 +363,7 @@ function get_dNdp_2D(
     #----------------------------------------------------------------------------
     # Set up the arrays that will hold the crossing data
     max_cross = maximum(num_crossings)
-    therm_px = zeros(max_cross, 0:n_grid+1)
+    therm_pₓ = zeros(max_cross, 0:n_grid+1)
     therm_pt = zeros(max_cross, 0:n_grid+1)
     therm_weight = zeros(max_cross, 0:n_grid+1)
 
@@ -383,8 +383,8 @@ function get_dNdp_2D(
         n_cross_fill[i_grid] += 1
 
         # Note: ordering of coordinates chosen to make memory accesses in next loop faster
-        therm_px[n_cross_fill[i_grid], i_grid] = therm_pₓ_sk[i]
-        therm_pt[n_cross_fill[i_grid], i_grid] = therm_pt_sk[i]
+        therm_pₓ[n_cross_fill[i_grid], i_grid] = therm_pₓ_sk[i]
+        therm_pt[n_cross_fill[i_grid], i_grid] = therm_ptot_sk[i]
         therm_weight[n_cross_fill[i_grid], i_grid] = therm_weight[i]
     end
 
@@ -397,7 +397,7 @@ function get_dNdp_2D(
             n_cross_fill[i_grid] += 1
 
             # Note: ordering of coordinates chosen to make memory accesses in next loop faster
-            therm_px[n_cross_fill[i_grid], i_grid] = pₓ_sk
+            therm_pₓ[n_cross_fill[i_grid], i_grid] = pₓ_sk
             therm_pt[n_cross_fill[i_grid], i_grid] = ptot_sk
             therm_weight[n_cross_fill[i_grid], i_grid] = cell_weight
         end
@@ -422,7 +422,7 @@ function get_dNdp_2D(
             k = get_psd_bin_momentum(therm_pt[n,i],
                                      psd_bins_per_dec_mom,
                                      psd_mom_min, num_psd_mom_bins)
-            jθ = get_psd_bin_angle(therm_px[n,i], therm_pt[n,i],
+            jθ = get_psd_bin_angle(therm_pₓ[n,i], therm_pt[n,i],
                                    psd_bins_per_dec_θ,
                                    num_psd_mom_bins, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
             d²N_dpdcos_sf[jθ,k,i] += therm_weight[n,i]
@@ -433,7 +433,7 @@ function get_dNdp_2D(
 
 
     # Deallocate the crossing data arrays
-    #deallocate(therm_px)
+    #deallocate(therm_pₓ)
     #deallocate(therm_pt)
     #deallocate(therm_weight)
     #----------------------------------------------------------------------------
@@ -469,17 +469,18 @@ function get_dNdp_2D(
     end
 
 
-    # Re-scale d²N_dpdcos_sf according to the normalization factor. When dealing with fast
-    # push, need to count thermal particle population even for zones upstream of fast push
-    # location. Fortunately the number of particles in this case is approximately
-    # ρ_N₀_ion[i_ion]. Note that this assumes minimal shock modification upstream of the
-    # fast push zone -- if (e.g. for nonrel shocks) the shock is extensively modified this
-    # will not be correct.
+    # Re-scale d²N_dpdcos_sf according to the normalization factor. When dealing
+    # with fast push, need to count thermal particle population even for zones
+    # upstream of fast push location. Fortunately the number of particles in
+    # this case is approximately n₀_ion[i_ion]. Note that this assumes minimal
+    # shock modification upstream of the fast push zone -- if (e.g. for
+    # non-relativistic shocks) the shock is extensively modified this will not
+    # be correct.
     for i in 1:n_grid
 
         # No thermal particles measured, so add them in proper amount
         if num_crossings[i] == 0 && density_tot[i] > 0
-            density_tot[i] += ρ_N₀_ion[i_ion]
+            density_tot[i] += n₀_ion[i_ion]
         end
 
         # Determine rescaling factor
@@ -524,10 +525,10 @@ function get_dNdp_2D(
         # Minus sign needed because finest gradations actually point UpS
         cos_center[jθ] = -(cos_lo + cos_hi)/2
     end
-    pt_cgs_center = zeros(0:num_psd_mom_bins+1)
+    ptot_cgs_center = zeros(0:num_psd_mom_bins+1)
     for k in 0:num_psd_mom_bins
         # Convert from log to linear space
-        pt_cgs_center[k] = exp10((psd_mom_bounds[k] + psd_mom_bounds[k+1])/2)
+        ptot_cgs_center[k] = exp10((psd_mom_bounds[k] + psd_mom_bounds[k+1])/2)
     end
 
     # Loop extents reflect desired frames:
@@ -559,15 +560,15 @@ function get_dNdp_2D(
 
                 # Transform the center of the zone into the new frame
                 cos_θ_sf    = cos_center[jθ]
-                pt_sf_cgs   = pt_cgs_center[k]
-                pₓ_sf_cgs   = pt_sf_cgs * cos_θ_sf
-                etot_sf_cgs = hypot(pt_sf_cgs*c_cgs, rest_mass_energy)
+                ptot_sf_cgs   = ptot_cgs_center[k]
+                pₓ_sf_cgs   = ptot_sf_cgs * cos_θ_sf
+                etot_sf_cgs = hypot(ptot_sf_cgs*c_cgs, rest_mass_energy)
 
                 # Get location of center in transformed d²N_dpdcos
                 pₓ_Xf = γᵤ * (pₓ_sf_cgs - βᵤ*etot_sf_cgs/c_cgs)
-                pt_Xf = √(pt_sf_cgs^2 - pₓ_sf_cgs^2 + pₓ_Xf^2)
-                k_Xf = get_psd_bin_momentum(pt_Xf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
-                jθ_Xf = get_psd_bin_angle(pₓ_Xf, pt_Xf, psd_bins_per_dec_θ,
+                ptot_Xf = √(ptot_sf_cgs^2 - pₓ_sf_cgs^2 + pₓ_Xf^2)
+                k_Xf = get_psd_bin_momentum(ptot_Xf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
+                jθ_Xf = get_psd_bin_angle(pₓ_Xf, ptot_Xf, psd_bins_per_dec_θ,
                                           num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
 
                 # And add shock frame number to the appropriate bin in target frame;
@@ -636,7 +637,7 @@ The array that would be dNdp_cr_pvals is already set, as psd_mom_bounds
 """
 function get_normalized_dNdp(
         nc_unit,
-        jet_rad_pc, jet_sph_frac, m_ion, ρ_N₀_ion, β₀, γ₀, n_ions, do_multi_dNdps,
+        jet_rad_pc, jet_sph_frac, m_ion, n₀_ion, β₀, γ₀, n_ions, do_multi_dNdps,
         num_psd_mom_bins, psd_mom_bounds,
         n_grid, x_grid_cm, uₓ_sk_grid,
         i_iter,
@@ -719,7 +720,7 @@ function get_normalized_dNdp(
         # particles in this grid zone
         dwell_time = x_grid_cm_diff[i] / uₓ_sk_grid[i]
 
-        flux_UpS = γ₀ * ρ_N₀_ion[i_ion] * β₀*c_cgs
+        flux_UpS = γ₀ * n₀_ion[i_ion] * β₀*c_cgs
 
         zone_pop[i] = flux_UpS * surf_area[i] * dwell_time
 
@@ -767,7 +768,7 @@ function get_normalized_dNdp(
         #TODO: plot area_tot_therm against local density to see if this holds even once
         # particles start being heated
         if area_tot_therm == 0 && area_tot_cr > 0
-            density_pf = ρ_N₀_ion[i_ion] * γ₀ * uₓ_sk_grid[1] / (γ_sf_grid[i] * uₓ_sk_grid[i])
+            density_pf = n₀_ion[i_ion] * γ₀ * uₓ_sk_grid[1] / (γ_sf_grid[i] * uₓ_sk_grid[i])
             area_tot = density_pf/uₓ_sk_grid[i] + area_tot_cr
         else
             area_tot = area_tot_therm + area_tot_cr
@@ -967,7 +968,7 @@ function get_dNdp_therm(
         num_hist_bins, nc_unit,
         m_ion, γ₀, β₀,
         n_grid, γ_sf_grid,
-        i_ion, therm_grid, therm_pₓ_sk, therm_pt_sk, therm_weight, num_crossings, n_cr_count,
+        i_ion, therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight, num_crossings, n_cr_count,
     )
 
     # Set a constant to be used repeatedly
@@ -978,12 +979,12 @@ function get_dNdp_therm(
     dNdp_therm_pvals = fill(1e-99, (0:psd_max,n_grid,3))
 
     # Allocate histogram arrays to be used during subroutine
-    pt_sk_bins = zeros(num_hist_bins)
-    pt_sk_vals = zeros(num_hist_bins)
+    ptot_sk_bins = zeros(num_hist_bins)
+    ptot_sk_vals = zeros(num_hist_bins)
     ptot_pf_bins = zeros(num_hist_bins)
     ptot_pf_vals = zeros(num_hist_bins)
-    pt_ef_bins = zeros(num_hist_bins)
-    pt_ef_vals = zeros(num_hist_bins)
+    ptot_ef_bins = zeros(num_hist_bins)
+    ptot_ef_vals = zeros(num_hist_bins)
 
     cθ_sk_bins = zeros(num_hist_bins+1)
     cθ_pf_bins = zeros(num_hist_bins+1)
@@ -998,7 +999,7 @@ function get_dNdp_therm(
     # data from the scratch file
     #-----------------------------------------------------------------------
     max_cross = maximum(num_crossings)
-    therm_px = zeros(max_cross,n_grid)
+    therm_pₓ = zeros(max_cross,n_grid)
     therm_pt = zeros(max_cross,n_grid)
     therm_weight = zeros(max_cross,n_grid)
 
@@ -1019,8 +1020,8 @@ function get_dNdp_therm(
         n_cross_fill[i_grid] += 1
 
         # Note: ordering of coordinates chosen to make memory accesses in next loop faster
-        therm_px[n_cross_fill[i_grid], i_grid] = therm_pₓ_sk[i]
-        therm_pt[n_cross_fill[i_grid], i_grid] = therm_pt_sk[i]
+        therm_pₓ[n_cross_fill[i_grid], i_grid] = therm_pₓ_sk[i]
+        therm_pt[n_cross_fill[i_grid], i_grid] = therm_ptot_sk[i]
         therm_weight[n_cross_fill[i_grid], i_grid] = therm_weight[i]
     end
 
@@ -1032,7 +1033,7 @@ function get_dNdp_therm(
             n_cross_fill[i_grid] += 1
 
             # Note: ordering of coordinates chosen to make memory accesses in next loop faster
-            therm_px[n_cross_fill[i_grid], i_grid] = pₓ_sk
+            therm_pₓ[n_cross_fill[i_grid], i_grid] = pₓ_sk
             therm_pt[n_cross_fill[i_grid], i_grid] = ptot_sk
             therm_weight[n_cross_fill[i_grid], i_grid] = cell_weight
         end
@@ -1063,49 +1064,49 @@ function get_dNdp_therm(
         # additional check against error.
         ptot_pf = fill(-1.0, num_crossings[i])
         cθ_pf = fill(-2.0, num_crossings[i])
-        pt_ef = fill(-1.0, num_crossings[i])
+        ptot_ef = fill(-1.0, num_crossings[i])
         cθ_ef = fill(-2.0, num_crossings[i])
 
         # Set up min. and max. values for total momentum and cos(θ) in the shock frame
         cθ_sk_min =  2.0
         cθ_sk_max = -2.0
-        pt_sk_min =  1e99
-        pt_sk_max = -1e99
+        ptot_sk_min =  1e99
+        ptot_sk_max = -1e99
 
         # Convert information about shock frame values into plasma and ISM frames. Even
         # though only total momentum is needed for calculating dN/dp, histogram of pitch
         # angle values can provide an additional check on whether the distribution is
         # isotropic in the other frames. So convert ptot_sk & pₓ_sk into ptot_pf/cθ_pf and
-        # pt_ef/cθ_ef. Also, find minimum and maximum values of ptot_sk and cθ_sk.
+        # ptot_ef/cθ_ef. Also, find minimum and maximum values of ptot_sk and cθ_sk.
         for j in 1:num_crossings[i]
-            pₓ_sk_cgs = therm_px[j, i]
-            pt_sk_cgs = therm_pt[j, i]
-            pt_sk_max = max(pt_sk_cgs, pt_sk_max)
-            pt_sk_min = min(pt_sk_cgs, pt_sk_min)
+            pₓ_sk_cgs = therm_pₓ[j, i]
+            ptot_sk_cgs = therm_pt[j, i]
+            ptot_sk_max = max(ptot_sk_cgs, ptot_sk_max)
+            ptot_sk_min = min(ptot_sk_cgs, ptot_sk_min)
 
-            cθ_sk = pₓ_sk_cgs / pt_sk_cgs
+            cθ_sk = pₓ_sk_cgs / ptot_sk_cgs
             cθ_sk_max = max(cθ_sk, cθ_sk_max)
             cθ_sk_min = min(cθ_sk, cθ_sk_min)
 
-            etot_sk_cgs = hypot(pt_sk_cgs*c_cgs, rest_mass_energy)
+            etot_sk_cgs = hypot(ptot_sk_cgs*c_cgs, rest_mass_energy)
 
             pₓ_pf_cgs = γᵤ * (pₓ_sk_cgs - βᵤ*etot_sk_cgs/c_cgs)
-            ptot_pf_cgs = √(pt_sk_cgs^2 - pₓ_sk_cgs^2 + pₓ_pf_cgs^2)
+            ptot_pf_cgs = √(ptot_sk_cgs^2 - pₓ_sk_cgs^2 + pₓ_pf_cgs^2)
 
             pₓ_ef_cgs = γ₀ * (pₓ_sk_cgs - β₀*etot_sk_cgs/c_cgs)
-            pt_ef_cgs = √(pt_sk_cgs^2 - pₓ_sk_cgs^2 + pₓ_ef_cgs^2)
+            ptot_ef_cgs = √(ptot_sk_cgs^2 - pₓ_sk_cgs^2 + pₓ_ef_cgs^2)
 
             ptot_pf[j] = ptot_pf_cgs
             cθ_pf[j] = pₓ_pf_cgs / ptot_pf_cgs
 
-            pt_ef[j] = pt_ef_cgs
-            cθ_ef[j] = pₓ_ef_cgs / pt_ef_cgs
+            ptot_ef[j] = ptot_ef_cgs
+            cθ_ef[j] = pₓ_ef_cgs / ptot_ef_cgs
         end
 
         # Error checks
         count(ptot_pf .== -1) > 0 && error("Unfilled zones in ptot_pf")
         count(cθ_pf .== -2) > 0 && error("Unfilled zones in cθ_pf")
-        count(pt_ef .== -1) > 0 && error("Unfilled zones in pt_ef")
+        count(ptot_ef .== -1) > 0 && error("Unfilled zones in ptot_ef")
         count(cθ_ef .== -2) > 0 && error("Unfilled zones in cθ_ef")
         #------------------------------------------------------------------------
         # Plasma frame, ISM frame values determined; Shock frame extrema found.
@@ -1115,22 +1116,22 @@ function get_dNdp_therm(
         # frame. Create histogram bins in both momentum and angle as desired.
         #------------------------------------------------------------------------
         # Already have extrema for shock frame
-        Δpt_sk = (pt_sk_max - pt_sk_min) / num_hist_bins
+        Δptot_sk = (ptot_sk_max - ptot_sk_min) / num_hist_bins
 
         ptot_pf_max = maximum(ptot_pf, dims=1)
         ptot_pf_min = minimum(ptot_pf, dims=1)
-        Δpt_pf = (ptot_pf_max - pt_pf_min) / num_hist_bins
+        Δptot_pf = (ptot_pf_max - ptot_pf_min) / num_hist_bins
 
-        pt_ef_max = maximum(pt_ef, dims=1)
-        pt_ef_min = minimum(pt_ef, dims=1)
-        Δpt_ef = (pt_ef_max - pt_ef_min) / num_hist_bins
+        ptot_ef_max = maximum(ptot_ef, dims=1)
+        ptot_ef_min = minimum(ptot_ef, dims=1)
+        Δptot_ef = (ptot_ef_max - ptot_ef_min) / num_hist_bins
 
         Δcθ_sk = (cθ_sk_max - cθ_sk_min) / num_hist_bins
 
         for k in 1:num_hist_bins
-            pt_sk_bins[k] = pt_sk_min + (k-1)*Δpt_sk
-            ptot_pf_bins[k] = pt_pf_min + (k-1)*Δpt_pf
-            pt_ef_bins[k] = pt_ef_min + (k-1)*Δpt_ef
+            ptot_sk_bins[k] = ptot_sk_min + (k-1)*Δptot_sk
+            ptot_pf_bins[k] = ptot_pf_min + (k-1)*Δptot_pf
+            ptot_ef_bins[k] = ptot_ef_min + (k-1)*Δptot_ef
 
             cθ_sk_bins[k] = cθ_sk_min + (k-1) * Δcθ_sk
             cθ_pf_bins[k] = -1 + (k-1)*2/num_hist_bins
@@ -1140,9 +1141,9 @@ function get_dNdp_therm(
         cθ_pf_bins[num_hist_bins+1] = 1.0
         cθ_ef_bins[num_hist_bins+1] = 1.0
 
-        pt_sk_vals[1:num_hist_bins] = 0.0
+        ptot_sk_vals[1:num_hist_bins] = 0.0
         ptot_pf_vals[1:num_hist_bins] = 0.0
-        pt_ef_vals[1:num_hist_bins] = 0.0
+        ptot_ef_vals[1:num_hist_bins] = 0.0
         cθ_sk_weight[1:num_hist_bins] = 0.0
         cθ_pf_weight[1:num_hist_bins] = 0.0
         cθ_ef_weight[1:num_hist_bins] = 0.0
@@ -1157,19 +1158,19 @@ function get_dNdp_therm(
         #------------------------------------------------------------------------
         for j in 1:num_crossings[i]
             # Determine bin in shock frame momentum; add value to correct bin
-            k = min(num_hist_bins, trunc(Int, (therm_pt[j,i]-pt_sk_min)/Δpt_sk) + 1)
-            pt_sk_vals[k] += therm_weight[j,i]
+            k = min(num_hist_bins, trunc(Int, (therm_pt[j,i]-ptot_sk_min)/Δptot_sk) + 1)
+            ptot_sk_vals[k] += therm_weight[j,i]
 
             # Determine bin in plasma frame momentum; add value to correct bin
-            k = min(num_hist_bins, trunc(Int, (ptot_pf[j]-ptot_pf_min)/Δpt_pf) + 1)
+            k = min(num_hist_bins, trunc(Int, (ptot_pf[j]-ptot_pf_min)/Δptot_pf) + 1)
             ptot_pf_vals[k] += therm_weight[j,i]/γᵤ
 
             # Determine bin in ISM frame momentum; add value to correct bin
-            k = min(num_hist_bins, trunc(Int, (pt_ef[j]-pt_ef_min)/Δpt_ef) + 1)
-            pt_ef_vals[k] += therm_weight[j,i]/γ₀
+            k = min(num_hist_bins, trunc(Int, (ptot_ef[j]-ptot_ef_min)/Δptot_ef) + 1)
+            ptot_ef_vals[k] += therm_weight[j,i]/γ₀
 
             # Determine shock frame bin of cos(θ); add value to correct bin
-            cθ_sk = therm_px[j,i] / therm_pt[j,i]
+            cθ_sk = therm_pₓ[j,i] / therm_pt[j,i]
             k = min(num_hist_bins, trunc(Int, (cθ_sk - cθ_sk_min)/Δcθ_sk) + 1)
             k = max(k, 1) # odd floating point error makes some k < 1
             cθ_sk_weight[k] += therm_weight[j,i]
@@ -1186,27 +1187,27 @@ function get_dNdp_therm(
         # Finish off by converting pt**_vals into dN/dp, which requires dividing
         # by the momentum spread of the bin
         for k in 1:num_hist_bins
-            pt_sk_lo = pt_sk_bins[k]
-            ptot_pf_lo = pt_pf_bins[k]
-            pt_ef_lo = pt_ef_bins[k]
+            ptot_sk_lo = ptot_sk_bins[k]
+            ptot_pf_lo = ptot_pf_bins[k]
+            ptot_ef_lo = ptot_ef_bins[k]
             if k == num_hist_bins
-                pt_sk_hi = pt_sk_max
-                ptot_pf_hi = pt_pf_max
-                pt_ef_hi = pt_ef_max
+                ptot_sk_hi = ptot_sk_max
+                ptot_pf_hi = ptot_pf_max
+                ptot_ef_hi = ptot_ef_max
             else
-                pt_sk_hi = pt_sk_bins[k+1]
-                ptot_pf_hi = pt_pf_bins[k+1]
-                pt_ef_hi = pt_ef_bins[k+1]
+                ptot_sk_hi = ptot_sk_bins[k+1]
+                ptot_pf_hi = ptot_pf_bins[k+1]
+                ptot_ef_hi = ptot_ef_bins[k+1]
             end
 
-            pt_sk_vals[k] /= (pt_sk_hi - pt_sk_lo)
-            ptot_pf_vals[k] /= (pt_pf_hi - pt_pf_lo)
-            pt_ef_vals[k] /= (pt_ef_hi - pt_ef_lo)
+            ptot_sk_vals[k] /= (ptot_sk_hi - ptot_sk_lo)
+            ptot_pf_vals[k] /= (ptot_pf_hi - ptot_pf_lo)
+            ptot_ef_vals[k] /= (ptot_ef_hi - ptot_ef_lo)
         end
 
-        pt_sk_tot = sum(pt_sk_vals, 1)
-        ptot_pf_tot = sum(pt_pf_vals, 1)
-        pt_ef_tot = sum(pt_ef_vals, 1)
+        ptot_sk_tot = sum(ptot_sk_vals, 1)
+        ptot_pf_tot = sum(ptot_pf_vals, 1)
+        ptot_ef_tot = sum(ptot_ef_vals, 1)
         ∑cθ_sk_weight = sum(cθ_sk_weight)
         ∑cθ_pf_weight = sum(cθ_pf_weight)
         ∑cθ_ef_weight = sum(cθ_ef_weight)
@@ -1223,22 +1224,22 @@ function get_dNdp_therm(
         #    3  -  ISM frame
         for k in 1:num_hist_bins
             # Shock frame
-            dNdp_therm[k-1, i, 1] = iszero(pt_sk_vals[k]) ? 1e-99 : pt_sk_vals[k]
+            dNdp_therm[k-1, i, 1] = iszero(ptot_sk_vals[k]) ? 1e-99 : ptot_sk_vals[k]
 
             # Plasma frame
-            dNdp_therm[k-1, i, 2] = iszero(ptot_pf_vals[k]) ? 1e-99 : pt_pf_vals[k]
+            dNdp_therm[k-1, i, 2] = iszero(ptot_pf_vals[k]) ? 1e-99 : ptot_pf_vals[k]
 
             # ISM frame
-            dNdp_therm[k-1, i, 3] = iszero(pt_ef_vals[k]) ? 1e-99 : pt_ef_vals[k]
+            dNdp_therm[k-1, i, 3] = iszero(ptot_ef_vals[k]) ? 1e-99 : ptot_ef_vals[k]
 
             # Set bin boundaries
-            dNdp_therm_pvals[k-1, i, 1] = pt_sk_bins[k]
+            dNdp_therm_pvals[k-1, i, 1] = ptot_sk_bins[k]
             dNdp_therm_pvals[k-1, i, 2] = ptot_pf_bins[k]
-            dNdp_therm_pvals[k-1, i, 3] = pt_ef_bins[k]
+            dNdp_therm_pvals[k-1, i, 3] = ptot_ef_bins[k]
         end
-        dNdp_therm_pvals[num_hist_bins, i, 1] = pt_sk_max
+        dNdp_therm_pvals[num_hist_bins, i, 1] = ptot_sk_max
         dNdp_therm_pvals[num_hist_bins, i, 2] = ptot_pf_max
-        dNdp_therm_pvals[num_hist_bins, i, 3] = pt_ef_max
+        dNdp_therm_pvals[num_hist_bins, i, 3] = ptot_ef_max
 
         # The next section is a set of tests and checks on thermal population.
         # Fit Maxwell-Boltzmann distribution to plasma frame dN/dp, and determine temperature
@@ -1290,16 +1291,16 @@ function get_dNdp_therm(
         #i_unit  = 700 + i
         #for k in 1:num_hist_bins
         #    ptot_pf_cgs = √(dNdp_therm_pvals[k-1,i,2] * dNdp_therm_pvals[k,i,2])
-        #    Δpt_pf = dNdp_therm_pvals[k,i,2] - dNdp_therm_pvals[k-1,i,2]
+        #    Δptot_pf = dNdp_therm_pvals[k,i,2] - dNdp_therm_pvals[k-1,i,2]
         #
         #    γₚ_pf = √(1 + (ptot_pf_cgs*c_cgs/rest_mass_energy)^2)
-        #    pressure += (ptot_pf_cgs * pt_pf_cgs/(m_ion[i_ion]*γₚ_pf) *
-        #                 dNdp_therm[k-1,i,2] * Δpt_pf/3)
+        #    pressure += (ptot_pf_cgs * ptot_pf_cgs/(m_ion[i_ion]*γₚ_pf) *
+        #                 dNdp_therm[k-1,i,2] * Δptot_pf/3)
         #
         #    j_plot += 1
         #    write(i_unit, i, j_plot,
         #          log10(dNdp_therm_pvals[k-1,i,2]),    # 1
-        #          dNdp_therm[k-1,i,2]/ptot_pf_tot,       # 2
+        #          dNdp_therm[k-1,i,2]/ptot_pf_tot,     # 2
         #          cθ_pf_bins[k],                       # 3
         #          cθ_pf_weight[k]/∑cθ_pf_weight,       # 4
         #          cθ_sk_bins[k],                       # 5

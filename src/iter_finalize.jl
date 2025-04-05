@@ -25,9 +25,9 @@ function iter_finalize()
     # Calculate expected escaping fluxes, now that adiabatic index is known
     # far DwS. Also average them so that the smoothing subroutine treats
     # calculated and actual escaping fluxes identically
-    q_esc_cal_px[i_iter], q_esc_cal_energy[i_iter] = q_esc_calcs(Γ_DwS[i_iter],)
+    q_esc_cal_pₓ[i_iter], q_esc_cal_energy[i_iter] = q_esc_calcs(Γ_DwS[i_iter],)
     n_avg = min(i_iter, 4)
-    q_esc_cal_pₓ_avg = mean(q_esc_cal_px[i_iter-n_avg+1:i_iter])
+    q_esc_cal_pₓ_avg = mean(q_esc_cal_pₓ[i_iter-n_avg+1:i_iter])
     q_esc_cal_energy_avg = mean(q_esc_cal_energy[i_iter-n_avg+1:i_iter])
 
     # In runs with OpenMP, race conditions may cause roundoff error at the
@@ -35,7 +35,7 @@ function iter_finalize()
     # slight variations in the smoothing algorithm across different runs.
     # Correct for that here by rounding off the last two decimal places
     # (the second place is a fudge factor).
-    pxx_flux[1:n_grid] .= round(pxx_flux[1:n_grid], digits=13)
+    pₓₓ_flux[1:n_grid] .= round(pₓₓ_flux[1:n_grid], digits=13)
     # Commented out because it's not necessary for smoothing parallel shocks
     #pxz_flux[1:n_grid] = round(pxz_flux[1:n_grid], digits=13)
     energy_flux[1:n_grid] = round(energy_flux[1:n_grid], digits=13)
@@ -45,7 +45,7 @@ function iter_finalize()
                     Γ_grid, uz_sk_grid, θ_grid,
                     pressure_psd_par, pressure_psd_perp, flux_pₓ_UpS,
                     flux_energy_UpS, Γ₂_RH, q_esc_cal_pₓ_avg,
-                    q_esc_cal_energy_avg, pxx_flux, energy_flux, uₓ_sk_grid,
+                    q_esc_cal_energy_avg, pₓₓ_flux, energy_flux, uₓ_sk_grid,
                     γ_sf_grid, btot_grid, utot_grid, γ_ef_grid,
                     β_ef_grid, εB_grid)
 
@@ -67,8 +67,8 @@ function iter_finalize()
             " Esc. en flux FEB/UpS  for i_iter = ", i_iter, ":   en esc = ",
             energy_esc_flux_UpS[i_iter], "   Avg. esc en  = ", energy_esc_avg)
     println(outfile,
-            " Esc. pxx flux FEB/UpS for i_iter = ", i_iter, ":  pxx esc = ",
-            pₓ_esc_flux_UpS[i_iter], "   Avg. esc pxx = ", pₓ_esc_avg)
+            " Esc. pₓₓ flux FEB/UpS for i_iter = ", i_iter, ":  pₓₓ esc = ",
+            pₓ_esc_flux_UpS[i_iter], "   Avg. esc pₓₓ = ", pₓ_esc_avg)
 
     if iszero(q_esc_cal_pₓ_avg)
         println(outfile, " Avg q_pₓ_MC/q_pₓ_cal N/A, because q_pₓ_cal = 0")
