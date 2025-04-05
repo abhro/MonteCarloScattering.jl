@@ -56,7 +56,7 @@ function tcut_print(
         # XXX how does hdf5 actually index these things? probably two levels of
         # indexing isn't even necessasry
         spectra_fileunit[i_ion]["psd_mom_bounds"] = psd_mom_bounds     # cgs units
-        spectra_fileunit[i_ion]["psd_mom_bounds_nat"] = psd_mom_bounds - log10.(mₚ_cgs*c_cgs)  # nat units
+        spectra_fileunit[i_ion]["psd_mom_bounds_nat"] = psd_mom_bounds - log10.(mp*c)  # nat units
         spectra_fileunit[i_ion]["spectra"] = log10.(spectra_coupled)
 
         print_plot_vals(spectra_fileunit)
@@ -275,7 +275,7 @@ function print_plot_vals(
            feb_UpS/rg₀,                     # 9
            Emax_keV,                        # 10
            Emax_keV_per_aa,                 # 11
-           pmax_cgs/(mₚ_cgs*c_cgs),         # 12
+           pmax_cgs/(mp*c),                 # 12
            x_pts_inj,                       # 13
            x_pts_pcut,                      # 14
            xn_per_coarse,                   # 15

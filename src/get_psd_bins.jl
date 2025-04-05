@@ -1,5 +1,3 @@
-using .constants: mₚ_cgs, mₑ_cgs, c_cgs
-
 """
 Given parallel component and total of a particle's momentum in the shock frame,
 determine which bin of psd particle will fall into.
@@ -28,8 +26,8 @@ function get_psd_bin_momentum(ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_ps
     # Sanity check
     if bin > num_psd_mom_bins
         @warn("Particle momentum exceeded PSD's bounds",
-              bin, num_psd_mom_bins, ptot_sk/(mₚ_cgs*c_cgs),
-              psd_mom_min * exp10(num_psd_mom_bins) / (mₚ_cgs*c_cgs))
+              bin, num_psd_mom_bins, ptot_sk/(mp*c),
+              psd_mom_min * exp10(num_psd_mom_bins) / (mp*c))
         bin = num_psd_mom_bins
     end
 

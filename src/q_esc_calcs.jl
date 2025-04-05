@@ -1,4 +1,3 @@
-using .constants: kB_cgs, mₚ_cgs, mₑ_cgs, c_cgs
 using .parameters: β_rel_fl
 
 """
@@ -34,8 +33,8 @@ end
 # #TODO: check how much of a difference this assumption makes
 function q_esc_calcs_nonrelativistic()
     # Calculate thermal pressure of far upstream gas
-    P₀ = dot(n₀_ion, T₀_ion) * kB_cgs # pressure (thermal)
-    ρ₀ = dot(n₀_ion, m_ion)           # mass density
+    P₀ = dot(n₀_ion, T₀_ion) * k    # pressure (thermal)
+    ρ₀ = dot(n₀_ion, m_ion)         # mass density
 
     # Calculate UpS incoming energy flux   #assumecold
     F_pₓ_UpS_fl     = ρ₀ * u₀^2 + P₀
@@ -73,29 +72,29 @@ end
 # fluxes, not fluid+EM, for now.
 function q_esc_calcs_relativistic()
     # Factor relating Q_en and Q_px
-    q_fac = c_cgs * √((1 + β₀)/2)
+    q_fac = c * √((1 + β₀)/2)
 
     # Calculate thermal pressure of far upstream gas
-    P₀ = dot(n₀_ion, T₀_ion) * kB_cgs # pressure (thermal)
-    ρ₀ = dot(n₀_ion, m_ion)           # mass density
+    P₀ = dot(n₀_ion, T₀_ion) * k    # pressure (thermal)
+    ρ₀ = dot(n₀_ion, m_ion)         # mass density
 
     # Two terms to simplify the calculation of pressure₂.   #assumecold
-    F_pₓ_UpS_fl     = γ₀^2 * β₀^2 * (ρ₀*c_cgs^2 + 5//2*P₀) + P₀
-    F_energy_UpS_fl = γ₀^2 * u₀   * (ρ₀*c_cgs^2 + 5//2*P₀)
+    F_pₓ_UpS_fl     = γ₀^2 * β₀^2 * (ρ₀*c^2 + 5//2*P₀) + P₀
+    F_energy_UpS_fl = γ₀^2 * u₀   * (ρ₀*c^2 + 5//2*P₀)
     term_aux = γ₂^2 * (q_fac * β₂^2 - u₂)
 
     # Calculate far DwS density and pressure
     ρ₂ = ρ₀ * γ₀*β₀ / (γ₂*β₂) # mass density
-    P₂ = (q_fac * F_pₓ_UpS_fl - F_energy_UpS_fl - term_aux*ρ₂*c_cgs^2) / (q_fac + Γ_fac*term_aux)
+    P₂ = (q_fac * F_pₓ_UpS_fl - F_energy_UpS_fl - term_aux*ρ₂*c^2) / (q_fac + Γ_fac*term_aux)
 
     # Calculate Q_px & Q_en (the physical escaping momentum & energy fluxes)
-    Q_px = F_pₓ_UpS_fl - (γ₂*β₂)^2 * (ρ₂ * c_cgs^2 + Γ_fac * P₂) - P₂
+    Q_px = F_pₓ_UpS_fl - (γ₂*β₂)^2 * (ρ₂ * c^2 + Γ_fac * P₂) - P₂
     Q_en = Q_px * q_fac
 
     # Convert Q_en & Q_px into q_esc_cal_**, which involves dividing by the far UpS values.
     # Subtract off mass-energy flux from F_energy_UpS_fl to bring results in line with
     # non-relativistic calculation.
-    q_esc_cal_energy = Q_en / (F_energy_UpS_fl - γ₀ * u₀ * ρ₀*c_cgs^2)
+    q_esc_cal_energy = Q_en / (F_energy_UpS_fl - γ₀ * u₀ * ρ₀*c^2)
     q_esc_cal_pₓ = Q_px / F_pₓ_UpS_fl
 
     return q_esc_cal_energy, q_esc_cal_pₓ

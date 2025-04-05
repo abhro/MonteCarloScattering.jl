@@ -1,5 +1,3 @@
-using .constants: mₚ_cgs, c_cgs
-
 # Floating point error can cause sin_Δφ to fall outside [-1,1]; place a limit on
 # allowed values equal to the largest value of sin that can be distinguished from 1.0
 const sin_upper_limit = prevfloat(1.0)
@@ -35,11 +33,11 @@ function scattering(
     # Note that instead addition to calculating the gyro period in seconds,
     # the code keeps vt_pf times the gyro period to find Δθ_max.
     if aa < 1 && ptot_pf < p_electron_crit
-        gyro_rad_tot_cm =      p_electron_crit *             c_cgs * gyro_denom
-        gyro_period_sec = 2π * γ_electron_crit * aa*mₚ_cgs * c_cgs * gyro_denom
+        gyro_rad_tot_cm =      p_electron_crit *         c * gyro_denom
+        gyro_period_sec = 2π * γ_electron_crit * aa*mp * c * gyro_denom
     else
-        gyro_rad_tot_cm =    ptot_pf *             c_cgs * gyro_denom
-        gyro_period_sec = 2π * γₚ_pf * aa*mₚ_cgs * c_cgs * gyro_denom
+        gyro_rad_tot_cm =    ptot_pf *         c * gyro_denom
+        gyro_period_sec = 2π * γₚ_pf * aa*mp * c * gyro_denom
     end
     vp_tg = 2π * gyro_rad_tot_cm
 

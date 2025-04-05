@@ -3,7 +3,7 @@ using Cosmology
 using Roots
 using QuadGK
 
-export H0, h, Ω_r, Ω_v, Ω_m, Ω_k, c, d_H, t_H
+#export H0, h, Ω_r, Ω_v, Ω_m, Ω_k, c, d_H, t_H
 export cosmo
 
 export get_redshift, cosmo_calc_wrapper

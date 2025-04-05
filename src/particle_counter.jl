@@ -3,7 +3,7 @@ using Unitful, UnitfulAstro
 using Unitful: cm
 using UnitfulAstro: kpc
 
-using ..constants: mₚ_cgs, E₀_proton, c_cgs
+using ..constants: E₀_proton
 using ..parameters: psd_max, na_cr, num_therm_bins
 using ..transformers: get_transform_dN, transform_psd_corners
 using ..debug: zone_vol, therm_energy_density, energy_density
@@ -351,7 +351,7 @@ function get_dNdp_2D(
 
 
     # Set constants to be used repeatedly
-    rest_mass_energy = m_ion[i_ion] * c_cgs^2 # Rest mass-energy of the current particle species
+    rest_mass_energy = m_ion[i_ion] * c^2 # Rest mass-energy of the current particle species
     Δp = zeros(0:num_psd_mom_bins)
     for k in eachindex(Δp)
         Δp[k] = exp10(psd_mom_bounds[k+1]) - exp10(psd_mom_bounds[k])
@@ -562,10 +562,10 @@ function get_dNdp_2D(
                 cos_θ_sf    = cos_center[jθ]
                 ptot_sf_cgs   = ptot_cgs_center[k]
                 pₓ_sf_cgs   = ptot_sf_cgs * cos_θ_sf
-                etot_sf_cgs = hypot(ptot_sf_cgs*c_cgs, rest_mass_energy)
+                etot_sf_cgs = hypot(ptot_sf_cgs*c, rest_mass_energy)
 
                 # Get location of center in transformed d²N_dpdcos
-                pₓ_Xf = γᵤ * (pₓ_sf_cgs - βᵤ*etot_sf_cgs/c_cgs)
+                pₓ_Xf = γᵤ * (pₓ_sf_cgs - βᵤ*etot_sf_cgs/c)
                 ptot_Xf = √(ptot_sf_cgs^2 - pₓ_sf_cgs^2 + pₓ_Xf^2)
                 k_Xf = get_psd_bin_momentum(ptot_Xf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
                 jθ_Xf = get_psd_bin_angle(pₓ_Xf, ptot_Xf, psd_bins_per_dec_θ,
@@ -720,7 +720,7 @@ function get_normalized_dNdp(
         # particles in this grid zone
         dwell_time = x_grid_cm_diff[i] / uₓ_sk_grid[i]
 
-        flux_UpS = γ₀ * n₀_ion[i_ion] * β₀*c_cgs
+        flux_UpS = γ₀ * n₀_ion[i_ion] * β₀*c
 
         zone_pop[i] = flux_UpS * surf_area[i] * dwell_time
 
@@ -815,14 +815,14 @@ function get_normalized_dNdp(
             for j in 0:num_hist_bins-1
                 if dNdp_therm[j,i,2] > 1e-66
                     p_avg = (dNdp_therm_pvals[j,i,2] + dNdp_therm_pvals[j+1,i,2]) /2
-                    energy_avg = hypot(m_ion[i_ion]*c_cgs^2, p_avg*c_cgs)
+                    energy_avg = hypot(m_ion[i_ion]*c^2, p_avg*c)
 
                     therm_energy_density[i,i_ion] += (dNdp_therm[j,i,2] *
                                                       (dNdp_therm_pvals[j+1,i,2] - dNdp_therm_pvals[j,i,2]) *
-                                                      (energy_avg - m_ion[i_ion]*c_cgs^2))
+                                                      (energy_avg - m_ion[i_ion]*c^2))
                     energy_density[i,i_ion] += (dNdp_therm[j,i,2] *
                                                 (dNdp_therm_pvals[j+1,i,2] - dNdp_therm_pvals[j,i,2]) *
-                                                (energy_avg - m_ion[i_ion]*c_cgs^2))
+                                                (energy_avg - m_ion[i_ion]*c^2))
                 end
             end
           j_plot  = 0
@@ -832,37 +832,37 @@ function get_normalized_dNdp(
           #    j_plot += 1
           #    write(therm_fileunit,
           #      i, j_plot,
-          #      i_ion,                                           # 1
+          #      i_ion,                                         # 1
           #      # Shock frame
-          #      log10(dNdp_therm_pvals[j,i,1]),                  # 2 (cgs units)
-          #      log10(dNdp_therm_pvals[j,i,1] / (mₚ_cgs*c_cgs)), # 3 (natural units)
-          #      log10(dNdp_therm[j, i, 1]),                      # 4
+          #      log10(dNdp_therm_pvals[j,i,1]),                # 2 (cgs units)
+          #      log10(dNdp_therm_pvals[j,i,1] / (mp*c)),       # 3 (natural units)
+          #      log10(dNdp_therm[j, i, 1]),                    # 4
           #      # Plasma frame
-          #      log10(dNdp_therm_pvals[j,i,2]),                  # 5 (cgs units)
-          #      log10(dNdp_therm_pvals[j,i,2] / (mₚ_cgs*c_cgs)), # 6 (natural units)
-          #      log10(dNdp_therm[j, i, 2]),                      # 7
+          #      log10(dNdp_therm_pvals[j,i,2]),                # 5 (cgs units)
+          #      log10(dNdp_therm_pvals[j,i,2] / (mp*c)),       # 6 (natural units)
+          #      log10(dNdp_therm[j, i, 2]),                    # 7
           #      # ISM frame
-          #      log10(dNdp_therm_pvals[j,i,3]),                  # 8 (cgs units)
-          #      log10(dNdp_therm_pvals[j,i,3] / (mₚ_cgs*c_cgs)), # 9 (natural units)
-          #      log10(dNdp_therm[j,i,3]))                        # 10
+          #      log10(dNdp_therm_pvals[j,i,3]),                # 8 (cgs units)
+          #      log10(dNdp_therm_pvals[j,i,3] / (mp*c)),       # 9 (natural units)
+          #      log10(dNdp_therm[j,i,3]))                      # 10
           #
           #    j_plot += 1
           #    if j < num_hist_bins-1
           #        write(therm_fileunit,
           #          i, j_plot,
-          #          i_ion,                                             # 1
+          #          i_ion,                                     # 1
           #          # Shock frame
-          #          log10(dNdp_therm_pvals[j+1,i,1]),                  # 2 (cgs)
-          #          log10(dNdp_therm_pvals[j+1,i,1] / (mₚ_cgs*c_cgs)), # 3 (natural)
-          #          log10(dNdp_therm[j, i, 1]),                        # 4
+          #          log10(dNdp_therm_pvals[j+1,i,1]),          # 2 (cgs)
+          #          log10(dNdp_therm_pvals[j+1,i,1] / (mp*c)), # 3 (natural)
+          #          log10(dNdp_therm[j, i, 1]),                # 4
           #          # Plasma frame
-          #          log10(dNdp_therm_pvals[j+1,i,2]),                  # 5 (cgs)
-          #          log10(dNdp_therm_pvals[j+1,i,2] / (mₚ_cgs*c_cgs)), # 6 (natural)
-          #          log10(dNdp_therm[j, i, 2]),                        # 7
+          #          log10(dNdp_therm_pvals[j+1,i,2]),          # 5 (cgs)
+          #          log10(dNdp_therm_pvals[j+1,i,2] / (mp*c)), # 6 (natural)
+          #          log10(dNdp_therm[j, i, 2]),                # 7
           #          # ISM frame
-          #          log10(dNdp_therm_pvals[j+1,i,3]),                  # 8 (cgs)
-          #          log10(dNdp_therm_pvals[j+1,i,3] / (mₚ_cgs*c_cgs)), # 9 (natural)
-          #          log10(dNdp_therm[j,i,3]))                          # 10
+          #          log10(dNdp_therm_pvals[j+1,i,3]),          # 8 (cgs)
+          #          log10(dNdp_therm_pvals[j+1,i,3] / (mp*c)), # 9 (natural)
+          #          log10(dNdp_therm[j,i,3]))                  # 10
           #    end
           #end # loop over num_hist_bins
           #
@@ -880,11 +880,11 @@ function get_normalized_dNdp(
                 for j in 0:num_psd_mom_bins
                     if dNdp_cr[j,i,2] > 1e-66
                         p_avg = √(exp10(psd_mom_bounds[j+1]) - exp10(psd_mom_bounds[j]))
-                        energy_avg = hypot(m_ion[i_ion]*c_cgs^2, p_avg*c_cgs)
+                        energy_avg = hypot(m_ion[i_ion]*c^2, p_avg*c)
 
                         energy_density[i,i_ion] += (dNdp_cr[j,i,2] *
                                                     (exp10(psd_mom_bounds[j+1]) - exp10(psd_mom_bounds[j])) *
-                                                    (energy_avg - m_ion[i_ion]*c_cgs^2))
+                                                    (energy_avg - m_ion[i_ion]*c^2))
                     end
                 end
                 therm_temp       .= dNdp_therm[:,i,:]
@@ -904,7 +904,7 @@ function get_normalized_dNdp(
                       i, j_plot,
                       i_ion,                                            # 1
                       psd_mom_bounds[j],                                # 2 (cgs units)
-                      psd_mom_bounds[j] - log10(mₚ_cgs*c_cgs),          # 3 (natural units)
+                      psd_mom_bounds[j] - log10(mp*c),                  # 3 (natural units)
                       # Shock frame, Plasma frame, ISM frame
                       log10.(dNdp_cr[j, i, 1:3]),                       # 4-6
                       # Summed therm+CR dN/dps in all three frames
@@ -916,7 +916,7 @@ function get_normalized_dNdp(
                       i, j_plot,
                       i_ion,                                            # 1
                       psd_mom_bounds[j+1],                              # 2 (cgs)
-                      psd_mom_bounds[j+1] - log10(mₚ_cgs*c_cgs),        # 3 (nat.)
+                      psd_mom_bounds[j+1] - log10(mp*c),                # 3 (nat.)
                       # Shock frame, Plasma frame, ISM frame
                       log10.(dNdp_cr[j, i, 1:3]),                       # 4-6
                       # Summed therm+CR dN/dps in all three frames
@@ -972,7 +972,7 @@ function get_dNdp_therm(
     )
 
     # Set a constant to be used repeatedly
-    rest_mass_energy = m_ion[i_ion] * c_cgs^2  # Rest mass-energy of the current particle species
+    rest_mass_energy = m_ion[i_ion] * c^2  # Rest mass-energy of the current particle species
 
     # Also "zero" out the two output arrays to prevent issues later
     dNdp_therm       = fill(1e-99, (0:psd_max,n_grid,3))
@@ -1088,12 +1088,12 @@ function get_dNdp_therm(
             cθ_sk_max = max(cθ_sk, cθ_sk_max)
             cθ_sk_min = min(cθ_sk, cθ_sk_min)
 
-            etot_sk_cgs = hypot(ptot_sk_cgs*c_cgs, rest_mass_energy)
+            etot_sk_cgs = hypot(ptot_sk_cgs*c, rest_mass_energy)
 
-            pₓ_pf_cgs = γᵤ * (pₓ_sk_cgs - βᵤ*etot_sk_cgs/c_cgs)
+            pₓ_pf_cgs = γᵤ * (pₓ_sk_cgs - βᵤ*etot_sk_cgs/c)
             ptot_pf_cgs = √(ptot_sk_cgs^2 - pₓ_sk_cgs^2 + pₓ_pf_cgs^2)
 
-            pₓ_ef_cgs = γ₀ * (pₓ_sk_cgs - β₀*etot_sk_cgs/c_cgs)
+            pₓ_ef_cgs = γ₀ * (pₓ_sk_cgs - β₀*etot_sk_cgs/c)
             ptot_ef_cgs = √(ptot_sk_cgs^2 - pₓ_sk_cgs^2 + pₓ_ef_cgs^2)
 
             ptot_pf[j] = ptot_pf_cgs
@@ -1273,8 +1273,8 @@ function get_dNdp_therm(
         #num_bins = num_hist_bins - num_skipped
         #lnA    = (∑psq*∑psq_f - ∑psq*∑psq_lnpsq - ∑pfth*∑f + ∑pfth*∑lnpsq) / (∑psq^2 - num_bins*∑pfth)
         #expfac = (-num_bins*∑psq_f + ∑f*∑psq - ∑psq*∑lnpsq + num_bins*∑psq_lnpsq) / (∑psq^2 - num_bins*∑pfth)
-        #temp   = - 1 / (2 * m_ion[numion] * kB_cgs * expfac)
-        #n0     = exp(lnA) * (m_ion[numion]*kB_cgs*temp)^(3//2) * √(π/2)
+        #temp   = - 1 / (2 * m_ion[numion] * kB * expfac)
+        #n0     = exp(lnA) * (m_ion[numion]*kB*temp)^(3//2) * √(π/2)
 
         ## Generate values of fitted M-B distribution
         #mb_vals = zeros(num_hist_bins)
@@ -1293,7 +1293,7 @@ function get_dNdp_therm(
         #    ptot_pf_cgs = √(dNdp_therm_pvals[k-1,i,2] * dNdp_therm_pvals[k,i,2])
         #    Δptot_pf = dNdp_therm_pvals[k,i,2] - dNdp_therm_pvals[k-1,i,2]
         #
-        #    γₚ_pf = √(1 + (ptot_pf_cgs*c_cgs/rest_mass_energy)^2)
+        #    γₚ_pf = √(1 + (ptot_pf_cgs*c/rest_mass_energy)^2)
         #    pressure += (ptot_pf_cgs * ptot_pf_cgs/(m_ion[i_ion]*γₚ_pf) *
         #                 dNdp_therm[k-1,i,2] * Δptot_pf/3)
         #
