@@ -6,13 +6,8 @@ using Roots
 using Unitful, UnitfulAstro
 using Distributions: Uniform
 
-# using ..parameters: β_rel_fl, na_particles, energy_rel_pt, num_therm_bins
-# using ..constants: mₚ_cgs, mₑ_cgs, kB_cgs, c_cgs, kB_cgs, E₀_proton
-
-# export init_pop, set_inj_dist
-# export calc_DwS, calc_rRH
-# export set_psd_mom_bins, set_psd_angle_bins, set_photon_shells, setup_grid, setup_profile
-# export upstream_machs, upstream_fluxes
+const MOMENTUM_FLUX_TYPE = typeof(1.0u"erg/cm^3")
+const ENERGY_FLUX_TYPE = typeof(1.0u"g/s^3")
 
 """
 Uses the Rankine-Hugoniot jump conditions to calculate the downstream conditions for a test
@@ -123,22 +118,22 @@ function calc_rRH(u₀, β₀, γ₀, species)
         # Calculate two quantities to be used during loop to find r_RH: the
         # rest mass-energy of each species, and the (number) density relative to protons
         relative_ion_energy = (
-            dot(mass.(species), # rest energy of each species (to be multiplied by c²)
-                density.(species)) # density relative to protons (to be divided by n₀_proton)
-            * c_cgs^2      # turn mass into rest energy of all species
+            dot(mass.(species),     # rest energy of each species (to be multiplied by c²)
+                density.(species))  # density relative to protons (to be divided by n₀_proton)
+            * c^2                   # turn mass into rest energy of all species
             / first(density.(species))) # turn densities into density relative to protons
 
         # Assume an adiabatic index of 5/3, appropriate for non-relativstic ideal gas,
         # to calculate the far UpS enthalpy      #assumecold
         Γ_sph = 5//3
-        w₀ = ρ₀ * c_cgs^2 + Γ_sph/(Γ_sph-1) * P₀
+        w₀ = ρ₀ * c^2 + Γ_sph/(Γ_sph-1) * P₀
 
         # Calculate the far UpS momentum flux
         UpS_mom_flux = γ₀^2 * w₀ * β₀^2 + P₀
         UpS_num_flux = γ₀ * n₀_ion[1] * β₀ # Protons only here; not strictly correct but appropriate for later use
 
         function F(p)
-            γβ = p / (mₚ_cgs*c_cgs) # since p is relativistic, p/mc = γmv/mc = γ⋅β
+            γβ = p / (mp*c) # since p is relativistic, p/mc = γmv/mc = γ⋅β
             γ = √(1 + γβ^2)
             P = relative_ion_energy/3 * γβ^2/γ # pressure
             w = relative_ion_energy*(γ + γβ^2/3γ)
@@ -151,7 +146,7 @@ function calc_rRH(u₀, β₀, γ₀, species)
         p₂_found = find_zero(F, 0, Roots.Newton())
 
         # Calculate the compression ratio β₀/β₂ associated with p₂_found
-        γβ = p₂_found / (mₚ_cgs*c_cgs)  # Protons only here because of how the math in w_fac works out
+        γβ = p₂_found / (mp*c)  # Protons only here because of how the math in w_fac works out
 
         # Pressure, internal energy, and enthalpy with proton density factored out
         P_fac = relative_ion_energy/3 * γβ^2 / √(1 + γβ^2)
@@ -507,11 +502,11 @@ function upstream_energy_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀
     F_energy_fl = γ₀^2 * β₀ * (e₀ + P₀) # Fluid part (Double+ Eq 20)
     F_energy_EM = ustrip(u"G^2", γ₀^2 * β₀ * B_z^2/4π)*u"erg/cm^3"  # EM part (Double+ Eq 21)
     # Total -- convert to cgs units!
-    flux_energy_UpS = c_cgs * (F_energy_fl + F_energy_EM)
+    flux_energy_UpS = c * (F_energy_fl + F_energy_EM)
 
     # And subtract off the mass-energy flux to bring it in line with nonrelativistic
     # calculations and what the MC code actually tracks
-    flux_energy_UpS -= γ₀ * u₀ * ρ₀*c_cgs^2
+    flux_energy_UpS -= γ₀ * u₀ * ρ₀*c^2
 
     return flux_energy_UpS
 end
@@ -535,14 +530,14 @@ function upstream_machs(β₀, species, bmag₀)
     # Assume cold UpS plasma, so that the adiabatic index is 5/3 identically   #assumecold
     Γ = 5//3
 
-    P₀ = dot(number_density.(species), temperature.(species)) * kB_cgs # pressure
-    ρ₀ = dot(number_density.(species), mass.(species))                 # mass density
+    P₀ = dot(number_density.(species), temperature.(species)) * kB  # pressure
+    ρ₀ = dot(number_density.(species), mass.(species))              # mass density
     @debug "Found parameters" P₀ ρ₀
 
     relativistic = (β₀ ≥ β_rel_fl)
 
-    return (mach_sonic_func(β₀*c_cgs, P₀, ρ₀, Γ, relativistic),
-            mach_alfven_func(β₀*c_cgs, P₀, ρ₀, Γ, bmag₀, relativistic))
+    return (mach_sonic_func(β₀*c, P₀, ρ₀, Γ, relativistic),
+            mach_alfven_func(β₀*c, P₀, ρ₀, Γ, bmag₀, relativistic))
 end
 
 # TODO name these functions better. the `_func` suffix is because there are
@@ -573,14 +568,14 @@ end
 
 function sound_speed_relativistic(P, ρ, Γ)
     # Find FK1979's R factor, the ratio of pressure to rest mass energy density
-    R = P / (ρ * float(c_cgs)^2) |> NoUnits # dimensionless auxiliary variable
+    R = P / (ρ * c^2) |> NoUnits # dimensionless auxiliary variable
 
     # Compute the speed of sound using Fujimura & Kennel
     #     cₛ²/c² = ΓR/(aR + 1)                              FK1979 Eq. 13
     a = Γ / (Γ - 1)     # defined near FK1979 Equation (6)
     @debug "Called with" P ρ Γ
     @debug "Calculated params" R a
-    return c_cgs * √(Γ * R / (a*R + 1))
+    return c * √(Γ * R / (a*R + 1))
 end
 
 sound_speed_nonrelativistic(P, ρ, Γ) = √(Γ * P / ρ) # cₛ = √(K/ρ), where K = ΓP is the bulk modulus
@@ -589,9 +584,9 @@ function alfven_speed_relativistic(P, ρ, Γ, B)
     # And into Gedalin (1993)'s Equation (46); note assumption that
     # equation of state is    e = ρc² + P/(Γ-1)
     #     v_A² = (B²/4π) / (ε + p + B²/4π)                  Gedalin Eq. 46
-    enthalpy = Γ/(Γ-1) * P + ρ * c_cgs^2
+    enthalpy = Γ/(Γ-1) * P + ρ * c^2
     # In principle 1 erg/cm³ == 1 G², but uconvert breaks when doing it
-    v_A = c_cgs / √(1 + 4π * ustrip(u"erg/cm^3", enthalpy) / ustrip(u"G^2", B^2))
+    v_A = c / √(1 + 4π * ustrip(u"erg/cm^3", enthalpy) / ustrip(u"G^2", B^2))
     # more on equation of state
     #    e = ρc² + P/(Γ-1)
     # where
@@ -648,9 +643,10 @@ function setup_profile(
             btot_grid[i] = bmag₀
         else
             u = u₀ / r_comp
+            β = u / c |> NoUnits
             uₓ_sk_grid[i] = u
-            γ_sf_grid[i] = 1 / √(1 - (u/c_cgs)^2)
-            β_ef_grid[i] = (β₀ - u/c_cgs) /  (1 - β₀*u/c_cgs)
+            γ_sf_grid[i] = 1 / √(1 - β^2)
+            β_ef_grid[i] = (β₀ - β) /  (1 - β₀*β)
             γ_ef_grid[i] = 1 / √(1 - β_ef_grid[i]^2)
 
             # When initializing magnetic field, include necessary corrections for turbulence compression
@@ -809,12 +805,13 @@ function init_pop(
         ptot_pf_in = ptot_inj[1:n_pts_use, i_ion]
         pb_pf_in = ptot_pf_in[1:n_pts_use] * 2*(rand(n_pts_use) .- 0.5)
         x_PT_cm_in = fill(x_grid_start - 10*rg₀*η_mfp, n_pts_use)
-        pₓₓ_flux = zeros(n_grid)
-        pxz_flux = zeros(n_grid)
-        energy_flux = zeros(n_grid)
+        pₓₓ_flux = zeros(MOMENTUM_FLUX_TYPE, n_grid)
+        pxz_flux = zeros(MOMENTUM_FLUX_TYPE, n_grid)
+        energy_flux = zeros(ENERGY_FLUX_TYPE, n_grid)
 
         i_grid_in = zeros(Int, n_pts_use)
-        return n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in, x_PT_cm_in, pₓₓ_flux, pxz_flux, energy_flux
+        return (n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in,
+                x_PT_cm_in, pₓₓ_flux, pxz_flux, energy_flux)
     end
 
 
@@ -846,13 +843,13 @@ function init_pop(
 
     temp_ratio = density_ratio^Γ_sph / density_ratio
 
-    if (kB_cgs * T₀_ion[i_ion] * temp_ratio) > (4 * m*c_cgs^2 * energy_rel_pt)
+    if (kB * T₀_ion[i_ion] * temp_ratio) > (4 * m*c^2 * energy_rel_pt)
         error("Fast push cannot work because highest energy thermal particles become mildly relativistic. ",
               "Move fast push location UpS or disable entirely.")
     end
-    pₓₓ_flux = zeros(n_grid)
-    pxz_flux = zeros(n_grid)
-    energy_flux = zeros(n_grid)
+    pₓₓ_flux = zeros(MOMENTUM_FLUX_TYPE, n_grid)
+    pxz_flux = zeros(MOMENTUM_FLUX_TYPE, n_grid)
+    energy_flux = zeros(ENERGY_FLUX_TYPE, n_grid)
 
 
     # Only run through the flux updates for the first particle species (i.e.
@@ -880,7 +877,7 @@ function init_pop(
     x_PT_cm_in = fill(x_fast_stop_rg * rg₀, n_pts_use)
     i_grid_in  = fill(i_stop, n_pts_use)
 
-    pb_pf_in = zeros(n_pts_use)
+    pb_pf_in = zeros(typeof(1.0u"g*cm/s"), n_pts_use)
     for i_prt in 1:n_pts_use
 
         # Per Vladimirov+ (2009) [PhD], particle velocities should not be isotropic
@@ -888,24 +885,27 @@ function init_pop(
         #------------------------------------------------------------------------
 
         if relativistic
-            γₚ_pf   = hypot(1, ptot_pf_in[i_prt] / (m*c_cgs))
-            vt_pf   = ptot_pf_in[i_prt] / (γₚ_pf * m)
+            γₚ_pf = hypot(1, ptot_pf_in[i_prt] / (m*c))
+            vt_pf = ptot_pf_in[i_prt] / (γₚ_pf * m)
 
-            vmin = ((uₓ_sk_grid[i_stop] - vt_pf) / (1 - uₓ_sk_grid[i_stop]*vt_pf/c_cgs^2))^2
-            vmax = ((uₓ_sk_grid[i_stop] + vt_pf) / (1 + uₓ_sk_grid[i_stop]*vt_pf/c_cgs^2))^2
-            dist_v_sf = Uniform(vmin, vmax)
+            vmin² = ((uₓ_sk_grid[i_stop] - vt_pf) / (1 - uₓ_sk_grid[i_stop]*vt_pf/c^2))^2
+            vmax² = ((uₓ_sk_grid[i_stop] + vt_pf) / (1 + uₓ_sk_grid[i_stop]*vt_pf/c^2))^2
+            # unitful distributions not yet supported :(
+            dist_v_sf = Uniform(ustrip(u"cm^2/s^2", vmin²), ustrip(u"cm^2/s^2", vmax²))
 
-            vx_sf   = √(rand(dist_v_sf))
-            vx_pf   = (vx_sf - uₓ_sk_grid[i_stop]) / (1 - vx_sf*uₓ_sk_grid[i_stop]/c_cgs^2)
+            vx_sf = u"cm/s" * √(rand(dist_v_sf))
+            vx_pf = (vx_sf - uₓ_sk_grid[i_stop]) / (1 - vx_sf*uₓ_sk_grid[i_stop]/c^2)
         else
-            γₚ_pf   = 1.0
-            vt_pf   = ptot_pf_in[i_prt] / m
-            vmin = (uₓ_sk_grid[i_stop] - vt_pf)^2
-            vmax = (uₓ_sk_grid[i_stop] + vt_pf)^2
-            dist_v_sf = Uniform(vmin, vmax)
+            γₚ_pf = 1.0
+            vt_pf = ptot_pf_in[i_prt] / m
 
-            vx_sf   = √(rand(dist_v_sf))
-            vx_pf   = vx_sf - uₓ_sk_grid[i_stop]
+            vmin² = (uₓ_sk_grid[i_stop] - vt_pf)^2
+            vmax² = (uₓ_sk_grid[i_stop] + vt_pf)^2
+            # unitful distributions not yet supported :(
+            dist_v_sf = Uniform(ustrip(u"cm^2/s^2", vmin²), ustrip(u"cm^2/s^2", vmax²))
+
+            vx_sf = u"cm/s" * √(rand(dist_v_sf))
+            vx_pf = vx_sf - uₓ_sk_grid[i_stop]
         end
 
         pb_pf_in[i_prt] = γₚ_pf * m * vx_pf
@@ -926,7 +926,7 @@ function flux_update!(
     # Update the flux arrays as if the particles had actually crossed them
     #-----------------------------------------------------------------------
     # Obtain UpS pressure and density
-    P₀ = dot(n₀_ion, T₀_ion) * kB_cgs
+    P₀ = dot(n₀_ion, T₀_ion) * kB
     ρ₀ = dot(n₀_ion, m_ion)
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal gas,
@@ -943,8 +943,8 @@ function flux_update!(
         # Note assumption that Γ_sph doesn't change from zone to zone: #assumecold
         pressure_curr = P₀ * density_ratio^Γ_sph
 
-        β_curr   = uₓ_sk_grid[i] / c_cgs
-        γ_β_curr = γ_sf_grid[i] * uₓ_sk_grid[i] / c_cgs
+        β_curr   = uₓ_sk_grid[i] / c
+        γ_β_curr = γ_sf_grid[i] * uₓ_sk_grid[i] / c
 
         # Determine fluxes while handling different possible orientations and shock speeds.
         # For non-relativstic fluxes, expand out to β^2 to allow for better
@@ -952,21 +952,21 @@ function flux_update!(
         # WARNING: these fluxes do not include contributions from a strong
         # magnetic field. This is incorporated during the smoothing process.
         #----------------------------------------------------------------------
-        flux_pz = 0.0
+        flux_pz = 0.0u"erg/cm^3"
         if !relativistic
             flux_pₓ = (ρ_curr * uₓ_sk_grid[i]^2 * (1 + β_curr^2)
                        + pressure_curr * (1 + Γ_sph/(Γ_sph-1) * β_curr^2))
             flux_energy = (ρ_curr/2 * uₓ_sk_grid[i]^3 * (1 + 1.25*β_curr^2)
                            + pressure_curr * uₓ_sk_grid[i] * Γ_sph/(Γ_sph-1) * (1 + β_curr^2))
         else
-            e_curr = ρ_curr * float(c_cgs)^2 # energy density
+            e_curr = ρ_curr*c^2 # energy density
 
             flux_pₓ = pressure_curr + γ_β_curr^2 * (e_curr + Γ_sph/(Γ_sph-1)*pressure_curr)
-            flux_energy = (γ_β_curr^2 * c_cgs / (uₓ_sk_grid[i]/c_cgs) *
+            flux_energy = (γ_β_curr^2 * c / (uₓ_sk_grid[i]/c) *
                            (e_curr + Γ_sph/(Γ_sph-1)*pressure_curr)
                            # Subtract mass-energy flux from flux_energy to bring
                            # it in line with non-relativstic calculations
-                           - γ_β_curr*c_cgs * e_curr)
+                           - γ_β_curr*c * e_curr)
         end
         #--------------------------------------------------------------------
         # Fluxes calculated
@@ -1029,9 +1029,9 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
 
     # Set a mess of constants to be referred to routinely
     #------------------------------------------------------------------------
-    rm_energy = m * c_cgs^2
+    rm_energy = m * c^2
 
-    kT      = kB_cgs * T_or_E  # Working under assumption of thermal dist now
+    kT      = kB * T_or_E  # Working under assumption of thermal dist now
     # Minimum, maximum extent of Maxwell-Boltzmann distribution
     kT_min  = 2e-3 * kT
     kT_max  = 10   * kT
@@ -1047,8 +1047,8 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     else
         # Once particles are relativistic, rest-mass energy becomes important:
         #     E² = p²c² + m²c⁴  ≈  (kT + mc²)²
-        p_min = √((kT_min + rm_energy)^2 - rm_energy^2) / c_cgs
-        p_max = √((kT_max + rm_energy)^2 - rm_energy^2) / c_cgs
+        p_min = √((kT_min + rm_energy)^2 - rm_energy^2) / c
+        p_max = √((kT_max + rm_energy)^2 - rm_energy^2) / c
     end
 
     Δp = (p_max - p_min) / num_therm_bins
@@ -1057,7 +1057,7 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     if !relativistic
         E_range = p_range.^2 / (2m * kT)
     else
-        E_range = hypot.(p_range*c_cgs, rm_energy) / kT
+        E_range = hypot.(p_range*c, rm_energy) / kT
     end
     #------------------------------------------------------------------------
     # End of constants section
@@ -1070,7 +1070,7 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     # normalization doesn't matter.
     #------------------------------------------------------------------------
     # Find total area under M-B curve
-    area_tot = 0.0
+    area_tot = 0.0u"g*cm/s"
     for (i, p1) in enumerate(p_range[begin:end-1])
         p2 = p_range[i+1]
 
@@ -1078,25 +1078,24 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
         energy_o_kT2 = E_range[i+1]
 
         # Start working in log space because of potentially huge exponents
-        f1 = exp(2log(p1) - energy_o_kT1)
-        f2 = exp(2log(p2) - energy_o_kT2)
+        f1 = exp(2log(p1/u"g*cm/s") - energy_o_kT1)
+        f2 = exp(2log(p2/u"g*cm/s") - energy_o_kT2)
+        @debug "In log space" i p1 p2 f1 f2
 
         area_tot += Δp * 0.5 * (f1 + f2) # Integrate using the trapezoid rule
     end
 
-    ptot_out = zeros(na_particles)
+    ptot_out = zeros(typeof(1.0u"g*cm/s"), na_particles)
     weight_out = zeros(na_particles)
 
     # Fill the bins with particles. Needs to be done in two separate loops, despite the
     # similarities, since particle weights are handled differently based on value of inj_weight
     if inj_weight # First, particles have equal weight
         n_pts_tot = set_inj_dist_particle_equal_weight!(
-            ptot_out, weight_out,
-            p_range, E_range, area_tot, n_pts_inj, Δp, n₀)
+            ptot_out, weight_out, p_range, E_range, area_tot, n_pts_inj, Δp, n₀)
     else # Bins have equal weight
         set_inj_dist_bin_equal_weight!(
-            ptot_out, weight_out,
-            p_range, E_range, area_tot, Δp, n₀)
+            ptot_out, weight_out, p_range, E_range, area_tot, Δp, n₀)
     end  # test of inj_weight
 
     n_pts_use = n_pts_tot
@@ -1109,17 +1108,17 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     if inp_distr == 2
         n_pts_use = n_pts_inj
 
-        rm_energy      = m * c_cgs^2
+        rm_energy      = m * c^2
         energy_inj_cgs = ustrip(u"erg", T_or_E*u"keV")
 
         if energy_inj_cgs/rm_energy < energy_rel_pt
             p1 = √(2m * energy_inj_cgs)
         else
-            p1 = √(energy_inj_cgs^2 - rm_energy^2) / c_cgs
+            p1 = √(energy_inj_cgs^2 - rm_energy^2) / c
         end
 
         ptot_out[1:n_pts_inj] .= p1
-        weight_out[1:n_pts_inj] .= n₀ / n_pts_tot
+        weight_out[1:n_pts_inj] .= ustrip(u"cm^-3",n₀) / n_pts_tot
 
     end  # check of inp_distr
     #--------------------------------------------------------------------------
@@ -1143,8 +1142,8 @@ function set_inj_dist_particle_equal_weight!(
         energy_o_kT2 = E_range[i+1]
 
         # Work in log space because of potentially huge exponents
-        f1 = exp(2log(p1) - energy_o_kT1)
-        f2 = exp(2log(p2) - energy_o_kT2)
+        f1 = exp(2log(p1/u"g*cm/s") - energy_o_kT1)
+        f2 = exp(2log(p2/u"g*cm/s") - energy_o_kT2)
 
         bin_area = Δp * (f1 + f2)/2 # Calculate bin area using trapezoid rule
 
@@ -1161,7 +1160,7 @@ function set_inj_dist_particle_equal_weight!(
 
     # If each particle has equal weight, then the total weight of the
     # distribution should be proportional to the density of the species
-    weight_out[1:n_pts_tot] .= n₀ / n_pts_tot
+    weight_out[1:n_pts_tot] .= ustrip(u"cm^-3",n₀) / n_pts_tot
 
     return n_pts_tot
 end

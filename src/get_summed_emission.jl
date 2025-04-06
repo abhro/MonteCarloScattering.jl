@@ -1,4 +1,4 @@
-using .constants: c_cgs
+using .constants: c
 using .parameters: na_photons
 using .io: print_plot_vals
 
@@ -310,7 +310,7 @@ function get_summed_emission(
 
             # Obtain the current flow speed difference between the plasma and ISM frames
             γ_sk_pf  = γ_sf_grid[i]
-            β_sk_pf  = utot_grid[i] / c_cgs
+            β_sk_pf  = utot_grid[i] / c
             β_pf_ISM = β_ef_grid[i]
             γ_pf_ISM = γ_ef_grid[i]
 

@@ -1,9 +1,11 @@
 module transformers
 using StaticArrays: SVector
 using LinearAlgebra: norm
+using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
+using Unitful: mp, c    # physical constants
 
 using ..parameters: psd_max
-using ..constants: mₚ_cgs, E₀_proton, c_cgs
+using ..constants: E₀_proton
 
 export transform_p_PS, transform_p_PSP, transform_psd_corners, get_transform_dN
 
@@ -267,10 +269,10 @@ function get_transform_dN(
             #    i_pt_sk  = i_ct_pt_sk_min
             #else
             #    pt_sk_cgs = exp10(psd_mom_bounds[i] + psd_mom_bounds[i+1])
-            #    pt_sk_cgs = √pt_sk_cgs * mₚ_cgs * utsk_cm
+            #    pt_sk_cgs = √pt_sk_cgs * mp * utsk_cm
             #    i_pt_sk  = floor(Int, psd_mom_bounds[i])
             #end
-            #γₚ_sk = hypot(1, pt_sk_cgs/(rest_mass*c_cgs))
+            #γₚ_sk = hypot(1, pt_sk_cgs/(rest_mass*c))
             #
             #cell_weight = cell_weight * pt_sk_cgs / (γₚ_sk * rest_mass) / proton_num_density_UpS
 
@@ -398,7 +400,7 @@ function transform_p_PS(
                    pb_pf*b_sinθ + p_p_cos*b_cosθ)
 
     # xyz shock frame components
-    p_sk = SVector(γᵤ_sf * (p_pf.x + γₚ_pf * aa*mₚ_cgs * uₓ_sk),
+    p_sk = SVector(γᵤ_sf * (p_pf.x + γₚ_pf * aa*mp * uₓ_sk),
                    p_pf.y,
                    p_pf.z)
 
@@ -483,11 +485,11 @@ function transform_p_PSP(
     p_sk = SVector(
         (((γᵤ_sf_old-1) * (uₓ_sk_old/utot_old)^2 + 1) * p_pf.x +
          (γᵤ_sf_old-1) * (uₓ_sk_old*uz_sk_old/utot_old^2) * p_pf.z +
-         γᵤ_sf_old * γₚ_pf * aa*mₚ_cgs * uₓ_sk_old),
+         γᵤ_sf_old * γₚ_pf * aa*mp * uₓ_sk_old),
         p_pf.y,
         ((γᵤ_sf_old-1) * (uₓ_sk_old*uz_sk_old/utot_old^2) * p_pf.x +
          ((γᵤ_sf_old-1) * (uz_sk_old/utot_old)^2 + 1) * p_pf.z +
-         γᵤ_sf_old * γₚ_pf * aa*mₚ_cgs * uz_sk_old)
+         γᵤ_sf_old * γₚ_pf * aa*mp * uz_sk_old)
     )
 
     # Parallel/perpendicular (new) shock frame components
@@ -508,12 +510,12 @@ function transform_p_PSP(
     # xyz (new) plasma frame components
     p_pf = SVector(( # x-component
                     ((γᵤ_sf - 1) * (uₓ_sk/utot)^2 + 1) * p_sk.x + (γᵤ_sf - 1) *
-                    (uₓ_sk*uz_sk/utot^2) * p_sk.z - γᵤ_sf * γₚ_sk * aa*mₚ_cgs * uₓ_sk
+                    (uₓ_sk*uz_sk/utot^2) * p_sk.z - γᵤ_sf * γₚ_sk * aa*mp * uₓ_sk
                    ),
                    p_sk.y,
                    ( # z-component
                     (γᵤ_sf - 1) * (uₓ_sk*uz_sk/utot^2) * p_sk.x +
-                    ((γᵤ_sf - 1) * (uz_sk/utot)^2 + 1) * p_sk.z - γᵤ_sf * γₚ_sk * aa*mₚ_cgs * uz_sk
+                    ((γᵤ_sf - 1) * (uz_sk/utot)^2 + 1) * p_sk.z - γᵤ_sf * γₚ_sk * aa*mp * uz_sk
                    ))
 
 
@@ -591,9 +593,9 @@ function transform_psd_corners(
             #end
 
             pₓ_sk_cgs   = pt_sk_cgs * cosθ
-            etot_sk_cgs = hypot(pt_sk_cgs*c_cgs, rest_mass_energy)
+            etot_sk_cgs = hypot(pt_sk_cgs*c, rest_mass_energy)
 
-            pₓ_Xf_cgs  = γ_in * (pₓ_sk_cgs - βᵤ*etot_sk_cgs/c_cgs)
+            pₓ_Xf_cgs  = γ_in * (pₓ_sk_cgs - βᵤ*etot_sk_cgs/c)
             pt_Xf_cgs  = √(pt_sk_cgs^2 + pₓ_Xf_cgs^2 - pₓ_sk_cgs^2)
 
             # Transform to log space because get_dNdp_cr expects it

@@ -56,9 +56,9 @@ struct RelativisticVelocity{V<:Unitful.Velocity,T}
     γ::T
 end
 function RelativisticVelocity(u::Unitful.Velocity)
-    u < c_cgs || throw(DomainError(u, "speed is greater than speed of light"))
+    u < c || throw(DomainError(u, "speed is greater than speed of light"))
 
-    β = u/c_cgs
+    β = u/c
     return RelativisticVelocity(u, β, γ(β))
 end
 function Base.show(io::IO, v::RelativisticVelocity{T}) where T
@@ -71,18 +71,18 @@ function Base.show(io::IO, v::RelativisticVelocity{T}) where T
 end
 
 function velocity_from_β(β::T) where T
-    return RelativisticVelocity{T}(β*c_cgs, β, γ(β))
+    return RelativisticVelocity{T}(β*c, β, γ(β))
 end
 
 function velocity_from_γ(γ::T) where T
     β_from_γ = β(γ)
-    return RelativisticVelocity{T}(β_from_γ*c_cgs, β_from_γ, γ)
+    return RelativisticVelocity{T}(β_from_γ*c, β_from_γ, γ)
 end
 
 
 @kwdef struct Species
     mass::typeof(1.0u"g")
-    charge::typeof(1.0u"q")
+    charge::typeof(1.0u"Fr")
     temperature::typeof(1.0u"K")
     number_density::typeof(1.0u"cm^-3")
 end

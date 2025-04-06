@@ -3,7 +3,7 @@ function ion_init(i_iter, i_ion, species)
     m = mass(species[i_ion])
     aa = m/u"mp" |> NoUnits
 
-    mc = aa*mₚ_cgs * c_cgs
+    mc = aa*mp*c
 
     # At the start of each ion, print a glyph to the screen
     @info("Starting species iteration", i_iter, i_ion)
@@ -16,15 +16,15 @@ function ion_init(i_iter, i_ion, species)
     if E_pcut_hi_rmproton < energy_rel_pt
         p_pcut_hi = √(2 * E_pcut_hi_rmproton)
     else
-        p_pcut_hi = aa * mₚ_cgs * c_cgs * √((E_pcut_hi_rmproton + 1)^2 - 1)
+        p_pcut_hi = aa * mp * c * √((E_pcut_hi_rmproton + 1)^2 - 1)
     end
 
     if Emax_keV > 0u"keV"
         γ = 1 + Emax_keV/(aa*E₀_proton)
-        pmax_cutoff = aa*mₚ_cgs * c_cgs * √(γ^2 - 1)
+        pmax_cutoff = aa*mp * c * √(γ^2 - 1)
     elseif Emax_keV_per_aa > 0u"keV"
         γ = 1 + Emax_keV_per_aa/E₀_proton
-        pmax_cutoff = aa*mₚ_cgs * c_cgs * √(γ^2 - 1)
+        pmax_cutoff = aa*mp * c * √(γ^2 - 1)
     elseif pmax_cgs > 0u"mp*c"
         pmax_cutoff = pmax_cgs
     else
@@ -81,7 +81,7 @@ function ion_init(i_iter, i_ion, species)
 
     # The array of pcuts read in by data_input has units momentum/mc.
     # Convert to momentum for this species
-    pcuts_use[1:n_pcuts] .= pcuts_in[1:n_pcuts] * aa*mₚ_cgs*c_cgs
+    pcuts_use[1:n_pcuts] .= pcuts_in[1:n_pcuts] * aa*mp*c
 
     return (
             aa, zz, m, mc,

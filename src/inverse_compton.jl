@@ -1,5 +1,5 @@
 # using Unitful, UnitfulAstro
-using .constants: E₀_proton, E₀_electron, qₚ_cgs, T_CMB0, h_cgs, c_cgs, kB_cgs
+using .constants: E₀_proton, E₀_electron, qₚ_cgs, T_CMB0, kB
 using .parameters: na_photons, energy_rel_pt
 using .io: print_plot_vals
 
@@ -258,8 +258,8 @@ function IC_emission_FCJ(
     else
         # Below are constants for spectral energy density of CMB in units of
         # energy per volume per Hz taken from Wikipedia
-        con_f1 = 8π*h_cgs/(c_cgs^3)
-        con_f2 = h_cgs/(kB_cgs*photon_temp_IC)
+        con_f1 = 8π*h/(c^3)
+        con_f2 = h_cgs/(kB*photon_temp_IC)
 
         for j_in in 1:n_freq     # loop over incoming photon energy density
             f1 = exp10(freq_min_log + (j_in-1)*Δfreq) # = freq_min (freq_max/freq_min)^[(j-1)/n_freq]
@@ -309,7 +309,7 @@ function IC_emission_FCJ(
             #   d²N/dtdα ≈ 2πr₀²c/α₁γ² [2q″\ln q″ + (1+2q″)(1−q″) + ½(1-q″)(4α₁γq″)²/(1+4α₁γq″)]
             # where q″ = α/4α₁γ²(1−α/γ) and 1/4γ² < q″ ≤ 1
             α₁       = photon_energy_rm[j_in]
-            norm_fac = xnum_photons_p_vol[j_in] * 2π* r_z^2 * c_cgs / (α₁ * γ^2)
+            norm_fac = xnum_photons_p_vol[j_in] * 2π* r_z^2 * c / (α₁ * γ^2)
 
             # Loop over outgoing photons. After collision, "α_out" is α in eq. (9):
             # outgoing photon energy in units of electron rest mass

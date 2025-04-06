@@ -1,4 +1,4 @@
-using .constants: mₚ_cgs, E₀_proton
+using .constants: E₀_proton
 using .parameters: energy_rel_pt
 using .transformers: transform_p_PS
 
@@ -54,9 +54,9 @@ function particle_finish!(
     jθ = get_psd_bin_angle(p_sk.x, ptot_sk, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
 
     if ptot_sk > abs(_pf_spike_away*p_sk.x)
-        weight_factor = γₚ_sk * aa*mₚ_cgs * _pf_spike_away / ptot_sk
+        weight_factor = γₚ_sk * aa*mp * _pf_spike_away / ptot_sk
     else
-        weight_factor = γₚ_sk * aa*mₚ_cgs / abs(p_sk.x)
+        weight_factor = γₚ_sk * aa*mp / abs(p_sk.x)
     end
 
     # Now take additional action based on *how* the particle left the grid
@@ -70,7 +70,7 @@ function particle_finish!(
         esc_psd_feb_UpS[ip, jθ] += weight * weight_factor
 
         if (γₚ_sk - 1) < (energy_rel_pt/(aa*E₀_proton))
-            energy_flux_add = ptot_sk^2 / (2 * aa*mₚ_cgs) * weight
+            energy_flux_add = ptot_sk^2 / (2 * aa*mp) * weight
         else
             energy_flux_add = (γₚ_sk - 1) * aa*E₀_proton * weight
         end

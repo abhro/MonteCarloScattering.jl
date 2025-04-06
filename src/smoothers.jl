@@ -2,7 +2,7 @@ module smoothers
 
 using Roots
 
-using ..constants: kB_cgs, mₑ_cgs, mₚ_cgs, E₀_proton, c_cgs
+using ..constants: kB, E₀_proton
 using ..parameters: β_rel_fl
 using ..io: print_plot_vals
 
@@ -73,7 +73,7 @@ function smooth_grid_par(
     # Set constants
     # First, density in units of proton rest mass, pressure, and number density
     n₀ = dot(n₀_ion, aa_ion)
-    P₀   = dot(n₀_ion, T₀_ion) * kB_cgs
+    P₀   = dot(n₀_ion, T₀_ion) * kB
 
     #DEBUGLINE (for now)
     # Calculate the far upstream magnetization -- the ratio of the energy fluxes in EM fields
@@ -118,8 +118,8 @@ function smooth_grid_par(
         # Pull from ***_grid arrays into easier-to-use variables
         uₓ     = uₓ_sk_grid[i]
         utot   = utot_grid[i]
-        β_uₓ   = uₓ            / c_cgs
-        β_uz   = uz_sk_grid[i] / c_cgs
+        β_uₓ   = uₓ            / c
+        β_uz   = uz_sk_grid[i] / c
         γᵤ_sf = γ_sf_grid[i]
         γᵤ_ef = γ_ef_grid[i]
         βᵤ_ef = β_ef_grid[i]
@@ -193,7 +193,7 @@ function smooth_grid_par(
         pressure_pₓ  = pₓ_numer / pₓ_denom
 
         energy_term_1 = flux_energy_UpS * (1 - q_esc_cal_energy)
-        energy_term_2 = γ₀*β₀*c_cgs * n₀*E₀_proton
+        energy_term_2 = γ₀*β₀*c * n₀*E₀_proton
         energy_term_3 = γ² * uₓ * density_ratio * n₀*E₀_proton
         pressure_energy = (energy_term_1 + energy_term_2 - energy_term_3) / (γ² * uₓ * Γ_pre/(Γ_pre-1))
 
@@ -218,7 +218,7 @@ function smooth_grid_par(
             pₓ_denom = 1 + (γ₂*β₂)^2 * Γ₂/(Γ₂ - 1)
             pressure_pₓ_tp = pₓ_numer / pₓ_denom
 
-            energy_numer = flux_energy_UpS + γ₀*u₀ * n₀*E₀_proton - γ₂ * c_cgs * γ₀*β₀ * n₀*E₀_proton
+            energy_numer = flux_energy_UpS + γ₀*u₀ * n₀*E₀_proton - γ₂ * c * γ₀*β₀ * n₀*E₀_proton
             energy_denom = γ₂^2 * u₂ * Γ₂/(Γ₂ - 1)
             pressure_energy_tp  = energy_numer / energy_denom
         end
@@ -314,9 +314,9 @@ function smooth_grid_par(
     # Compute output arrays based on new profile
     for i in 1:n_grid
         uₓ_sk_grid[i] = uₓ_new[i]
-        γ_sf_grid[i] = 1 / √(1 - (uₓ_sk_grid[i]/c_cgs)^2)
+        γ_sf_grid[i] = 1 / √(1 - (uₓ_sk_grid[i]/c)^2)
         utot_grid[i] = uₓ_new[i]
-        β_ef_grid[i] = (u₀ - uₓ_sk_grid[i]) / (c_cgs - u₀*uₓ_sk_grid[i]/c_cgs)
+        β_ef_grid[i] = (u₀ - uₓ_sk_grid[i]) / (c - u₀*uₓ_sk_grid[i]/c)
         γ_ef_grid[i] = 1 / √(1 - β_ef_grid[i]^2)
 
         # Include necessary corrections for turbulence compression
@@ -346,7 +346,7 @@ function relativistic_velocity_profile()
     Qen = q_esc_cal_energy * energy_flux[1]
 
     for i in 1:n_grid
-        β_uₓ   = uₓ_sk_grid[i] / c_cgs
+        β_uₓ   = uₓ_sk_grid[i] / c
         γᵤ_sf = γ_sf_grid[i]
         γ²     = γᵤ_sf^2
         γβ     = γᵤ_sf * β_uₓ
@@ -387,18 +387,18 @@ function relativistic_velocity_profile()
             return flux_pₓ_UpS - Qpₓ - pₓₓ_EM - pₓ_term - pressure_loc
         end
         γβ_found = Roots.find_zero(p, γ₀*β₀*1e-4, Roots.Newton())
-        uₓ_new_pₓ[i] = γβ_found / √(1 + γβ_found^2) * c_cgs
+        uₓ_new_pₓ[i] = γβ_found / √(1 + γβ_found^2) * c
 
 
         # Newton's method, energy
         #-------------------------------------------------------------------
         function E(γβ)
             γ = √(1 + γβ^2)
-            energy_term = γβ * γ * c_cgs * (density_loc*E₀_proton + Γ_post / (Γ_post - 1) * pressure_loc)
+            energy_term = γβ * γ * c * (density_loc*E₀_proton + Γ_post / (Γ_post - 1) * pressure_loc)
             return flux_energy_UpS - Qen - energy_EM - energy_term
         end
         γβ_found = Roots.find_zero(E, γ₀*β₀*1e-4, Roots.Newton())
-        uₓ_new_energy[i] = γβ_found / √(1 + γβ_found^2) * c_cgs
+        uₓ_new_energy[i] = γβ_found / √(1 + γβ_found^2) * c
 
         # Find the average downstream velocity, which will be used for
         # scaling the profiles. Only average the last 10 grid positions
@@ -445,7 +445,7 @@ function nonrelativistic_velocity_profile()
 
     for i in 1:n_grid
         uₓ    = uₓ_sk_grid[i]
-        β_uₓ  = uₓ / c_cgs
+        β_uₓ  = uₓ / c
         γᵤ_sf = γ_sf_grid[i]
         γ²    = γᵤ_sf^2
         γβ    = γᵤ_sf * β_uₓ
@@ -471,7 +471,7 @@ function nonrelativistic_velocity_profile()
         # calculations. Do not include EM flux here, since pₓₓ_flux tracked only
         # particle contributions to F_pₓ. Also do not include escaping flux,
         # since we only care about the particles that remain
-        pressure_pₓ = (pₓₓ_flux[i] - n₀*mₚ_cgs * u₀ * uₓ * (1+β_uₓ^2)) / (1 + β_uₓ^2 * Γ_post/(Γ_post - 1))
+        pressure_pₓ = (pₓₓ_flux[i] - n₀*mp * u₀ * uₓ * (1+β_uₓ^2)) / (1 + β_uₓ^2 * Γ_post/(Γ_post - 1))
 
         # Combine flux-based pressure and PSD-based pressure as directed by user input
         pressure_loc = (1-ω)*pressure_pₓ + ω*pressure_tot_MC[i]
@@ -484,16 +484,16 @@ function nonrelativistic_velocity_profile()
         # Newton's method.
 
         function p(u) # momentum
-            β = u / c_cgs
-            p_term_1 = n₀*mₚ_cgs * u₀ * uₓ_guess * (1 + β^2)
+            β = u / c
+            p_term_1 = n₀*mp * u₀ * uₓ_guess * (1 + β^2)
             p_term_2 = (1 + β^2 * Γ_post/(Γ_post - 1)) * pressure_loc
             return flux_pₓ_UpS - Qpₓ - pₓₓ_EM - p_term_1 - p_term_2
         end
         uₓ_new_pₓ[i] = Roots.find_zero(p, u₀ * 1e-4, Roots.Newton())
 
         function E(u) # energy
-            β = u / c_cgs
-            energy_term_1 = 1//2 * n₀*mₚ_cgs * u₀ * u^2 * (1 + 1.25*β^2)
+            β = u / c
+            energy_term_1 = 1//2 * n₀*mp * u₀ * u^2 * (1 + 1.25*β^2)
             energy_term_2 = Γ_post / (Γ_post - 1) * pressure_loc * u * (1 + β^2)
             return flux_energy_UpS - Qen - energy_EM - energy_term_1 - energy_term_2
         end

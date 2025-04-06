@@ -2,6 +2,9 @@ import Random
 using Dates
 using JLD2
 using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
+using Unitful: g, K, cm, s, erg, keV, GeV
+using Unitful: mp, me, c, q, k as kB, h, ħ    # physical constants
+using UnitfulGaussian: Fr, G
 using Cosmology
 using Statistics: mean
 using StaticArrays
@@ -31,6 +34,10 @@ begin
     include("ion_init.jl")
     include("ion_finalize.jl")
 end
+
+const MomentumCGS = typeof(1.0g*cm/s)
+const LengthCGS = typeof(1.0cm)
+const BFieldCGS = typeof(1.0G)
 
 # Start the wall clock for this run
 t_start = now()
@@ -121,7 +128,7 @@ begin # "module" iteration_vars
     # units of momentum flux density: [p] * [v] * [n] = [energy density]
     pₓₓ_flux = Vector{typeof(1.0u"erg/cm^3")}(undef, n_grid)
     pxz_flux = Vector{typeof(1.0u"erg/cm^3")}(undef, n_grid)
-    energy_flux  = Vector{Float64}(undef, n_grid)
+    energy_flux = Vector{Float64}(undef, n_grid)
     esc_flux = zeros(n_ions)
     pₓ_esc_feb = zeros(n_ions, n_itrs)
     energy_esc_feb = zeros(n_ions, n_itrs)
@@ -131,7 +138,7 @@ begin # "module" iteration_vars
     # Arrays for holding thermal distribution information; they're set at the start of
     # the run, but included here because of chance they could change due to fast push
     n_pts_MB   = zeros(Int, n_ions)
-    ptot_inj   = zeros(na_particles, n_ions)
+    ptot_inj   = zeros(typeof(1.0u"g*cm/s"), na_particles, n_ions)
     weight_inj = zeros(na_particles, n_ions)
     # Arrays for holding information about particle counts and spectra at various tcuts
     weight_coupled  = Matrix{Float64}(undef, na_c, n_ions)
@@ -204,7 +211,7 @@ end
 # Note the extra factor of c in the denominator, because code tracks dp/dt, not dE/dt as
 # given in Sturner+ (1997).
 σ_T = 8π/3 * (qₚ_cgs^2 / E₀_electron)^2 # Thomson scattering cross-section
-rad_loss_fac = 4//3 * c_cgs * σ_T / (c_cgs^3 * mₑ_cgs^2 * 8π)
+rad_loss_fac = 4//3 * c * σ_T / (c^3 * me^2 * 8π)
 B_CMBz = B_CMB0 * (1 + redshift)^2
 
 
@@ -325,11 +332,11 @@ begin # "module" photons
 end # "module" photons
 
 weight_new = zeros(na_particles)
-ptot_pf_new = zeros(na_particles)
-pb_pf_new = zeros(na_particles)
-x_PT_cm_new = zeros(na_particles)
+ptot_pf_new = zeros(MomentumCGS, na_particles)
+pb_pf_new = zeros(MomentumCGS, na_particles)
+x_PT_cm_new = zeros(LengthCGS, na_particles)
 
-pcuts_use = zeros(na_c)
+pcuts_use = zeros(MomentumCGS, na_c)
 
 begin # "module" pcut_vars
     l_save = zeros(Bool, na_particles) # Whether or not to save particle for next pcut
@@ -338,9 +345,9 @@ begin # "module" pcut_vars
     DwS_sav         = zeros(Bool, na_particles)
     inj_sav         = zeros(Bool, na_particles)
     weight_sav      = zeros(na_particles)
-    ptot_pf_sav     = zeros(na_particles)
-    pb_pf_sav       = zeros(na_particles)
-    x_PT_cm_sav     = zeros(na_particles)
+    ptot_pf_sav     = zeros(MomentumCGS, na_particles)
+    pb_pf_sav       = zeros(MomentumCGS, na_particles)
+    x_PT_cm_sav     = zeros(LengthCGS, na_particles)
     xn_per_sav      = zeros(na_particles)
     #zz_sav         = zeros(na_particles)
     prp_x_cm_sav    = zeros(na_particles)
@@ -353,7 +360,7 @@ begin # "module" pcut_vars
     inj_new         = zeros(Bool, na_particles)
     xn_per_new      = zeros(na_particles)
     #zz_new         = zeros(na_particles)
-    prp_x_cm_new    = zeros(na_particles)
+    prp_x_cm_new    = zeros(LengthCGS, na_particles)
     acctime_sec_new = zeros(na_particles)
     φ_rad_new       = zeros(na_particles)
 end

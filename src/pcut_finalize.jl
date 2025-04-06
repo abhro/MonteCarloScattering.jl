@@ -6,10 +6,10 @@ function pcut_finalize()
     run_time = t_end - t_start
 
     @info("", i_iter, i_ion, i_cut,
-          pcuts_in[i_cut], pcuts_use[i_cut]/(mₚ_cgs*c_cgs),
+          pcuts_in[i_cut], pcuts_use[i_cut]/(mp*c),
           n_saved, n_pts_use, weight_running, run_time)
     println(outfile, " itr=", i_iter, " ion=", i_ion, " icut=", i_cut,
-            pcuts_in[i_cut], pcuts_use[i_cut]/(mₚ_cgs*c_cgs),
+            pcuts_in[i_cut], pcuts_use[i_cut]/(mp*c),
             "  n_sav=", n_saved, "/", n_pts_use, weight_running, run_time)
 
 

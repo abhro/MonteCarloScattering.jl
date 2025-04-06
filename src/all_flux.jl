@@ -1,4 +1,4 @@
-using .constants: mₚ_cgs, E₀_proton
+using .constants: E₀_proton
 using .parameters: energy_rel_pt, na_cr
 
 all_flux_spike_away = 1000.0 # Max value for 1/cosine
@@ -95,7 +95,7 @@ function all_flux!(
         abs_inv_vx_sk = abs(all_flux_spike_away/uₓ_sk)
     else
         pt_o_pₓ_sk = ptot_sk / p_sk.x
-        abs_inv_vx_sk = abs(γₚ_sk * aa*mₚ_cgs / p_sk.x)
+        abs_inv_vx_sk = abs(γₚ_sk * aa*mp / p_sk.x)
     end
 
     pt_o_pₓ_pf = min(abs(ptot_pf/pb_pf), all_flux_spike_away)
@@ -104,7 +104,7 @@ function all_flux!(
     if (γₚ_sk - 1) > energy_rel_pt
         energy_flux_add = (γₚ_sk - 1) * aa*E₀_proton * weight
     else
-        energy_flux_add = ptot_sk^2 / (2 * aa*mₚ_cgs) * weight
+        energy_flux_add = ptot_sk^2 / (2 * aa*mp) * weight
     end
 
 

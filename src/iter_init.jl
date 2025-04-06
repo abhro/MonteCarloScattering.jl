@@ -1,9 +1,8 @@
 function iter_init()
     # Zero out numerous quantities that will be modified over the course of this iteration.
     # Minimally positive number is used to prevent errors when taking logarithms later
-    p_unit = unit(eltype(pₓₓ_flux))
-    fill!(pₓₓ_flux, 1e-99*p_unit)
-    fill!(pxz_flux, 1e-99*p_unit)
+    fill!(pₓₓ_flux, 1e-99erg/cm^3)
+    fill!(pxz_flux, 1e-99erg/cm^3)
     fill!(energy_flux, 1e-99)
 
     fill!(esc_spectra_feb_UpS, 1e-99)
@@ -20,8 +19,8 @@ function iter_init()
     ∑P_DwS  = 1e-99 # downstream pressure
     sum_KEdensity_DwS = 1e-99
 
-    energy_esc_UpS    = 1e-99
-    pₓ_esc_UpS        = 1e-99
+    global energy_esc_UpS    = 1e-99
+    global pₓ_esc_UpS        = 1e-99
 
 
     # To facilitate energy transfer from ions to electrons, calculate here the target energy

@@ -30,26 +30,28 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
     φ_rad       = φ_rad_new[i_prt]
     tcut_curr   = tcut_new[i_prt]
 
-    r_PT_cm = SVector{3,Float64}(x_PT_cm_new[i_prt], # x
-                                 # Not currently tracked, but could be added in at later date
-                                 0.0, # y
-                                 0.0) # z
+    r_PT_cm = SVector{3,LengthCGS}(x_PT_cm_new[i_prt], # x
+                                   # Not currently tracked, but could be added in at later date
+                                   0.0u"cm", # y
+                                   0.0u"cm") # z
 
     γₚ_pf = hypot(1, ptot_pf/mc)
 
     # Constant that will be used repeatedly during loop
     # Square root corresponds to Blandford-McKee solution, where e ∝ 1/χ ∝ 1/r
-    gyro_denom = 1 / (zz*qₚ_cgs * btot_grid[i_grid])
+    gyro_denom = 1 / (zz * btot_grid[i_grid]) # zz already has units of charge
     if use_custom_εB && (r_PT_cm.x > x_grid_stop)
         gyro_denom *=  √(r_PT_cm.x / x_grid_stop)
     end
+    @debug "Calculated gyro_denom" gyro_denom
 
     # Gyroradius assuming all motion is perpendicular to B field;
     # pitch-angle-correct gyroradius is gyro_rad_cm
-    global gyro_rad_tot_cm = ptot_pf * c_cgs * gyro_denom
+    global gyro_rad_tot_cm = ptot_pf * c * gyro_denom |> u"cm"
+    @debug "Calculated gyro_rad_tot_cm" gyro_rad_tot_cm
 
     # Gyroperiod in seconds
-    gyro_period_sec = 2π * γₚ_pf * aa*mₚ_cgs * c_cgs * gyro_denom
+    gyro_period_sec = 2π * γₚ_pf * aa*mp * c * gyro_denom
 
 
     # Get the properties of the grid zone the particle's in
@@ -109,7 +111,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
     i_reason = 0
     lose_pt  = false
 
-    r_PT_old = SVector(0.0, 0.0, 0.0)
+    r_PT_old = SVector{3,LengthCGS}(0u"cm", 0u"cm", 0u"cm")
     while keep_looping # loop_helix
 
         # Track number of times through the main loop. This will only be
@@ -123,291 +125,292 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
             #--------------------------------------------------------------
             # Calculate momentum perpendicular to magnetic field...
             if ptot_pf < abs(pb_pf)
-              global p_perp_b_pf = 1e-6 * ptot_pf
-              pb_pf = copysign(√(ptot_pf^2 - p_perp_b_pf^2), pb_pf)
-              #CHECKTHIS: does this *ever* happen?!
-              @warn("ptot_pf < pb_pf at top of loop_helix")
+                global p_perp_b_pf = 1e-6 * ptot_pf
+                pb_pf = copysign(√(ptot_pf^2 - p_perp_b_pf^2), pb_pf)
+                #CHECKTHIS: does this *ever* happen?!
+                @warn("ptot_pf < pb_pf at top of loop_helix")
             else
-              global p_perp_b_pf = √(ptot_pf^2 - pb_pf^2)
+                global p_perp_b_pf = √(ptot_pf^2 - pb_pf^2)
             end
 
             # ...and turn that into a gyroradius
-            global gyro_rad_cm = p_perp_b_pf * c_cgs * gyro_denom
+            global gyro_rad_cm = p_perp_b_pf * c * gyro_denom |> cm
             #--------------------------------------------------------------
             # End of Code Block 1
 
         else
 
-          # Code Block 3: grid zone changes; non-DwS escape (exception:
-          # if no scattering); radiative losses; momentum splitting; scattering
-          #--------------------------------------------------------------
-          # Store values from the previous run through loop_helix; only
-          # values needed by subroutine transform_p_PSP are kept here
-          uₓ_sk_old = uₓ_sk
-          uz_sk_old = uz_sk
-          utot_old  = utot
-          γᵤ_sf_old = γᵤ_sf
-          b_sin_old = b_sinθ
-          b_cos_old = b_cosθ
+            # Code Block 3: grid zone changes; non-DwS escape (exception:
+            # if no scattering); radiative losses; momentum splitting; scattering
+            #--------------------------------------------------------------
+            # Store values from the previous run through loop_helix; only
+            # values needed by subroutine transform_p_PSP are kept here
+            uₓ_sk_old = uₓ_sk
+            uz_sk_old = uz_sk
+            utot_old  = utot
+            γᵤ_sf_old = γᵤ_sf
+            b_sin_old = b_sinθ
+            b_cos_old = b_cosθ
 
 
-          # Get new values for this run through loop_helix
-          uₓ_sk  = uₓ_sk_grid[i_grid]
-          uz_sk  = uz_sk_grid[i_grid]
-          utot   =  utot_grid[i_grid]
-          γᵤ_sf  =  γ_sf_grid[i_grid]
-          γᵤ_ef  =  γ_ef_grid[i_grid]
-          βᵤ_ef  =  β_ef_grid[i_grid]
-          bmag   =  btot_grid[i_grid]
-          bθ     =     θ_grid[i_grid]
-          b_sinθ = sin(bθ)
-          b_cosθ = cos(bθ)
+            # Get new values for this run through loop_helix
+            uₓ_sk  = uₓ_sk_grid[i_grid]
+            uz_sk  = uz_sk_grid[i_grid]
+            utot   =  utot_grid[i_grid]
+            γᵤ_sf  =  γ_sf_grid[i_grid]
+            γᵤ_ef  =  γ_ef_grid[i_grid]
+            βᵤ_ef  =  β_ef_grid[i_grid]
+            bmag   =  btot_grid[i_grid]
+            bθ     =     θ_grid[i_grid]
+            b_sinθ = sin(bθ)
+            b_cosθ = cos(bθ)
 
-          # Square root corresponds to Blandford-McKee solution, where e ∝ 1/χ ∝ 1/r
-          if use_custom_εB && (r_PT_cm.x > x_grid_stop)
-            bmag = btot_grid[n_grid] * √(x_grid_stop / r_PT_cm.x)
-          end
-
-          gyro_denom = 1 / (zz*qₚ_cgs * bmag)
-
-          # If particle crossed a velocity gradient, find its new shock frame properties
-          if uₓ_sk != uₓ_sk_old
-            (
-             ptot_pf, ptot_sk, p_sk, pb_sk, p_perp_b_sk, γₚ_sk,
-             pb_pf, p_perp_b_pf, γₚ_pf, φ_rad
-            ) = transform_p_PSP(
-                                aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                                uₓ_sk_old, uz_sk_old, utot_old, γᵤ_sf_old,
-                                b_cos_old, b_sin_old, uₓ_sk, uz_sk, utot, γᵤ_sf,
-                                b_cosθ, b_sinθ,
-                                mc)
-
-            global gyro_rad_cm = p_perp_b_pf * c_cgs * gyro_denom
-            global gyro_rad_tot_cm = ptot_pf * c_cgs * gyro_denom
-            global pₓ_sk, py_sk, pz_sk = p_sk
-          end
-
-
-          # Energy transfer from ions to electrons in the UpS region; only bother with this if
-          #  1. Electrons are a separate species and energy transfer is enabled
-          #  2. Particles are still on their first trip to the DwS region of the shock structure
-          #  3. Particles have entered a new grid zone, and energy should be either subtracted or added
-          if energy_transfer_frac > 0 && !inj && r_PT_old.x ≤ 0 && i_grid_old != i_grid
-            i_start = i_grid_old
-            i_stop  = min(i_grid, i_shock)
-
-            # Subtract energy from the ions and add it to the pool of energy for this grid zone.
-            @debug "" i_start i_stop i_grid i_shock
-            if aa ≥ 1 && maximum(ε_target[i_start+1:i_stop]) > 0
-
-              # Subtract energy based on the difference between current
-              # and previous values of ε_electron
-              γ_pf_i = hypot(1, ptot_pf/mc)
-              γ_pf_f = 1 + (γ_pf_i - 1) * (1-ε_target[i_stop])/(1-ε_target[i_start])
-
-              # Split the energy equally among all grid zones crossed during
-              # this scattering step; the donated energy is weighted by weight.
-              n_split = count(ε_target[i_start+1:i_stop] .> 0)
-              #$omp critical
-              energy_increment = (γ_pf_i - γ_pf_f) * aa * E₀_proton * weight / n_split
-              for i in i_start+1:i_stop
-                  if ε_target[i] > 0
-                      energy_transfer_pool[i] += energy_increment
-                  end
-              end
-              #$omp end critical
-
-              # Calculate the new momentum based on the new energy,
-              # and rescale components accordingly
-              ptot_pf_f = aa*mₚ_cgs * c_cgs * √(γ_pf_f^2 - 1)
-              scale_fac = ptot_pf_f / ptot_pf
-
-              pb_pf *= scale_fac
-              p_perp_b_pf *= scale_fac
-              ptot_pf = ptot_pf_f
-              γₚ_pf = γ_pf_f
-
-            elseif maximum(energy_recv_pool[i_start+1:i_stop], init=0) > 0
-
-              # For electrons, add pooled energy. Include energy from all cells electron
-              # crossed in this scattering step. Also modify the amount of energy to reflect
-              # the number of electrons each MC particle represents
-              energy_to_transfer = sum(@view(energy_recv_pool[i_start+1:i_stop])) * electron_weight_fac
-
-              γ_pf_i = hypot(1, ptot_pf/mc)
-              γ_pf_f = γ_pf_i + energy_to_transfer/(aa*E₀_proton)
-
-              # Calculate the new momentum based on the new energy, and
-              # rescale components accordingly
-              ptot_pf_f = aa*mₚ_cgs * c_cgs * √(γ_pf_f^2 - 1)
-              scale_fac = ptot_pf_f / ptot_pf
-
-              pb_pf *= scale_fac
-              p_perp_b_pf *= scale_fac
-              ptot_pf = ptot_pf_f
-              γₚ_pf = γ_pf_f
-
-            end  # check on particle species
-
-            # Since the plasma-frame momenta have changed,
-            # recalculate the shock-frame momenta
-            ptot_sk, p_sk, γₚ_sk = transform_p_PS(aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                                                  uₓ_sk, uz_sk, utot, γᵤ_sf,
-                                                  b_cosθ, b_sinθ, mc)
-            pₓ_sk = p_sk.x
-            pz_sk = p_sk.z
-          end
-          # check on grid zone
-          # end check on whether particles are thermal and UpS
-          # end check on energy_transfer_frac
-
-
-          # Particle escape: DwS with scattering disabled
-          if dont_scatter && r_PT_cm.x > 10gyro_rad_cm
-              i_return = 0
-              i_reason = 1
-
-              keep_looping = false
-              continue
-          end
-
-
-          # Particle escape: pmax (note that effects are same as for escape at UpS FEB)
-          if ptot_pf > pmax_cutoff
-            # Transform plasma frame momentum into shock frame to test there also
-            ptot_sk, p_sk, γₚ_sk = transform_p_PS(aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                                                  uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
-                                                  mc)
-
-            if ptot_sk > pmax_cutoff
-              i_reason = 2
-
-              keep_looping = false
-              continue
-            end  # check on ptot_sk
-          end  # check on ptot_pf
-
-          # Particle escape: UpS FEB (note that effects are same as for escape by pmax)
-          if inj && r_PT_cm.x < feb_UpS
-            i_reason = 2
-
-            keep_looping = false
-            continue
-          end
-
-          # Particle escape: age_max
-          if age_max > 0 && acctime_sec > age_max
-            i_reason = 3
-
-            keep_looping = false
-            continue
-          end
-
-          # Particle escape: transverse motion
-          #TODO: implement new keyword related to transverse motion
-          #if yz_pos_max > 0 && hypot(y_PT, z_PT) > yz_pos_max
-          #    i_reason = 2
-          #    keep_looping = false
-          #    continue
-          #end
-
-          # Synchrotron/IC/CMB losses for electrons
-          if do_rad_losses && aa < 1
-
-            # Store previous ptot_pf value
-            ptot_pf_old = ptot_pf
-
-            # Compute effective magnetic field for radiative losses. When squared to get
-            # energy density, one factor of γᵤ_ef in B_CMB_loc represents increased number
-            # density, while the other is increased energy per photon.
-            B_CMB_loc = B_CMBz * γᵤ_ef
-
-            # Note that here dp_synch is actually dp/p. If this value is too large we will
-            # directly integrate from p_i to get p_f, since the discrete approach would
-            # result in too high a loss in a single time step
-            dp_synch = rad_loss_fac * (bmag^2 + B_CMB_loc^2) * ptot_pf * t_step
-
-            # Correction to make sure electrons don't lose too much energy in a single time step
-            if dp_synch > 1e-2
-              ptot_pf /= 1 + dp_synch
-            else
-              ptot_pf *= 1 - dp_synch # Put second factor of ptot_pf back into dp_synch
+            # Square root corresponds to Blandford-McKee solution, where e ∝ 1/χ ∝ 1/r
+            if use_custom_εB && (r_PT_cm.x > x_grid_stop)
+                bmag = btot_grid[n_grid] * √(x_grid_stop / r_PT_cm.x)
             end
 
-            # Catch electrons that have somehow lost all their energy in a single time step
-            if ptot_pf ≤ 0
-              ptot_pf = 1e-99
-              pb_pf = 1e-99
-              global p_perp_b_pf = 1e-99
-              γₚ_pf = 1
-              i_reason = 4
-              keep_looping = false
-              continue
+            gyro_denom = 1 / (zz*qₚ_cgs * bmag)
+            @debug "Calculated gyro_denom" gyro_denom
+
+            # If particle crossed a velocity gradient, find its new shock frame properties
+            if uₓ_sk != uₓ_sk_old
+                (
+                 ptot_pf, ptot_sk, p_sk, pb_sk, p_perp_b_sk, γₚ_sk,
+                 pb_pf, p_perp_b_pf, γₚ_pf, φ_rad
+                ) = transform_p_PSP(
+                                    aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
+                                    uₓ_sk_old, uz_sk_old, utot_old, γᵤ_sf_old,
+                                    b_cos_old, b_sin_old, uₓ_sk, uz_sk, utot, γᵤ_sf,
+                                    b_cosθ, b_sinθ, mc)
+
+                global gyro_rad_cm = p_perp_b_pf * c * gyro_denom |> cm
+                global gyro_rad_tot_cm = ptot_pf * c * gyro_denom |> cm
+                global pₓ_sk, py_sk, pz_sk = p_sk
             end
 
-            # Recalculate γₚ_pf since that's needed elsewhere
-            γₚ_pf = hypot(ptot_pf/mc, 1)
 
-            # Modify components of ptot_pf due to losses
-            pb_pf       *= ptot_pf/ptot_pf_old
-            p_perp_b_pf *= ptot_pf/ptot_pf_old
+            # Energy transfer from ions to electrons in the UpS region; only bother with this if
+            #  1. Electrons are a separate species and energy transfer is enabled
+            #  2. Particles are still on their first trip to the DwS region of the shock structure
+            #  3. Particles have entered a new grid zone, and energy should be either subtracted or added
+            if energy_transfer_frac > 0 && !inj && r_PT_old.x ≤ 0 && i_grid_old != i_grid
+                i_start = i_grid_old
+                i_stop  = min(i_grid, i_shock)
 
-            # Also recalculate gyroradii
-            global gyro_rad_tot_cm =     ptot_pf * c_cgs * gyro_denom
-            global gyro_rad_cm     = p_perp_b_pf * c_cgs * gyro_denom
-          end
+                # Subtract energy from the ions and add it to the pool of energy for this grid zone.
+                @debug "" i_start i_stop i_grid i_shock
+                if aa ≥ 1 && maximum(ε_target[i_start+1:i_stop]) > 0
+
+                    # Subtract energy based on the difference between current
+                    # and previous values of ε_electron
+                    γ_pf_i = hypot(1, ptot_pf/mc)
+                    γ_pf_f = 1 + (γ_pf_i - 1) * (1-ε_target[i_stop])/(1-ε_target[i_start])
+
+                    # Split the energy equally among all grid zones crossed during
+                    # this scattering step; the donated energy is weighted by weight.
+                    n_split = count(ε_target[i_start+1:i_stop] .> 0)
+                    #$omp critical
+                    energy_increment = (γ_pf_i - γ_pf_f) * aa * E₀_proton * weight / n_split
+                    for i in i_start+1:i_stop
+                        if ε_target[i] > 0
+                            energy_transfer_pool[i] += energy_increment
+                        end
+                    end
+                    #$omp end critical
+
+                    # Calculate the new momentum based on the new energy,
+                    # and rescale components accordingly
+                    ptot_pf_f = aa*mp*c * √(γ_pf_f^2 - 1)
+                    scale_fac = ptot_pf_f / ptot_pf
+
+                    pb_pf *= scale_fac
+                    p_perp_b_pf *= scale_fac
+                    ptot_pf = ptot_pf_f
+                    γₚ_pf = γ_pf_f
+
+                elseif maximum(energy_recv_pool[i_start+1:i_stop], init=0) > 0
+
+                    # For electrons, add pooled energy. Include energy from all cells electron
+                    # crossed in this scattering step. Also modify the amount of energy to reflect
+                    # the number of electrons each MC particle represents
+                    energy_to_transfer = sum(@view(energy_recv_pool[i_start+1:i_stop])) * electron_weight_fac
+
+                    γ_pf_i = hypot(1, ptot_pf/mc)
+                    γ_pf_f = γ_pf_i + energy_to_transfer/(aa*E₀_proton)
+
+                    # Calculate the new momentum based on the new energy, and
+                    # rescale components accordingly
+                    ptot_pf_f = aa*mp*c * √(γ_pf_f^2 - 1)
+                    scale_fac = ptot_pf_f / ptot_pf
+
+                    pb_pf *= scale_fac
+                    p_perp_b_pf *= scale_fac
+                    ptot_pf = ptot_pf_f
+                    γₚ_pf = γ_pf_f
+
+                end  # check on particle species
+
+                # Since the plasma-frame momenta have changed,
+                # recalculate the shock-frame momenta
+                ptot_sk, p_sk, γₚ_sk = transform_p_PS(aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
+                                                      uₓ_sk, uz_sk, utot, γᵤ_sf,
+                                                      b_cosθ, b_sinθ, mc)
+                pₓ_sk = p_sk.x
+                pz_sk = p_sk.z
+            end
+            # check on grid zone
+            # end check on whether particles are thermal and UpS
+            # end check on energy_transfer_frac
 
 
-          #---------------------------------------------
-          # -- SCATTERING -- SCATTERING -- SCATTERING --
-          #---------------------------------------------
-          if !dont_scatter
-            gyro_period_sec, pb_pf, p_perp_b_pf, φ_rad = scattering(
-                aa, gyro_denom, ptot_pf, γₚ_pf, xn_per, pb_pf, p_perp_b_pf, φ_rad,
-                use_custom_frg, p_electron_crit, γ_electron_crit, η_mfp,
-            )
-          end
+            # Particle escape: DwS with scattering disabled
+            if dont_scatter && r_PT_cm.x > 10gyro_rad_cm
+                i_return = 0
+                i_reason = 1
 
-
-          # Update acceleration time in explosion frame, so convert t_step from plasma frame
-          # Only start the clock once a particle has crossed the shock for the first time
-          if l_DwS
-            acctime_sec += t_step*γᵤ_ef
-
-            if do_tcuts && acctime_sec ≥ tcuts[tcut_curr]
-              tcut_track!(weight_coupled, spectra_coupled, tcut_curr, weight, ptot_pf, i_ion, num_psd_mom_bins)
-              tcut_curr += 1
+                keep_looping = false
+                continue
             end
 
-            # Remove ions at splitting momentum
-            if ptot_pf > pcuts_use[i_cut]
-                @info("Removing ions at splitting momentum")
-              l_save[i_prt] = true
 
-              weight_sav[i_prt]       = weight
-              ptot_pf_sav[i_prt]        = ptot_pf
-              pb_pf_sav[i_prt]        = pb_pf
-              x_PT_cm_sav[i_prt]      = r_PT_cm.x
-              grid_sav[i_prt]         = i_grid
-              DwS_sav[i_prt]          = l_DwS
-              inj_sav[i_prt]          = inj
-              xn_per_sav[i_prt]       = xn_per
-              prp_x_cm_sav[i_prt]     = r_PT_cm.x < prp_x_cm ? prp_x_cm : r_PT_cm.x * 1.1 # Ensure particle is within PRP
-              acctime_sec_sav[i_prt]  = acctime_sec
-              φ_rad_sav[i_prt]        = φ_rad
-              tcut_sav[i_prt]         = tcut_curr
+            # Particle escape: pmax (note that effects are same as for escape at UpS FEB)
+            if ptot_pf > pmax_cutoff
+                # Transform plasma frame momentum into shock frame to test there also
+                ptot_sk, p_sk, γₚ_sk = transform_p_PS(aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
+                                                      uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
+                                                      mc)
 
-              keep_looping = false
-              continue
+                if ptot_sk > pmax_cutoff
+                    i_reason = 2
+
+                    keep_looping = false
+                    continue
+                end  # check on ptot_sk
+            end  # check on ptot_pf
+
+            # Particle escape: UpS FEB (note that effects are same as for escape by pmax)
+            if inj && r_PT_cm.x < feb_UpS
+                i_reason = 2
+
+                keep_looping = false
+                continue
             end
-          end
+
+            # Particle escape: age_max
+            if age_max > 0 && acctime_sec > age_max
+                i_reason = 3
+
+                keep_looping = false
+                continue
+            end
+
+            # Particle escape: transverse motion
+            #TODO: implement new keyword related to transverse motion
+            #if yz_pos_max > 0 && hypot(y_PT, z_PT) > yz_pos_max
+            #    i_reason = 2
+            #    keep_looping = false
+            #    continue
+            #end
+
+            # Synchrotron/IC/CMB losses for electrons
+            if do_rad_losses && aa < 1
+
+                # Store previous ptot_pf value
+                ptot_pf_old = ptot_pf
+
+                # Compute effective magnetic field for radiative losses. When squared to get
+                # energy density, one factor of γᵤ_ef in B_CMB_loc represents increased number
+                # density, while the other is increased energy per photon.
+                B_CMB_loc = B_CMBz * γᵤ_ef
+
+                # Note that here dp_synch is actually dp/p. If this value is too large we will
+                # directly integrate from p_i to get p_f, since the discrete approach would
+                # result in too high a loss in a single time step
+                dp_synch = rad_loss_fac * (bmag^2 + B_CMB_loc^2) * ptot_pf * t_step
+
+                # Correction to make sure electrons don't lose too much energy in a single time step
+                if dp_synch > 1e-2
+                    ptot_pf /= 1 + dp_synch
+                else
+                    ptot_pf *= 1 - dp_synch # Put second factor of ptot_pf back into dp_synch
+                end
+
+                # Catch electrons that have somehow lost all their energy in a single time step
+                if ptot_pf ≤ 0
+                    ptot_pf = 1e-99MomentumCGS
+                    pb_pf = 1e-99MomentumCGS
+                    global p_perp_b_pf = 1e-99MomentumCGS
+                    γₚ_pf = 1
+                    i_reason = 4
+                    keep_looping = false
+                    continue
+                end
+
+                # Recalculate γₚ_pf since that's needed elsewhere
+                γₚ_pf = hypot(ptot_pf/mc, 1)
+
+                # Modify components of ptot_pf due to losses
+                pb_pf       *= ptot_pf/ptot_pf_old
+                p_perp_b_pf *= ptot_pf/ptot_pf_old
+
+                # Also recalculate gyroradii
+                global gyro_rad_tot_cm =     ptot_pf * c * gyro_denom |> cm
+                global gyro_rad_cm     = p_perp_b_pf * c * gyro_denom |> cm
+            end
 
 
-          # Shift between coarse/fine xn_per; right now the code uses only one value of
-          # xn_per everywhere in the ptot/x_PT phase space, so this branch does nothing.
-          xn_per = r_PT_cm.x > gyro_rad_tot_cm ? xn_per_coarse : xn_per_fine
-          #--------------------------------------------------------------
-          # End of Code Block 3
+            #---------------------------------------------
+            # -- SCATTERING -- SCATTERING -- SCATTERING --
+            #---------------------------------------------
+            if !dont_scatter
+                gyro_period_sec, pb_pf, p_perp_b_pf, φ_rad = scattering(
+                    aa, gyro_denom, ptot_pf, γₚ_pf, xn_per, pb_pf, p_perp_b_pf, φ_rad,
+                    use_custom_frg, p_electron_crit, γ_electron_crit, η_mfp,
+                )
+                @debug("Didn't scatter. Got", gyro_period_sec, pb_pf, p_perp_b_pf, φ_rad)
+            end
+
+
+            # Update acceleration time in explosion frame, so convert t_step from plasma frame
+            # Only start the clock once a particle has crossed the shock for the first time
+            if l_DwS
+                acctime_sec += t_step*γᵤ_ef
+
+                if do_tcuts && acctime_sec ≥ tcuts[tcut_curr]
+                    tcut_track!(weight_coupled, spectra_coupled, tcut_curr, weight, ptot_pf, i_ion, num_psd_mom_bins)
+                    tcut_curr += 1
+                end
+
+                # Remove ions at splitting momentum
+                if ptot_pf > pcuts_use[i_cut]
+                    @info("Removing ions at splitting momentum")
+                    l_save[i_prt] = true
+
+                    weight_sav[i_prt]       = weight
+                    ptot_pf_sav[i_prt]        = ptot_pf
+                    pb_pf_sav[i_prt]        = pb_pf
+                    x_PT_cm_sav[i_prt]      = r_PT_cm.x
+                    grid_sav[i_prt]         = i_grid
+                    DwS_sav[i_prt]          = l_DwS
+                    inj_sav[i_prt]          = inj
+                    xn_per_sav[i_prt]       = xn_per
+                    prp_x_cm_sav[i_prt]     = r_PT_cm.x < prp_x_cm ? prp_x_cm : r_PT_cm.x * 1.1 # Ensure particle is within PRP
+                    acctime_sec_sav[i_prt]  = acctime_sec
+                    φ_rad_sav[i_prt]        = φ_rad
+                    tcut_sav[i_prt]         = tcut_curr
+
+                    keep_looping = false
+                    continue
+                end
+            end
+
+
+            # Shift between coarse/fine xn_per; right now the code uses only one value of
+            # xn_per everywhere in the ptot/x_PT phase space, so this branch does nothing.
+            xn_per = r_PT_cm.x > gyro_rad_tot_cm ? xn_per_coarse : xn_per_fine
+            #--------------------------------------------------------------
+            # End of Code Block 3
 
         end  # check on i_return
 
@@ -420,7 +423,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
 
 
         # Find time step
-        global t_step = gyro_period_sec / xn_per
+        global t_step = gyro_period_sec / xn_per |> u"s"
 
         # Odd little loop that only matters if DSA has been disabled per the input file
         #------------------------------------------------------------------------------
@@ -439,13 +442,15 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
           # Remember to take gyration about magnetic field into account
           φ_rad = mod2pi(φ_rad + 2π/xn_per)
 
-          x_move_bpar = pb_pf * t_step / (γₚ_pf * aa*mₚ_cgs)
+          x_move_bpar = pb_pf * t_step / (γₚ_pf * aa*mp) |> u"cm"
 
-          r_PT_cm = SVector(r_PT_old.x + γᵤ_sf * (x_move_bpar * b_cosθ
-                                                  - gyro_rad_cm * b_sinθ * (cos(φ_rad)-cos(φ_rad_old))
-                                                  + uₓ_sk * t_step),
-                            r_PT_cm.y,
-                            r_PT_cm.z)
+          @debug("With params", γᵤ_sf, x_move_bpar, b_cosθ
+                              , gyro_rad_cm , b_sinθ , φ_rad, φ_rad_old
+                              , uₓ_sk , t_step)
+          Δx_PT_cm = γᵤ_sf * (x_move_bpar * b_cosθ
+                              - gyro_rad_cm * b_sinθ * (cos(φ_rad)-cos(φ_rad_old))
+                              + uₓ_sk * t_step)
+          r_PT_cm = SVector{3,LengthCGS}(r_PT_old.x + Δx_PT_cm, r_PT_cm.y, r_PT_cm.z)
 
           # Don't care about transverse motion unless it's being tracked
           #TODO: add new keyword for tracking transverse motion
@@ -462,19 +467,19 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
           #  1. they've been DwS and are crossing back UpS
           #  2. either DSA is disabled or they fail an injection check
           # continue again if particles get reflected
-          if r_PT_cm.x ≤ 0 && r_PT_old.x > 0 && !inj && (dont_DSA || inj_fracs[i_ion] < 1)
-            if dont_DSA || (Random.rand() > inj_fracs[i_ion])
-              # Reflect particles with negative pb_pf; randomize phase of the rest
-              if pb_pf < 0
-                pb_pf = -pb_pf
+          if r_PT_cm.x ≤ 0cm && r_PT_old.x > 0cm && !inj && (dont_DSA || inj_fracs[i_ion] < 1)
+              if dont_DSA || (Random.rand() > inj_fracs[i_ion])
+                  # Reflect particles with negative pb_pf; randomize phase of the rest
+                  if pb_pf < 0g*cm/s
+                      pb_pf = -pb_pf
+                  else
+                      φ_rad = Random.rand() * 2π
+                  end
               else
-                φ_rad = Random.rand() * 2π
+                  loop_again = false
               end
-            else
-              loop_again = false
-            end
           else
-            loop_again = false
+              loop_again = false
           end
         end # loop_no_DSA
         #----------------------------------------------------------------
@@ -482,28 +487,28 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
 
 
         # If particle crosses shock going UpS -> DwS
-        if r_PT_old.x < 0 && r_PT_cm.x ≥ 0
-          l_DwS = true
+        if r_PT_old.x < 0cm && r_PT_cm.x ≥ 0cm
+            l_DwS = true
 
-          # Ensure the downstream region is sufficiently long to allow particle to isotropize.
-          # This simple equation is decidedly non-trivial, and comes from two assumptions:
-          # 1. the particle's diffusion coefficient D may be described by D = ⅓⋅η_mfp⋅r_g⋅v_pt
-          #    (by default; a different f(r_g) may be specified as desired in place of η⋅r_g)
-          # 2. the relation between the diffusion coefficient D and the diffusion length L is
-          #    L = D/<u>, where <u> is the average speed of diffusion. Assuming isotropic
-          #    particles in the DwS frame, <u> = u₂ since the average thermal *velocity* of
-          #    the population is 0.
-          #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
-          L_diff = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mₚ_cgs*γₚ_pf * u₂)
+            # Ensure the downstream region is sufficiently long to allow particle to isotropize.
+            # This simple equation is decidedly non-trivial, and comes from two assumptions:
+            # 1. the particle's diffusion coefficient D may be described by D = ⅓⋅η_mfp⋅r_g⋅v_pt
+            #    (by default; a different f(r_g) may be specified as desired in place of η⋅r_g)
+            # 2. the relation between the diffusion coefficient D and the diffusion length L is
+            #    L = D/<u>, where <u> is the average speed of diffusion. Assuming isotropic
+            #    particles in the DwS frame, <u> = u₂ since the average thermal *velocity* of
+            #    the population is 0.
+            #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
+            L_diff = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp*γₚ_pf * u₂)
 
-          @info "Particle crossing shock going UpS → DwS" prp_x_cm
-          prp_x_cm = max(prp_x_cm, L_diff)
+            @info "Particle crossing shock going UpS → DwS" prp_x_cm
+            prp_x_cm = max(prp_x_cm, L_diff)
         end
 
 
         # Test for injection into the acceleration process
-        if l_DwS && r_PT_cm.x < 0
-          inj = true
+        if l_DwS && r_PT_cm.x < 0cm
+            inj = true
         end
 
 
@@ -527,53 +532,53 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
 
         if feb_DwS > 0 && r_PT_cm.x > feb_DwS
 
-          # Particle flagged as escaping downstream
-          i_return    = 0
-          do_prob_ret = false
+            # Particle flagged as escaping downstream
+            i_return    = 0
+            do_prob_ret = false
 
         elseif r_PT_cm.x > 1.1*prp_x_cm
 
-          # The following simple equation is decidedly non-trivial, and comes from two
-          # assumptions:
-          # 1. the particle's diffusion coefficient D may be described by D = ⅓⋅η_mfp⋅r_g⋅v_pt
-          #    (by default; a different f(r_g) may be specified as desired in place of η⋅r_g)
-          # 2. the relation between the diffusion coefficient D and the diffusion length L is
-          #    L = D/<u>, where <u> is the average speed of diffusion. Assuming isotropic
-          #    particles in the DwS frame, <u> = u₂ since the average thermal *velocity* of
-          #    the population is 0.
-          #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
-          if aa < 1 && ptot_pf < p_electron_crit
-            gyro_fac = p_electron_crit * c_cgs * gyro_denom
-            v_fac = gyro_fac * p_electron_crit / (aa*mₚ_cgs*γ_electron_crit * u₂)
-          else
-            v_fac = gyro_rad_tot_cm * ptot_pf / (aa*mₚ_cgs*γₚ_pf * u₂)
-          end
-          L_diff = η_mfp/3 * v_fac
+            # The following simple equation is decidedly non-trivial, and comes from two
+            # assumptions:
+            # 1. the particle's diffusion coefficient D may be described by D = ⅓⋅η_mfp⋅r_g⋅v_pt
+            #    (by default; a different f(r_g) may be specified as desired in place of η⋅r_g)
+            # 2. the relation between the diffusion coefficient D and the diffusion length L is
+            #    L = D/⟨u⟩, where ⟨u⟩ is the average speed of diffusion. Assuming isotropic
+            #    particles in the DwS frame, ⟨u⟩ = u₂ since the average thermal *velocity* of
+            #    the population is 0.
+            #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
+            if aa < 1 && ptot_pf < p_electron_crit
+                gyro_fac = p_electron_crit * c * gyro_denom
+                v_fac = gyro_fac * p_electron_crit / (aa*mp*γ_electron_crit * u₂)
+            else
+                v_fac = gyro_rad_tot_cm * ptot_pf / (aa*mp*γₚ_pf * u₂)
+            end
+            L_diff = η_mfp/3 * v_fac
 
-          if r_PT_cm.x > 6.91 * L_diff
-            i_return    = 0
-            do_prob_ret = false
-          end
+            if r_PT_cm.x > 6.91 * L_diff
+                i_return    = 0
+                do_prob_ret = false
+            end
 
         end
 
         if do_prob_ret
-          (
-           i_return, lose_pt, tcut_curr, _x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf,
-           gyro_denom, pb_pf, p_perp_b_pf, acctime_sec, φ_rad
-          ) = prob_return(
-                          rad_loss_fac, B_CMBz, r_PT_old.x, aa, zz, gyro_denom,
-                          r_PT_cm.x, prp_x_cm, ptot_pf, γₚ_pf, pb_pf, p_perp_b_pf,
-                          acctime_sec, φ_rad, helix_count, pcut_prev, weight, tcut_curr,
-                          x_grid_stop, u₂, use_custom_εB, η_mfp, do_retro, bmag₂, mc,
-                         )
-          r_PT_cm = SVector(_x_PT_cm, r_PT_cm.y, r_PT_cm.z)
+            (
+             i_return, lose_pt, tcut_curr, _x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf,
+             gyro_denom, pb_pf, p_perp_b_pf, acctime_sec, φ_rad
+            ) = prob_return(
+                            rad_loss_fac, B_CMBz, r_PT_old.x, aa, zz, gyro_denom,
+                            r_PT_cm.x, prp_x_cm, ptot_pf, γₚ_pf, pb_pf, p_perp_b_pf,
+                            acctime_sec, φ_rad, helix_count, pcut_prev, weight, tcut_curr,
+                            x_grid_stop, u₂, use_custom_εB, η_mfp, do_retro, bmag₂, mc,
+                           )
+            r_PT_cm = SVector(_x_PT_cm, r_PT_cm.y, r_PT_cm.z)
         end
 
         # If particle escaped DwS, handle final calculations here
         if i_return == 0
 
-            vel = ptot_pf / (aa*mₚ_cgs)
+            vel = ptot_pf / (aa*mp)
             if (γₚ_pf - 1) ≥ energy_rel_pt
                 vel /= γₚ_pf
             end

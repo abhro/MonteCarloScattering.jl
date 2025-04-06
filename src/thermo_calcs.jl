@@ -126,7 +126,7 @@ function thermo_calcs(
 
         # Get Lorentz factor and speed relating the shock and plasma frames
         γᵤ = γ_sf_grid[i]
-        βᵤ = uₓ_sk_grid[i] / c_cgs
+        βᵤ = uₓ_sk_grid[i] / c
 
 
         # Loop over all crossings for this grid zone, binning the thermal particles.
@@ -135,9 +135,9 @@ function thermo_calcs(
             # Transform the center of the zone into the new frame
             ptot_sk = therm_pt[n,i]
             pₓ_sk   = therm_pₓ[n,i]
-            etot_sk = hypot(ptot_sk*c_cgs, rest_mass_energy)
+            etot_sk = hypot(ptot_sk*c, rest_mass_energy)
 
-            pₓ_Xf   = γᵤ * (pₓ_sk - βᵤ*etot_sk/c_cgs)
+            pₓ_Xf   = γᵤ * (pₓ_sk - βᵤ*etot_sk/c)
             pt_Xf   = √((ptot_sk^2 - pₓ_sk^2) + pₓ_Xf^2)
             # In rare cases, floating point roundoff can cause pt_Xf to be smaller than abs(pₓ_Xf)
             if abs(pₓ_Xf) > pt_Xf
@@ -172,7 +172,7 @@ function thermo_calcs(
 
         # Get Lorentz factor and speed relating the shock and current frames
         γᵤ = γ_sf_grid[i]
-        βᵤ = uₓ_sk_grid[i] / c_cgs
+        βᵤ = uₓ_sk_grid[i] / c
 
         # Loop over cells in d²N_sf
         for jθ in 0:num_psd_mom_bins
@@ -186,9 +186,9 @@ function thermo_calcs(
                 cos_θ_sk = cos_center[jθ]
                 ptot_sk  = pt_cgs_center[k]
                 pₓ_sk    = ptot_sk * cos_θ_sk
-                etot_sk  = hypot(ptot_sk*c_cgs, rest_mass_energy)
+                etot_sk  = hypot(ptot_sk*c, rest_mass_energy)
 
-                pₓ_Xf    = γᵤ * (pₓ_sk - βᵤ*etot_sk/c_cgs)
+                pₓ_Xf    = γᵤ * (pₓ_sk - βᵤ*etot_sk/c)
                 pt_Xf    = √(ptot_sk^2 - pₓ_sk^2 + pₓ_Xf^2)
 
                 # Get location of center in transformed d²N_pf
@@ -228,7 +228,7 @@ function thermo_calcs(
     # With angular information we can get both parallel and perpendicular components
     #----------------------------------------------------------------------------
     # Find the velocity associated with each momentum bin
-    vel_ptot = @. pt_cgs_center * c_cgs / (mc * hypot(1, pt_cgs_center/mc))
+    vel_ptot = @. pt_cgs_center * c / (mc * hypot(1, pt_cgs_center/mc))
 
 
     # Output arguments
@@ -252,7 +252,7 @@ function thermo_calcs(
             # Thermal particles must have passed through, so find their density
             # and analytically determine components of pressure
             # #assumecold: using Γ = 5/3 in the pressure calc
-            pressure_loc = density_loc^(5//3) * kB_cgs*T₀_ion[i_ion]
+            pressure_loc = density_loc^(5//3) * kB*T₀_ion[i_ion]
 
             if aa_ion[i_ion] ≥ 1
                 density_electron = density_loc * zz_ion[i_ion]
@@ -276,7 +276,7 @@ function thermo_calcs(
             # Case (2): no thermal particles, but some CRs detected.
             # Find pressure due to un-tracked thermal particles
             # #assumecold: using Γ = 5/3 in the pressure calc
-            pressure_loc = density_loc^(5//3) * kB_cgs*T₀_ion[i_ion]
+            pressure_loc = density_loc^(5//3) * kB*T₀_ion[i_ion]
 
             if aa_ion[i_ion] > 1
                 density_electron *= zz_ion[i_ion]

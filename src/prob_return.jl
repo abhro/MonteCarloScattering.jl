@@ -1,4 +1,4 @@
-using .constants: mₚ_cgs, qₚ_cgs, c_cgs
+using .constants: qₚ_cgs
 include("retro_time.jl")
 
 """
@@ -72,8 +72,8 @@ function prob_return(
         else
             gyro_tmp = 1.0
         end
-        gyro_rad_tot_cm = ptot_pf * c_cgs * gyro_tmp / (qₚ_cgs * bmag₂)
-        L_diff          = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mₚ_cgs*γₚ_pf * u₂)
+        gyro_rad_tot_cm = ptot_pf * c * gyro_tmp / (qₚ_cgs * bmag₂)
+        L_diff          = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp*γₚ_pf * u₂)
 
         # Make absolutely sure particles will have enough distance to isotropize before
         # encountering PRP; allow for three diffusion lengths beyond *current position*,
@@ -83,7 +83,7 @@ function prob_return(
 
     # Particle has crossed PRP, and we need more complex calculations to determine if it returns
     elseif x_PT_old < prp_x_cm && x_PT_cm ≥ prp_x_cm
-        vt_pf    = ptot_pf / (γₚ_pf * aa*mₚ_cgs)
+        vt_pf    = ptot_pf / (γₚ_pf * aa*mp)
         prob_ret = ((vt_pf - u₂) / (vt_pf + u₂))^2
 
         # If the particle's plasma frame velocity is less than u₂, or if the probability
@@ -144,8 +144,8 @@ function prob_return(
         #    that these electrons have time to isotropize DwS, even though the bulk of their
         #    motion occurred at a much higher energy and therefore mean free path
         if aa < 1 && ptot_pf < pcut_prev && helix_count % 1000 == 0
-            gyro_rad_tot_cm = ptot_pf * c_cgs * gyro_denom
-            L_diff          = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mₚ_cgs*γₚ_pf * u₂)
+            gyro_rad_tot_cm = ptot_pf * c * gyro_denom
+            L_diff          = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp*γₚ_pf * u₂)
 
             if x_PT_cm > 2e3*L_diff
                 prp_x_cm = 0.8 * x_PT_cm

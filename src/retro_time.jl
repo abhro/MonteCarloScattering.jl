@@ -1,4 +1,4 @@
-using .constants: mₚ_cgs, qₚ_cgs, c_cgs
+using .constants: qₚ_cgs
 using .parameters: na_c
 
 # Floating point error can cause sin_Δφ to fall outside [-1,1]; place
@@ -55,7 +55,7 @@ function retro_time(
     # Set constants that will be used during the loop
     xn_per     = 10.0
     φ_step     = 2π / xn_per
-    t_step_fac = 2π * aa*mₚ_cgs * c_cgs * gyro_denom / xn_per  # t_step/γₚ_pf
+    t_step_fac = 2π * aa*mp * c * gyro_denom / xn_per  # t_step/γₚ_pf
 
     uₓ_sk = -uₓ_sk_grid[n_grid]
     γᵤ_sf =   γ_sf_grid[n_grid]
@@ -100,8 +100,8 @@ function retro_time(
             B_tot_sq   = bmag^2 + B_CMB_loc^2
             gyro_denom = 1 / (zz*qₚ_cgs * bmag)
         end
-        gyro_rad_cm     = p_perp_b_pf * c_cgs * gyro_denom
-        gyro_rad_tot_cm =     ptot_pf * c_cgs * gyro_denom
+        gyro_rad_cm     = p_perp_b_pf * c * gyro_denom
+        gyro_rad_tot_cm =     ptot_pf * c * gyro_denom
 
         # Update φ_rad
         φ_rad = mod2pi(φ_rad_old + φ_step)
@@ -110,7 +110,7 @@ function retro_time(
         # pb_pf*t_step*m_pt/γₚ_pf, but t_step = t_step_fac*γₚ_pf, so the
         # factors of γₚ_pf divide out
         t_step      =         t_step_fac * γₚ_pf
-        x_move_bpar = pb_pf * t_step_fac * aa*mₚ_cgs
+        x_move_bpar = pb_pf * t_step_fac * aa*mp
 
 
         # Move particle and update the acceleration time; note that we don't
