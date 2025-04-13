@@ -31,320 +31,322 @@ function get_transform_dN(
 
     # Loop over cos(θ) and ptot space to re-bin input PSD slice
     #--------------------------------------------------------------------------
-    for j in 0:psd_max
-        for i in 0:psd_max
+    for j in 0:psd_max, i in 0:psd_max
 
-            psd[i,j] < 1e-66 && continue # Skip empty cells in PSD
+        psd[i,j] < 1e-66 && continue # Skip empty cells in PSD
 
-            # In the below block, "cell_weight" includes n₀⋅u₁ normalization and division by
-            # |vₓ| to change #/(cm²⋅s) to #/cm³. Divide by γ of flow speed as part of
-            # Lorentz transformation of phase-space density (Rybicki & Lightman, p.146)
-            #
-            # Obtain cell_weight, p_cell_lo and p_cell_hi
-            #----------------------------------------------------------------------
-            cell_weight = psd[i, j] / γᵤ
-            (pt_lo_pt, pt_lo_ct, pt_hi_pt, pt_hi_ct,
-             ct_lo_pt, ct_lo_ct, ct_hi_pt, ct_hi_ct,
-             pt_lo_tied, pt_hi_tied) = identify_corners(i, j, transform_corner_pt, transform_corner_ct, m)
-            # Use of m in argument list signals what frame we're in; not used except in case of error/printout
+        # In the below block, "cell_weight" includes n₀⋅u₁ normalization and division by
+        # |vₓ| to change #/(cm²⋅s) to #/cm³. Divide by γ of flow speed as part of
+        # Lorentz transformation of phase-space density (Rybicki & Lightman, p.146)
+        #
+        # Obtain cell_weight, p_cell_lo and p_cell_hi
+        #----------------------------------------------------------------------
+        cell_weight = psd[i, j] / γᵤ
+        (pt_lo_pt, pt_lo_ct, pt_hi_pt, pt_hi_ct,
+         ct_lo_pt, ct_lo_ct, ct_hi_pt, ct_hi_ct,
+         pt_lo_tied, pt_hi_tied) = identify_corners(i, j, transform_corner_pt, transform_corner_ct, m)
+        # Use of m in argument list signals what frame we're in; not used except in case of error/printout
 
-            p_cell_lo = pt_lo_pt
-            p_cell_hi = pt_hi_pt
-            #----------------------------------------------------------------------
-            # cell_weight, p_cell_lo, p_cell_hi found
-
-
-            # Find lower and upper boundaries of psd_mom_bounds that we'll be
-            # dealing with based on p_cell_lo and p_cell_hi
-            #----------------------------------------------------------------------
-            l_lo = findfirst(>(p_cell_lo), psd_mom_bounds) - 1
-
-            # Error check to make sure that Lorentz transformations give reasonable results for l_lo
-            if p_cell_lo > psd_mom_bounds[end]
-                @info(" In get_dNdp_cr, p_cell_lo > psd_mom_max!",
-                      m, j, i, p_cell_lo, psd_mom_bounds[end])
-                l_lo = num_psd_mom_bins
-            end
+        p_cell_lo = pt_lo_pt
+        p_cell_hi = pt_hi_pt
+        #----------------------------------------------------------------------
+        # cell_weight, p_cell_lo, p_cell_hi found
 
 
-            l_hi = findnext(≥(p_cell_hi), # find phase space break FIXME write better comments
-                            psd_mom_bounds,
-                            l_lo) # start searching from l_lo
+        # Find lower and upper boundaries of psd_mom_bounds that we'll be
+        # dealing with based on p_cell_lo and p_cell_hi
+        #----------------------------------------------------------------------
+        l_lo = findfirst(>(p_cell_lo), psd_mom_bounds) - 1
+
+        # Error check to make sure that Lorentz transformations give reasonable results for l_lo
+        if p_cell_lo > psd_mom_bounds[end]
+            @info(" In get_dNdp_cr, p_cell_lo > psd_mom_max!",
+                  m, j, i, p_cell_lo, psd_mom_bounds[end])
+            l_lo = num_psd_mom_bins
+        end
 
 
-            # Error check to make sure that Lorentz transformations give reasonable results
-            # for l_hi
-            if p_cell_hi > psd_mom_bounds[num_psd_mom_bins+1]
-                @info(" In get_dNdp_cr, p_cell_hi > psd_mom_max!",
-                      m, j, i, p_cell_hi, psd_mom_bounds[num_psd_mom_bins+1])
-                l_hi = num_psd_mom_bins
-            end
-            #----------------------------------------------------------------------
-            # l_lo and l_hi found
+        l_hi = findnext(≥(p_cell_hi), # find phase space break FIXME write better comments
+                        psd_mom_bounds,
+                        l_lo) # start searching from l_lo
 
 
-            #----------------------------------------------------------------------
-            # Distribute the weight value of cell_weight into the appropriate bins of dN_out,
-            # assigning fractional weights where the cell of PSD covers more than one bin
-            # of psd_mom_bounds
-            # NOTE: virtually every line referring to psd_mom_bounds uses the top
-            # edge of the bin under consideration (i.e. the value of the next bin
-            # of psd_mom_bounds) because this code block originally used xph
-            #----------------------------------------------------------------------
+        # Error check to make sure that Lorentz transformations give reasonable results
+        # for l_hi
+        if p_cell_hi > psd_mom_bounds[num_psd_mom_bins+1]
+            @info(" In get_dNdp_cr, p_cell_hi > psd_mom_max!",
+                  m, j, i, p_cell_hi, psd_mom_bounds[num_psd_mom_bins+1])
+            l_hi = num_psd_mom_bins
+        end
+        #----------------------------------------------------------------------
+        # l_lo and l_hi found
 
-            # If assuming uniform distribution of cell_weight between p_cell_lo and p_cell_hi
-            #----------------------------------------------------------------------
-            if i_approx == 0
 
-                length_tot = 1 / (p_cell_hi - p_cell_lo)
-                p_bottom   = p_cell_lo
+        #----------------------------------------------------------------------
+        # Distribute the weight value of cell_weight into the appropriate bins of dN_out,
+        # assigning fractional weights where the cell of PSD covers more than one bin
+        # of psd_mom_bounds
+        # NOTE: virtually every line referring to psd_mom_bounds uses the top
+        # edge of the bin under consideration (i.e. the value of the next bin
+        # of psd_mom_bounds) because this code block originally used xph
+        #----------------------------------------------------------------------
 
-                for l in l_lo:l_hi
-                    # Cell fits entirely within bin of psd_mom_bounds
-                    if p_cell_hi < psd_mom_bounds[l_lo+1]
-                        dN_out[l] += cell_weight
-                        break
-                    end
+        # If assuming uniform distribution of cell_weight between p_cell_lo and p_cell_hi
+        #----------------------------------------------------------------------
+        if i_approx == 0
 
-                    # Top of bin in psd_mom_bounds less than p_cell_hi
-                    if psd_mom_bounds[l+1] < p_cell_hi
-                        dN_out[l] += cell_weight*(psd_mom_bounds[l+1] - p_bottom) / length_tot
-                        # Adjust p_bottom to mark counting of current bin
-                        p_bottom = psd_mom_bounds[l+1]
-                    end
+            length_tot = 1 / (p_cell_hi - p_cell_lo)
+            p_bottom   = p_cell_lo
 
-                    # Top of bin in psd_mom_bounds is equal to/greater than p_cell_hi
-                    if psd_mom_bounds[l+1] ≥ p_cell_hi
-                        dN_out[l] += cell_weight*(p_cell_hi - psd_mom_bounds[l]) / length_tot
-                        break
-                    end
+            for l in l_lo:l_hi
+                # Cell fits entirely within bin of psd_mom_bounds
+                if p_cell_hi < psd_mom_bounds[l_lo+1]
+                    dN_out[l] += cell_weight
+                    break
                 end
 
-                #----------------------------------------------------------------------
-                # i_approx = 0 finished
-
-
-            # If assuming isosceles trianglular distribution of cell_weight, peak is located
-            # above geometric mean of p_cell_lo and p_cell_hi. If assuming scalene
-            # triangular distribution of cell_weight, peak of triangle is located on (geometric)
-            # mean of ct_hi_pt and ct_lo_pt, noting that both are logarithms.
-            # Only difference is location of p_peak, so handle both with same block of code.
-            #----------------------------------------------------------------------
-            elseif i_approx == 1 || i_approx == 2
-
-                length_tot = 1 / (p_cell_hi - p_cell_lo)
-                ct_height  = 2 * cell_weight / length_tot # A = 1/2*b*h
-
-                p_bottom     = p_cell_lo
-                if i_approx == 1
-                    p_peak   = (p_cell_lo + p_cell_hi) / 2
-                else # i_approx == 2
-                    p_peak   = (ct_lo_pt + ct_hi_pt) / 2
+                # Top of bin in psd_mom_bounds less than p_cell_hi
+                if psd_mom_bounds[l+1] < p_cell_hi
+                    dN_out[l] += cell_weight*(psd_mom_bounds[l+1] - p_bottom) / length_tot
+                    # Adjust p_bottom to mark counting of current bin
+                    p_bottom = psd_mom_bounds[l+1]
                 end
-                p_denom_lo   = 1 / (p_peak - p_cell_lo)
-                p_denom_hi   = 1 / (p_cell_hi - p_peak)
 
-                fractional_area = 0 # Total amount of cell_weight accounted for
-
-                for l in l_lo:l_hi
-
-                    # Cell fits entirely within bin of psd_mom_bounds
-                    #------------------------------------------------------------------
-                    if p_cell_hi < psd_mom_bounds[l_lo+1]
-                        dN_out[l] += cell_weight
-                        break
-                    end
-                    #------------------------------------------------------------------
-                    # cell fits entirely within bin of psd_mom_bounds
-
-
-                    # Top of bin in psd_mom_bounds less than or equal to p_peak.
-                    # Area is
-                    # - a triangle if p_bottom = p_cell_lo, or
-                    # - a trapezoid if p_bottom > p_cell_lo
-                    #------------------------------------------------------------------
-                    if psd_mom_bounds[l+1] ≤ p_peak
-                        # Calculate current base
-                        p_base = psd_mom_bounds[l+1] - p_bottom
-
-                        # Calculate right-hand height
-                        ct_rh_height = (psd_mom_bounds[l+1] - p_cell_lo) * p_denom_lo * ct_height
-
-                        # Calculate left-hand height, taking advantage of right triangle similarity
-                        if p_bottom == p_cell_lo
-                            ct_lh_height = 0.0
-                        else
-                            ct_lh_height = (p_bottom - p_cell_lo) * p_denom_lo * ct_height
-                        end
-
-                        # Calculate partial area and add it to dN_out
-                        partial_area = p_base/2 * (ct_lh_height + ct_rh_height)
-                        dN_out[l] += partial_area
-
-                        # Adjust p_bottom to mark counting of current bin, update fractional_area...
-                        p_bottom = psd_mom_bounds[l+1]
-                        fractional_area += partial_area
-
-                        # ...and move on to next bin
-                        continue
-                    end
-                    #------------------------------------------------------------------
-                    # top of bin in psd_mom_bounds between p_cell_lo and p_peak
-
-
-                    # Top of bin in psd_mom_bounds between p_peak and p_cell_hi; area
-                    # is remaining area minus missing triangle at right
-                    #------------------------------------------------------------------
-                    if psd_mom_bounds[l+1] < p_cell_hi
-                        # Calculate missing base
-                        p_base = p_cell_hi - psd_mom_bounds[l+1]
-
-                        # Calculate left-hand height of missing area, taking advantage
-                        # of right triangle similarity
-                        ct_lh_height = p_base * p_denom_hi * ct_height
-
-                        # Calculate missing area and partial area and add it to dN_out
-                        missing_area = p_base/2 * ct_lh_height
-                        partial_area = (cell_weight - fractional_area) - missing_area
-                        dN_out[l] += partial_area
-
-                        # Adjust p_bottom to mark counting of current bin, update fractional_area
-                        p_bottom = psd_mom_bounds[l+1]
-                        fractional_area += partial_area
-
-                        # ...and move on to next bin
-                        continue
-                    end
-                    #------------------------------------------------------------------
-                    # top of bin in psd_mom_bounds between p_peak and p_cell_hi
-
-
-                    # Top of bin in psd_mom_bounds above p_cell_hi; area is remaining
-                    # fraction of total
-                    #------------------------------------------------------------------
-                    if psd_mom_bounds[l+1] ≥ p_cell_hi
-                        # Calculate partial area and add it to dN_out
-                        dN_out[l] += cell_weight - fractional_area
-                        break
-                    end
-                    #------------------------------------------------------------------
-                    # top of bin in psd_mom_bounds above p_cell_hi
+                # Top of bin in psd_mom_bounds is equal to/greater than p_cell_hi
+                if psd_mom_bounds[l+1] ≥ p_cell_hi
+                    dN_out[l] += cell_weight*(p_cell_hi - psd_mom_bounds[l]) / length_tot
+                    break
                 end
-                #----------------------------------------------------------------------
-                # i_approx = 1, i_approx = 2 finished
+            end
 
-
-            # If not assuming anything about shape, i.e. performing exact
-            # calculation of fractional areas
             #----------------------------------------------------------------------
-            elseif i_approx == 3
+            # i_approx = 0 finished
 
-                error("i_approx = 3 not currently enabled")
 
-                # Determine which of ct_lo and ct_hi is peak_left and peak_right
-                # Find heights of both peaks, i.e. vertical distance between, e.g.,
-                # ct_lo and line segment connecting ct_hi and pt_**
-                # Run through same process as in original version of subroutine,
-                # dividing shape into zones for determining partial areas. Will be
-                # easier this time, though, since bottom line is flat
-                #----------------------------------------------------------------------
-                # i_approx = 3 finished
+        # If assuming isosceles trianglular distribution of cell_weight, peak is located
+        # above geometric mean of p_cell_lo and p_cell_hi. If assuming scalene
+        # triangular distribution of cell_weight, peak of triangle is located on (geometric)
+        # mean of ct_hi_pt and ct_lo_pt, noting that both are logarithms.
+        # Only difference is location of p_peak, so handle both with same block of code.
+        #----------------------------------------------------------------------
+        elseif i_approx == 1 || i_approx == 2
 
-            else # Invalid selection of i_approx. Flag error and stop program
-                throw(DomainError(i_approx, "i_approx must be 0, 1, 2, or 3"))
+            length_tot = 1 / (p_cell_hi - p_cell_lo)
+            ct_height  = 2 * cell_weight / length_tot # A = 1/2*b*h
+
+            p_bottom     = p_cell_lo
+            if i_approx == 1
+                p_peak   = (p_cell_lo + p_cell_hi) / 2
+            else # i_approx == 2
+                p_peak   = (ct_lo_pt + ct_hi_pt) / 2
+            end
+            p_denom_lo   = 1 / (p_peak - p_cell_lo)
+            p_denom_hi   = 1 / (p_cell_hi - p_peak)
+
+            fractional_area = 0 # Total amount of cell_weight accounted for
+
+            for l in l_lo:l_hi
+
+                # Cell fits entirely within bin of psd_mom_bounds
+                #------------------------------------------------------------------
+                if p_cell_hi < psd_mom_bounds[l_lo+1]
+                    dN_out[l] += cell_weight
+                    break
+                end
+                #------------------------------------------------------------------
+                # cell fits entirely within bin of psd_mom_bounds
+
+
+                # Top of bin in psd_mom_bounds less than or equal to p_peak.
+                # Area is
+                # - a triangle if p_bottom = p_cell_lo, or
+                # - a trapezoid if p_bottom > p_cell_lo
+                #------------------------------------------------------------------
+                if psd_mom_bounds[l+1] ≤ p_peak
+                    # Calculate current base
+                    p_base = psd_mom_bounds[l+1] - p_bottom
+
+                    # Calculate right-hand height
+                    ct_rh_height = (psd_mom_bounds[l+1] - p_cell_lo) * p_denom_lo * ct_height
+
+                    # Calculate left-hand height, taking advantage of right triangle similarity
+                    if p_bottom == p_cell_lo
+                        ct_lh_height = 0.0
+                    else
+                        ct_lh_height = (p_bottom - p_cell_lo) * p_denom_lo * ct_height
+                    end
+
+                    # Calculate partial area and add it to dN_out
+                    partial_area = p_base/2 * (ct_lh_height + ct_rh_height)
+                    dN_out[l] += partial_area
+
+                    # Adjust p_bottom to mark counting of current bin, update fractional_area...
+                    p_bottom = psd_mom_bounds[l+1]
+                    fractional_area += partial_area
+
+                    # ...and move on to next bin
+                    continue
+                end
+                #------------------------------------------------------------------
+                # top of bin in psd_mom_bounds between p_cell_lo and p_peak
+
+
+                # Top of bin in psd_mom_bounds between p_peak and p_cell_hi; area
+                # is remaining area minus missing triangle at right
+                #------------------------------------------------------------------
+                if psd_mom_bounds[l+1] < p_cell_hi
+                    # Calculate missing base
+                    p_base = p_cell_hi - psd_mom_bounds[l+1]
+
+                    # Calculate left-hand height of missing area, taking advantage
+                    # of right triangle similarity
+                    ct_lh_height = p_base * p_denom_hi * ct_height
+
+                    # Calculate missing area and partial area and add it to dN_out
+                    missing_area = p_base/2 * ct_lh_height
+                    partial_area = (cell_weight - fractional_area) - missing_area
+                    dN_out[l] += partial_area
+
+                    # Adjust p_bottom to mark counting of current bin, update fractional_area
+                    p_bottom = psd_mom_bounds[l+1]
+                    fractional_area += partial_area
+
+                    # ...and move on to next bin
+                    continue
+                end
+                #------------------------------------------------------------------
+                # top of bin in psd_mom_bounds between p_peak and p_cell_hi
+
+
+                # Top of bin in psd_mom_bounds above p_cell_hi; area is remaining
+                # fraction of total
+                #------------------------------------------------------------------
+                if psd_mom_bounds[l+1] ≥ p_cell_hi
+                    # Calculate partial area and add it to dN_out
+                    dN_out[l] += cell_weight - fractional_area
+                    break
+                end
+                #------------------------------------------------------------------
+                # top of bin in psd_mom_bounds above p_cell_hi
             end
             #----------------------------------------------------------------------
-            # cell_weight distributed
+            # i_approx = 1, i_approx = 2 finished
 
 
-            # This block tracks the distribution of pitch angles in the shock and plasma frames.
-            # In the interest of speed, it uses only the equal-weights method (i_approx = 0 above).
-            # Because ct_bounds DECREASES as index increases (since it's derived from increasing θ),
-            # many things are *slightly* different from the i_approx = 0 case for total momentum.
-            # WARNING: this must be re-checked and re-tested since it was brought into new version of code
+        # If not assuming anything about shape, i.e. performing exact
+        # calculation of fractional areas
+        #----------------------------------------------------------------------
+        elseif i_approx == 3
+
+            error("i_approx = 3 not currently enabled")
+
+            # Determine which of ct_lo and ct_hi is peak_left and peak_right
+            # Find heights of both peaks, i.e. vertical distance between, e.g.,
+            # ct_lo and line segment connecting ct_hi and pt_**
+            # Run through same process as in original version of subroutine,
+            # dividing shape into zones for determining partial areas. Will be
+            # easier this time, though, since bottom line is flat
             #----------------------------------------------------------------------
-            ## Adjust cell_weight to remove the velocity-weighting applied in PSD
-            #if i == 0
-            #    pt_sk_cgs = 0.0
-            #    i_pt_sk  = i_ct_pt_sk_min
-            #else
-            #    pt_sk_cgs = exp10(psd_mom_bounds[i] + psd_mom_bounds[i+1])
-            #    pt_sk_cgs = √pt_sk_cgs * mp * utsk_cm
-            #    i_pt_sk  = floor(Int, psd_mom_bounds[i])
-            #end
-            #γₚ_sk = hypot(1, pt_sk_cgs/(rest_mass*c))
-            #
-            #cell_weight = cell_weight * pt_sk_cgs / (γₚ_sk * rest_mass) / proton_num_density_UpS
+            # i_approx = 3 finished
 
-            ## Binning shock frame values very easy; just add directly to correct bin of histogram
-            #if m == 1
-            #    cθ_sk_xw[j,i_pt_sk] += cell_weight
-            #end
-            #
-            #
-            ## Identify the min and max extent of the plasma frame cell,
-            ## as well as the correct decade of momentum for binning
-            #ct_cell_lo = min(pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct)
-            #ct_cell_hi = max(pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct)
-            #i_pt_pf = floor(Int, (pt_lo_pt + pt_hi_pt + ct_lo_pt + ct_hi_pt)/4)
-            #
-            #
-            ## Determine the spread in cos(θ)
-            ## Remember that ct_bounds counts DOWN from +1 to -1 !!!!
-            #l_hi = findfirst(<(ct_cell_hi), ct_bounds) - 1
-            #l_lo = findnext(≤(ct_cell_lo), ct_bounds, l_hi)
-            #
-            #
-            ## Distribute cell weight among all bins crossed by cell
-            #ct_length_tot = ct_cell_hi - ct_cell_lo
-            #ct_bottom     = ct_cell_lo
-            #
-            #for l in l_lo:-1:l_hi
-            #    # Cell fits entirely within bin of ct_bounds
-            #    if ct_cell_hi < ct_bounds[l_lo-1]
-            #        if m == 2
-            #            cθ_pf_xw[l-1, i_pt_pf] += cell_weight
-            #        elseif m == 3
-            #            cθ_ef_xw[l-1, i_pt_pf] += cell_weight
-            #        end
-            #        break
-            #    end
-            #
-            #    # Top of bin in ct_bounds less than ct_cell_hi
-            #    if ct_bounds[l-1] < ct_cell_hi
-            #        frac_ct_length = (ct_bounds[l-1] - ct_bottom) / ct_length_tot
-            #
-            #        if m == 2
-            #            cθ_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
-            #        elseif m == 3
-            #            cθ_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
-            #        end
-            #
-            #        # Adjust ct_bottom to mark counting of current bin
-            #        ct_bottom = ct_bounds[l-1]
-            #    end
-            #
-            #    # Top of bin in ct_bounds is ≥ ct_cell_hi
-            #    if ct_bounds[l-1] ≥ ct_cell_hi
-            #        frac_ct_length = (ct_cell_hi - ct_bounds[l]) / ct_length_tot
-            #
-            #        if m == 2
-            #            cθ_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
-            #        elseif m == 3
-            #            cθ_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
-            #        end
-            #
-            #        break
-            #    end
-            #end # loop over bins of ct_bounds
-            #------------------------------------------------------------------
-            # pitch angles tracked
+        else # Invalid selection of i_approx. Flag error and stop program
+            throw(DomainError(i_approx, "i_approx must be 0, 1, 2, or 3"))
+        end
+        #----------------------------------------------------------------------
+        # cell_weight distributed
 
-        end # loop over momenta
-    end # loop over angles
+
+        # This block tracks the distribution of pitch angles in the shock and plasma frames.
+        # In the interest of speed, it uses only the equal-weights method (i_approx = 0 above).
+        # Because ct_bounds DECREASES as index increases (since it's derived from increasing θ),
+        # many things are *slightly* different from the i_approx = 0 case for total momentum.
+        # WARNING: this must be re-checked and re-tested since it was brought into new version of code
+        #----------------------------------------------------------------------
+        #track_pitch_angles() # TODO figure out arguments
+        # pitch angles tracked
+
+    end # loop over phase-space momentum space cells
 
     return dN_out
 end
+
+#function track_pitch_angles() # TODO figure out arguments
+#    # Adjust cell_weight to remove the velocity-weighting applied in PSD
+#    if i == 0
+#        pt_sk_cgs = 0.0
+#        i_pt_sk  = i_ct_pt_sk_min
+#    else
+#        pt_sk_cgs = exp10(psd_mom_bounds[i] + psd_mom_bounds[i+1])
+#        pt_sk_cgs = √pt_sk_cgs * mp * utsk_cm
+#        i_pt_sk  = floor(Int, psd_mom_bounds[i])
+#    end
+#    γₚ_sk = hypot(1, pt_sk_cgs/(rest_mass*c))
+#
+#    cell_weight = cell_weight * pt_sk_cgs / (γₚ_sk * rest_mass) / proton_num_density_UpS
+
+#    # Binning shock frame values very easy; just add directly to correct bin of histogram
+#    if m == 1
+#        cθ_sk_xw[j,i_pt_sk] += cell_weight
+#    end
+#
+#
+#    # Identify the min and max extent of the plasma frame cell,
+#    # as well as the correct decade of momentum for binning
+#    ct_cell_lo = min(pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct)
+#    ct_cell_hi = max(pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct)
+#    i_pt_pf = floor(Int, (pt_lo_pt + pt_hi_pt + ct_lo_pt + ct_hi_pt)/4)
+#
+#
+#    # Determine the spread in cos(θ)
+#    # Remember that ct_bounds counts DOWN from +1 to -1 !!!!
+#    l_hi = findfirst(<(ct_cell_hi), ct_bounds) - 1
+#    l_lo = findnext(≤(ct_cell_lo), ct_bounds, l_hi)
+#
+#
+#    # Distribute cell weight among all bins crossed by cell
+#    ct_length_tot = ct_cell_hi - ct_cell_lo
+#    ct_bottom     = ct_cell_lo
+#
+#    for l in l_lo:-1:l_hi
+#        # Cell fits entirely within bin of ct_bounds
+#        if ct_cell_hi < ct_bounds[l_lo-1]
+#            if m == 2
+#                cθ_pf_xw[l-1, i_pt_pf] += cell_weight
+#            elseif m == 3
+#                cθ_ef_xw[l-1, i_pt_pf] += cell_weight
+#            end
+#            break
+#        end
+#
+#        # Top of bin in ct_bounds less than ct_cell_hi
+#        if ct_bounds[l-1] < ct_cell_hi
+#            frac_ct_length = (ct_bounds[l-1] - ct_bottom) / ct_length_tot
+#
+#            if m == 2
+#                cθ_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+#            elseif m == 3
+#                cθ_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+#            end
+#
+#            # Adjust ct_bottom to mark counting of current bin
+#            ct_bottom = ct_bounds[l-1]
+#        end
+#
+#        # Top of bin in ct_bounds is ≥ ct_cell_hi
+#        if ct_bounds[l-1] ≥ ct_cell_hi
+#            frac_ct_length = (ct_cell_hi - ct_bounds[l]) / ct_length_tot
+#
+#            if m == 2
+#                cθ_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+#            elseif m == 3
+#                cθ_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+#            end
+#
+#            break
+#        end
+#    end # loop over bins of ct_bounds
+#    ------------------------------------------------------------------
+#end
 
 #----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
