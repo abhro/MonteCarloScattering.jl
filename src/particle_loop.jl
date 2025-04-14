@@ -1,4 +1,4 @@
-function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
+function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_esc_UpS, pcut_prev)
     # To maintain identical results between OpenMP and serial versions,
     # set RNG seed based on current iteration/ion/pcut/particle number
     iseed_mod =  (  (i_iter - 1)*n_ions*n_pcuts*n_pts_max
@@ -9,7 +9,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
 
     (
      aa, zz, m, mc,
-     nc_unit,
+     nc_unit, n_cr_count, pmax_cutoff
     ) = vals
 
     # Reset the counter for number of times through the main loop
@@ -194,7 +194,8 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
             #  1. Electrons are a separate species and energy transfer is enabled
             #  2. Particles are still on their first trip to the DwS region of the shock structure
             #  3. Particles have entered a new grid zone, and energy should be either subtracted or added
-            if energy_transfer_frac > 0 && !inj && r_PT_old.x ≤ 0 && i_grid_old != i_grid
+            # TODO factor this out
+            if energy_transfer_frac > 0 && !inj && r_PT_old.x ≤ 0cm && i_grid_old != i_grid
                 i_start = i_grid_old
                 i_stop  = min(i_grid, i_shock)
 
@@ -315,32 +316,16 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
 
             # Synchrotron/IC/CMB losses for electrons
             if do_rad_losses && aa < 1
-
                 # Store previous ptot_pf value
                 ptot_pf_old = ptot_pf
 
-                # Compute effective magnetic field for radiative losses. When squared to get
-                # energy density, one factor of γᵤ_ef in B_CMB_loc represents increased number
-                # density, while the other is increased energy per photon.
-                B_CMB_loc = B_CMBz * γᵤ_ef
-
-                # Note that here dp_synch is actually dp/p. If this value is too large we will
-                # directly integrate from p_i to get p_f, since the discrete approach would
-                # result in too high a loss in a single time step
-                dp_synch = rad_loss_fac * (bmag^2 + B_CMB_loc^2) * ptot_pf * t_step
-
-                # Correction to make sure electrons don't lose too much energy in a single time step
-                if dp_synch > 1e-2
-                    ptot_pf /= 1 + dp_synch
-                else
-                    ptot_pf *= 1 - dp_synch # Put second factor of ptot_pf back into dp_synch
-                end
+                ptot_pf = electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, rad_loss_fac, ptot_pf, t_step)
 
                 # Catch electrons that have somehow lost all their energy in a single time step
-                if ptot_pf ≤ 0
+                if ptot_pf ≤ 0u"g*cm/s"
                     ptot_pf = 1e-99MomentumCGS
                     pb_pf = 1e-99MomentumCGS
-                    global p_perp_b_pf = 1e-99MomentumCGS
+                    p_perp_b_pf = 1e-99MomentumCGS
                     γₚ_pf = 1
                     i_reason = 4
                     keep_looping = false
@@ -355,8 +340,8 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
                 p_perp_b_pf *= ptot_pf/ptot_pf_old
 
                 # Also recalculate gyroradii
-                global gyro_rad_tot_cm =     ptot_pf * c * gyro_denom |> cm
-                global gyro_rad_cm     = p_perp_b_pf * c * gyro_denom |> cm
+                gyro_rad_tot_cm =     ptot_pf * c * gyro_denom |> cm
+                gyro_rad_cm     = p_perp_b_pf * c * gyro_denom |> cm
             end
 
 
@@ -388,7 +373,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
                     l_save[i_prt] = true
 
                     weight_sav[i_prt]       = weight
-                    ptot_pf_sav[i_prt]        = ptot_pf
+                    ptot_pf_sav[i_prt]      = ptot_pf
                     pb_pf_sav[i_prt]        = pb_pf
                     x_PT_cm_sav[i_prt]      = r_PT_cm.x
                     grid_sav[i_prt]         = i_grid
@@ -404,7 +389,6 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
                     continue
                 end
             end
-
 
             # Shift between coarse/fine xn_per; right now the code uses only one value of
             # xn_per everywhere in the ptot/x_PT phase space, so this branch does nothing.
@@ -427,61 +411,9 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
 
         # Odd little loop that only matters if DSA has been disabled per the input file
         #------------------------------------------------------------------------------
-        loop_again = true
-        while loop_again # loop_no_DSA
-
-          # Update position/phase angle.
-          # Phase angle is easy: add appropriate amount and make sure result is in [0,2π)
-          # For position, use inverse Lorentz transformations where primed frame is the
-          # plasma frame, moving to the right along the x axis, and the unprimed frame is the
-          # (stationary) shock frame. Take frames to be coincident
-          # at t = t' = 0. Then
-          #    x  =  γᵤ_sf * (x' + uₓ_sk*t'),
-          # where t' is t_step and x' is distance moved in plasma
-          # frame (i.e. x_move_bpar below).
-          # Remember to take gyration about magnetic field into account
-          φ_rad = mod2pi(φ_rad + 2π/xn_per)
-
-          x_move_bpar = pb_pf * t_step / (γₚ_pf * aa*mp) |> u"cm"
-
-          @debug("With params", γᵤ_sf, x_move_bpar, b_cosθ
-                              , gyro_rad_cm , b_sinθ , φ_rad, φ_rad_old
-                              , uₓ_sk , t_step)
-          Δx_PT_cm = γᵤ_sf * (x_move_bpar * b_cosθ
-                              - gyro_rad_cm * b_sinθ * (cos(φ_rad)-cos(φ_rad_old))
-                              + uₓ_sk * t_step)
-          r_PT_cm = SVector{3,LengthCGS}(r_PT_old.x + Δx_PT_cm, r_PT_cm.y, r_PT_cm.z)
-
-          # Don't care about transverse motion unless it's being tracked
-          #TODO: add new keyword for tracking transverse motion
-          #if yz_pos_max > 0
-          #    y_PT_cm = y_PT_old + gyro_rad_cm * (sin(φ_rad) - sin(φ_rad_old))
-          #    z_PT_cm = z_PT_old + γᵤ_sf * (x_move_bpar*b_sinθ - gyro_rad_cm*b_cosθ*(cos(φ_rad)-cos(φ_rad_old)) + uz_sk*t_step)
-          #end
-
-
-          #TODO: set flags for energy transfer here?
-          #Search original code for "out of ions"
-
-          # Reflect particles under two conditions:
-          #  1. they've been DwS and are crossing back UpS
-          #  2. either DSA is disabled or they fail an injection check
-          # continue again if particles get reflected
-          if r_PT_cm.x ≤ 0cm && r_PT_old.x > 0cm && !inj && (dont_DSA || inj_fracs[i_ion] < 1)
-              if dont_DSA || (Random.rand() > inj_fracs[i_ion])
-                  # Reflect particles with negative pb_pf; randomize phase of the rest
-                  if pb_pf < 0g*cm/s
-                      pb_pf = -pb_pf
-                  else
-                      φ_rad = Random.rand() * 2π
-                  end
-              else
-                  loop_again = false
-              end
-          else
-              loop_again = false
-          end
-        end # loop_no_DSA
+        (; pb_pf, φ_rad, x_move_bpar, r_PT_cm) = no_DSA_loop(
+            φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA,
+            inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk)
         #----------------------------------------------------------------
         # DSA injection prevented if specified
 
@@ -495,8 +427,8 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
             # 1. the particle's diffusion coefficient D may be described by D = ⅓⋅η_mfp⋅r_g⋅v_pt
             #    (by default; a different f(r_g) may be specified as desired in place of η⋅r_g)
             # 2. the relation between the diffusion coefficient D and the diffusion length L is
-            #    L = D/<u>, where <u> is the average speed of diffusion. Assuming isotropic
-            #    particles in the DwS frame, <u> = u₂ since the average thermal *velocity* of
+            #    L = D/⟨u⟩, where ⟨u⟩ is the average speed of diffusion. Assuming isotropic
+            #    particles in the DwS frame, ⟨u⟩ = u₂ since the average thermal *velocity* of
             #    the population is 0.
             #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
             L_diff = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp*γₚ_pf * u₂)
@@ -530,7 +462,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
         # prob_return unless told otherwise by particle location/info
         do_prob_ret = true
 
-        if feb_DwS > 0 && r_PT_cm.x > feb_DwS
+        if feb_DwS > 0u"cm" && r_PT_cm.x > feb_DwS
 
             # Particle flagged as escaping downstream
             i_return    = 0
@@ -622,4 +554,89 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
     #if i_fin % 16 == 0
     #    print_progress_bar(i_fin, n_pts_use)
     #end
+end
+
+function no_DSA_loop(
+        φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA,
+        inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk)
+    local x_move_bpar
+    while true # loop_no_DSA
+
+      # Update position/phase angle.
+      # Phase angle is easy: add appropriate amount and make sure result is in [0,2π)
+      # For position, use inverse Lorentz transformations where primed frame is the
+      # plasma frame, moving to the right along the x axis, and the unprimed frame is the
+      # (stationary) shock frame. Take frames to be coincident
+      # at t = t' = 0. Then
+      #    x  =  γᵤ_sf * (x' + uₓ_sk*t'),
+      # where t' is t_step and x' is distance moved in plasma
+      # frame (i.e. x_move_bpar below).
+      # Remember to take gyration about magnetic field into account
+      φ_rad = mod2pi(φ_rad + 2π/xn_per)
+
+      x_move_bpar = pb_pf * t_step / (γₚ_pf * aa*mp) |> u"cm"
+
+      @debug("With params", γᵤ_sf, x_move_bpar, b_cosθ
+                          , gyro_rad_cm , b_sinθ , φ_rad, φ_rad_old
+                          , uₓ_sk , t_step)
+      Δx_PT_cm = γᵤ_sf * (x_move_bpar * b_cosθ
+                          - gyro_rad_cm * b_sinθ * (cos(φ_rad)-cos(φ_rad_old))
+                          + uₓ_sk * t_step)
+      r_PT_cm = SVector{3,LengthCGS}(r_PT_old.x + Δx_PT_cm, r_PT_cm.y, r_PT_cm.z)
+
+      # Don't care about transverse motion unless it's being tracked
+      #TODO: add new keyword for tracking transverse motion
+      #if yz_pos_max > 0
+      #    y_PT_cm = y_PT_old + gyro_rad_cm * (sin(φ_rad) - sin(φ_rad_old))
+      #    z_PT_cm = z_PT_old + γᵤ_sf * (x_move_bpar*b_sinθ - gyro_rad_cm*b_cosθ*(cos(φ_rad)-cos(φ_rad_old)) + uz_sk*t_step)
+      #end
+
+
+      #TODO: set flags for energy transfer here?
+      #Search original code for "out of ions"
+
+      # Reflect particles under two conditions:
+      #  1. they've been DwS and are crossing back UpS
+      #  2. either DSA is disabled or they fail an injection check
+      # continue again if particles get reflected
+      if r_PT_cm.x ≤ 0cm && r_PT_old.x > 0cm && !inj && (dont_DSA || inj_fracs[i_ion] < 1)
+          if dont_DSA || (Random.rand() > inj_fracs[i_ion])
+              # Reflect particles with negative pb_pf; randomize phase of the rest
+              if pb_pf < 0g*cm/s
+                  pb_pf = -pb_pf
+              else
+                  φ_rad = Random.rand() * 2π
+              end
+          else
+              break
+          end
+      else
+          break
+      end
+    end # loop_no_DSA
+    return (; pb_pf, φ_rad, x_move_bpar, r_PT_cm)
+end
+
+function electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, rad_loss_fac, ptot_pf, t_step)
+    # Compute effective magnetic field for radiative losses. When squared to get
+    # energy density, one factor of γᵤ_ef in B_CMB_loc represents increased number
+    # density, while the other is increased energy per photon.
+    B_CMB_loc = B_CMBz * γᵤ_ef
+
+    # Note that here dp_synch is actually dp/p. If this value is too large we will
+    # directly integrate from p_i to get p_f, since the discrete approach would
+    # result in too high a loss in a single time step
+    # FIXME unit shenanigans here. confirm that the unit in ustrip
+    # is equal to 1.
+    dp_synch = ustrip(u"cm*s^2*G^2/g", rad_loss_fac * (bmag^2 + B_CMB_loc^2) * ptot_pf * t_step)
+    @debug "In rad losses" B_CMB_loc rad_loss_fac bmag ptot_pf t_step dp_synch
+
+    # Correction to make sure electrons don't lose too much energy in a single time step
+    if dp_synch > 1e-2
+        ptot_pf /= 1 + dp_synch
+    else
+        ptot_pf *= 1 - dp_synch # Put second factor of ptot_pf back into dp_synch
+    end
+
+    return ptot_pf
 end

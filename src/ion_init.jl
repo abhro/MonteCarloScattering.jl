@@ -19,18 +19,7 @@ function ion_init(i_iter, i_ion, species)
         p_pcut_hi = aa * mp * c * √((E_pcut_hi_rmproton + 1)^2 - 1)
     end
 
-    if Emax_keV > 0u"keV"
-        γ = 1 + Emax_keV/(aa*E₀_proton)
-        pmax_cutoff = aa*mp * c * √(γ^2 - 1)
-    elseif Emax_keV_per_aa > 0u"keV"
-        γ = 1 + Emax_keV_per_aa/E₀_proton
-        pmax_cutoff = aa*mp * c * √(γ^2 - 1)
-    elseif pmax_cgs > 0u"mp*c"
-        pmax_cutoff = pmax_cgs
-    else
-        # Something has gone very wrong.
-        error("Max CR energy not set in data_input, so can't set pmax_cutoff.")
-    end
+    pmax_cutoff = get_pmax_cutoff(Emax_keV, Emax_keV_per_aa, pmax_cgs)
 
     # Zero out the phase space distributions and set variables related to
     # tracking thermal particles
@@ -85,7 +74,7 @@ function ion_init(i_iter, i_ion, species)
 
     return (
             aa, zz, m, mc,
-            nc_unit,
+            nc_unit, n_cr_count, pmax_cutoff
            )
 end
 
@@ -116,4 +105,21 @@ function assign_particle_properties_to_population!(n_pts_use, xn_per_fine, x_gri
     tcut_new[1:n_pts_use]        .= 1
 
     φ_rad_new[1:n_pts_use] .= 2π*Random.rand(n_pts_use)
+end
+
+function get_pmax_cutoff(Emax_keV, Emax_keV_per_aa, pmax_cgs)
+    if Emax_keV > 0u"keV"
+        γ = 1 + Emax_keV/(aa*E₀_proton)
+        pmax_cutoff = aa*mp * c * √(γ^2 - 1)
+    elseif Emax_keV_per_aa > 0u"keV"
+        γ = 1 + Emax_keV_per_aa/E₀_proton
+        pmax_cutoff = aa*mp * c * √(γ^2 - 1)
+    elseif pmax_cgs > 0u"mp*c"
+        pmax_cutoff = pmax_cgs
+    else
+        # Something has gone very wrong.
+        error("Max CR energy not set in data_input, so can't set pmax_cutoff.")
+    end
+
+    return pmax_cutoff
 end

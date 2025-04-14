@@ -210,9 +210,11 @@ end
 # comes from average over pitch and is Eq (16) of Sturner+ (1997) [1997ApJ...490..619S].
 # Note the extra factor of c in the denominator, because code tracks dp/dt, not dE/dt as
 # given in Sturner+ (1997).
-σ_T = 8π/3 * (qₚ_cgs^2 / E₀_electron)^2 # Thomson scattering cross-section
-rad_loss_fac = 4//3 * c * σ_T / (c^3 * me^2 * 8π)
+σ_T = 8π/3 * (ustrip(u"Fr^2/erg", qₚ_cgs^2 / E₀_electron) * u"cm")^2 |> u"cm^2" # Thomson scattering cross-section
+# unit shenanigans because of overflow
+rad_loss_fac = 4//3 * c * σ_T / (c^3 * me^2 * 8π) |> u"s^2/g^2"
 B_CMBz = B_CMB0 * (1 + redshift)^2
+@debug "Calculated radiation loss constants" σ_T rad_loss_fac B_CMBz
 
 
 # Zero out total escaping fluxes and calculate the far UpS fluxes
@@ -298,7 +300,6 @@ psd = OffsetArray{Float64}(undef, (psd_mom_axis, psd_θ_axis, n_grid))
 
 begin # "module" species_vars
     # Arrays will hold crossing data for thermal particles; pₓ and pt are shock frame values
-    #integer :: n_cr_count
     num_crossings = zeros(Int, n_grid)
     therm_grid = zeros(Int, na_cr)
     therm_pₓ_sk = zeros(na_cr)
@@ -383,7 +384,37 @@ end
 for i_iter in 1:n_itrs # loop_itr
 
     @info("Starting loop", i_iter)
-    iter_init()
+
+    # Zero out numerous quantities that will be modified over the course of this iteration.
+    # Minimally positive number is used to prevent errors when taking logarithms later
+    fill_minimal_positive!((pₓₓ_flux, pxz_flux), 1e-99erg/cm^3)
+    fill_minimal_positive!((
+        energy_flux, esc_spectra_feb_UpS, esc_spectra_feb_DwS,
+        pressure_psd_par, pressure_psd_perp, energy_density_psd,
+        weight_coupled,))
+
+
+    # Additionally, set/reset scalar quantities that will change
+    ∑P_DwS  = 1e-99 # downstream pressure
+    sum_KEdensity_DwS = 1e-99
+
+    energy_esc_UpS    = 1e-99
+    pₓ_esc_UpS        = 1e-99
+
+
+    # To facilitate energy transfer from ions to electrons, calculate here the target energy
+    # density fraction for electrons at each grid zone, and zero out the pool of
+    # plasma-frame energy that will be taken from ions and donated to electrons
+    # Per Ardaneh+ (2015) [10.1088/0004-637X/811/1/57], ε_electron is proportional to √ε_b.
+    # ε_b is itself roughly proportional to density² -- B² is proportional to z² (z being the
+    # density compression factor) -- so ε_electron should vary roughly linearly with density.
+    z_max = γ₀ * β₀ / (γ₂ * β₂)
+    populate_ε_target!(ε_target, z_max, γ_sf_grid, uₓ_sk_grid, u₀, γ₀, energy_transfer_frac)
+
+    fill!(energy_transfer_pool, 0.0)
+    fill!(energy_recv_pool, 0.0)
+    fill!(energy_density, 0.0)
+    fill!(therm_energy_density, 0.0)
 
     #------------------------------------------------------------------------
     #  Start of loop over particle species
@@ -404,7 +435,22 @@ for i_iter in 1:n_itrs # loop_itr
         #----------------------------------------------------------------------
         for i_cut in 1:n_pcuts # loop_pcut
 
-            pcut_init(i_cut)
+            # Initialize all of the *_sav arrays to help prevent bleeding over between pcuts or ion species
+            l_save .= false  # Whole array must be initialized in case number of particles changes from pcut to pcut
+
+            for arr in (:weight_sav, :ptot_pf_sav, :pb_pf_sav, :x_PT_cm_sav, :grid_sav, :DwS_sav,
+                        :inj_sav, :xn_per_sav, :prp_x_cm_sav, :acctime_sec_sav, :φ_rad_sav, :tcut_sav)
+                # zero out each array in a type stable manner
+                @eval $arr .= zero(eltype($arr))
+            end
+
+            # A separate variable tracks the number of finished particles, so
+            # that race conditions can be avoided in OMP mode
+            i_fin = 0
+
+            # For high-energy electrons in a strong magnetic field, need to know
+            # previous cutoff momentum for calculating new PRP downstream
+            pcut_prev = i_cut > 1 ? pcuts_use[i_cut-1] : 0.0
 
             #--------------------------------------------------------------------
             #  Start of loop over particles
@@ -429,7 +475,7 @@ for i_iter in 1:n_itrs # loop_itr
             #$omp parallel for default(none), schedule(dynamic,1), num_threads(6)
             for i_prt in 1:n_pts_use # loop_pt
 
-                particle_loop(i_iter, i_ion, i_cut, i_prt, vals)
+                particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_esc_UpS, pcut_prev)
 
             end # loop_pt
             #$omp end parallel do
