@@ -139,7 +139,7 @@ r_comp = %f
 
     fluxes_str = ("""
 
-u₀ = $u₀ cm/s            u₂ = $u₂ cm/s
+u₀ = $u₀                 u₂ = $u₂
 β₀ = $β₀                 β₂ = $β₂
 γ₀ = $γ₀                 γ₂ = $γ₂
 ρ₀ = $(density(species[1])) prot/cm³        ρ₂ = $(density(species[1])*γ₀*β₀/(γ₂*β₂)) prot/cm³

@@ -1,21 +1,21 @@
-function pcut_finalize()
+function pcut_finalize(i_iter, i_ion, i_cut, p_pcut_hi, n_pts_pcut, n_pts_pcut_hi)
     break_pcut = false
     n_saved = count(l_save)
 
     t_end = now()
     run_time = t_end - t_start
 
-    @info("", i_iter, i_ion, i_cut,
-          pcuts_in[i_cut], pcuts_use[i_cut]/(mp*c),
+    @info("Finalizing pcut", i_iter, i_ion, i_cut,
+          pcuts_in[i_cut], pcuts_use[i_cut]/(mp*c)|>NoUnits,
           n_saved, n_pts_use, weight_running, run_time)
     println(outfile, " itr=", i_iter, " ion=", i_ion, " icut=", i_cut,
-            pcuts_in[i_cut], pcuts_use[i_cut]/(mp*c),
+            pcuts_in[i_cut], pcuts_use[i_cut]/(mp*c)|>NoUnits,
             "  n_sav=", n_saved, "/", n_pts_use, weight_running, run_time)
 
 
     # If no particles saved, don't bother with remaining pcuts
-    break_pcut = true
     if n_saved == 0
+        break_pcut = true
         return break_pcut
     end
 

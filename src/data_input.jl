@@ -257,10 +257,10 @@ const age_max = let
     if age_max < 0
         age_max = -1.0
     end
-    age_max
+    age_max * s
 end
 # default behavior of do_retro is dependent on age_max
-const do_retro = (get(cfg_toml, "RETRO", age_max > 0 ? 66 : 0) == 66)
+const do_retro = (get(cfg_toml, "RETRO", age_max > 0s ? 66 : 0) == 66)
 
 const do_fast_push = (get(cfg_toml, "FPUSH", 0) == 66)
 const x_fast_stop_rg = do_fast_push ? cfg_toml["FPSTP"] : 0.0
@@ -276,27 +276,27 @@ const x_art_start_rg, x_art_scale = let
     (x_art_start_rg, x_art_scale)
 end
 
-const p_electron_crit, γ_electron_crit = let
+const pₑ_crit, γₑ_crit = let
 
-    energy_electron_crit_keV = get(cfg_toml, "EMNFP", nothing) * u"keV"
+    energyₑ_crit_keV = get(cfg_toml, "EMNFP", nothing) * u"keV"
     # If needed, convert input energy to momentum and Lorentz factor
-    if !isnothing(energy_electron_crit_keV) && energy_electron_crit_keV > 0u"keV"
-        energy_electron_crit_rm = energy_electron_crit_keV / E₀_electron
+    if !isnothing(energyₑ_crit_keV) && energyₑ_crit_keV > 0u"keV"
+        energyₑ_crit_rm = energyₑ_crit_keV / E₀_electron
 
         # Different forms for nonrelativistic and relativstic momenta
-        if energy_electron_crit_rm < 1e-2
-            p_electron_crit = me*c * √(2energy_electron_crit_rm)
-            γ_electron_crit = 1.0
+        if energyₑ_crit_rm < 1e-2
+            pₑ_crit = me*c * √(2energyₑ_crit_rm)
+            γₑ_crit = 1.0
         else
-            p_electron_crit = me*c * √((energy_electron_crit_rm + 1)^2 - 1)
-            γ_electron_crit = energy_electron_crit_rm + 1.0
+            pₑ_crit = me*c * √((energyₑ_crit_rm + 1)^2 - 1)
+            γₑ_crit = energyₑ_crit_rm + 1.0
         end
     else
-        energy_electron_crit_keV = -1.0
-        p_electron_crit = -1.0
-        γ_electron_crit = -1.0
+        energyₑ_crit_keV = -1.0
+        pₑ_crit = -1.0
+        γₑ_crit = -1.0
     end
-    (p_electron_crit, γ_electron_crit)
+    (pₑ_crit, γₑ_crit)
 end
 
 const do_rad_losses = (get(cfg_toml, "NORAD", 0) != 66)
@@ -385,17 +385,17 @@ const do_multi_dNdps = (get(cfg_toml, "DNDPS", 0) == 66)
 const do_tcuts, tcuts, n_tcuts = let
     do_tcuts = haskey(cfg_toml, "TCUTS")
     if do_tcuts
-        tcuts = cfg_toml["TCUTS"]
+        tcuts = cfg_toml["TCUTS"] * s
         n_tcuts = length(tcuts)
 
-        age_max < 0 && error("tcut tracking must be used with anaccel time limit. Adjust keyword 'AGEMX'.")
+        age_max < 0s && error("tcut tracking must be used with anaccel time limit. Adjust keyword 'AGEMX'.")
         # Check to make sure we haven't used more tcuts than allowed by na_c
         (n_tcuts+1) > na_c && error("TCUTS: parameter na_c smaller than desired number of tcuts.")
         # Check to make sure final tcut is much larger than age_max so that
         #   we never have to worry about exceeding it
         tcuts[end] ≤ 10age_max && error("TCUTS: final tcut must be much (10x) larger than age_max.")
     else
-        tcuts = Float64[]
+        tcuts = TimeCGS[]
         n_tcuts = 0
     end
     (do_tcuts, tcuts, n_tcuts)

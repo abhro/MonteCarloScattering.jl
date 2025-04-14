@@ -37,18 +37,18 @@ function new_pcut(
     # Determine multiplicity of splitting; perhaps none needed
     i_mult = max(n_pts_target ÷ n_saved, 1) # In case n_pts_target drops btwn pcuts
 
-    grid_new        = zeros(Int,     n_pts_use*i_mult)
-    tcut_new        = zeros(Int,     n_pts_use*i_mult)
-    DwS_new         = zeros(Bool,    n_pts_use*i_mult)
-    inj_new         = zeros(Bool,    n_pts_use*i_mult)
-    weight_new      = zeros(Float64, n_pts_use*i_mult)
-    ptot_pf_new       = zeros(Float64, n_pts_use*i_mult)
-    pb_pf_new       = zeros(Float64, n_pts_use*i_mult)
-    x_PT_cm_new     = zeros(Float64, n_pts_use*i_mult)
-    xn_per_new      = zeros(Float64, n_pts_use*i_mult)
-    prp_x_cm_new    = zeros(Float64, n_pts_use*i_mult)
-    acctime_sec_new = zeros(Float64, n_pts_use*i_mult)
-    φ_rad_new       = zeros(Float64, n_pts_use*i_mult)
+    grid_new        = zeros(Int,        n_pts_use*i_mult)
+    tcut_new        = zeros(Int,        n_pts_use*i_mult)
+    DwS_new         = zeros(Bool,       n_pts_use*i_mult)
+    inj_new         = zeros(Bool,       n_pts_use*i_mult)
+    weight_new      = zeros(Float64,    n_pts_use*i_mult)
+    ptot_pf_new     = zeros(MomentumCGS, n_pts_use*i_mult)
+    pb_pf_new       = zeros(MomentumCGS, n_pts_use*i_mult)
+    x_PT_cm_new     = zeros(LengthCGS,  n_pts_use*i_mult)
+    xn_per_new      = zeros(Float64,    n_pts_use*i_mult)
+    prp_x_cm_new    = zeros(LengthCGS,  n_pts_use*i_mult)
+    acctime_sec_new = zeros(TimeCGS,    n_pts_use*i_mult)
+    φ_rad_new       = zeros(Float64,    n_pts_use*i_mult)
 
     # Calculate effect on particle weights and the weighting factor of each
     # remaining particle in the simulation

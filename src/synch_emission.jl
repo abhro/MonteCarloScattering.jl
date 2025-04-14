@@ -26,7 +26,7 @@ function synch_emission(
         i_grid, num_hist_bins, p_pf_cgs_therm, dN_therm,
         num_psd_mom_bins, p_pf_cgs_cr, dN_cr, n_photon_synch,
         photon_synch_min_MeV, bins_per_dec_photon,
-        n_ions, aa_ion, n₀_ion, γ₀, u₀, flux_pₓ_UpS, flux_energy_UpS, u₂,
+        n_ions, aa_ion, n₀_ion, γ₀, u₀, flux_px_UpS, flux_energy_UpS, u₂,
         n_grid, btot_grid,
         i_ion, mc,
     )
@@ -44,7 +44,7 @@ function synch_emission(
         bmag_curr = btot_grid[i_grid]
     else
         n₀ = dot(n₀_ion, aa_ion)
-        energy_density = (flux_energy_UpS + γ₀*u₀*n₀*E₀_proton) / u₂ - flux_pₓ_UpS
+        energy_density = (flux_energy_UpS + γ₀*u₀*n₀*E₀_proton) / u₂ - flux_px_UpS
         bmag_curr = √(8π * 1e-3 * energy_density)
     end
 

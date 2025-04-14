@@ -27,14 +27,14 @@ Randomly moves the particle's momentum vector along the surface of the unit sphe
 function scattering(
         aa, gyro_denom, ptot_pf, γₚ_pf, xn_per,
         pb_pf, p_perp_b_pf, φ_rad,
-        use_custom_frg, p_electron_crit, γ_electron_crit, η_mfp)
+        use_custom_frg, pₑ_crit, γₑ_crit, η_mfp)
 
-    # If particle is an electron and p < p_electron_crit, use a constant MFP for scattering.
+    # If particle is an electron and p < pₑ_crit, use a constant MFP for scattering.
     # Note that instead addition to calculating the gyro period in seconds,
     # the code keeps vt_pf times the gyro period to find Δθ_max.
-    if aa < 1 && ptot_pf < p_electron_crit
-        gyro_rad_tot_cm =      p_electron_crit *         c * gyro_denom
-        gyro_period_sec = 2π * γ_electron_crit * aa*mp * c * gyro_denom
+    if aa < 1 && ptot_pf < pₑ_crit
+        gyro_rad_tot_cm =      pₑ_crit *         c * gyro_denom
+        gyro_period_sec = 2π * γₑ_crit * aa*mp * c * gyro_denom
     else
         gyro_rad_tot_cm =    ptot_pf *         c * gyro_denom
         gyro_period_sec = 2π * γₚ_pf * aa*mp * c * gyro_denom
