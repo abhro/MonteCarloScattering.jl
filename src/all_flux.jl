@@ -7,47 +7,44 @@ all_flux_spike_away = 1000.0 # Max value for 1/cosine
 Tracks particle flux due to motion on the grid. Also finds number of new grid zone
 
 ### Arguments
-TODO
-- i_prt
-- nc_unit
-- i_grid_feb
-- inj
-- aa
-- pb_pf
-- p_perp_b_pf
-- ptot_pf
-- γₚ_pf
-- φ_rad
-- weight
-- uₓ_sk
-- uz_sk
-- utot
-- γᵤ_sf
-- b_cosθ
-- b_sinθ
-- x_PT_cm
-- x_PT_old
+- `i_prt`: Current particle number
+- `i_grid_feb`:  free escape boundary index at grid
+- `inj`: if particle has been injected into acceleration process
+- `aa`: mass of particle, in units of proton mass
+- `pb_pf`: momentum of particle along magnetic field, in the plasma frame
+- `p_perp_b_pf`: momentum of particle perpendicular to magnetic field, in the plasma frame
+- `ptot_pf`: total momentum of particle, in the plasma frame
+- `γₚ_pf`: Lorentz factor of particle in the plasma frame
+- `φ_rad`:
+- `weight`:
+- `uₓ_sk`: bulk fluid velocity in the x-direction, in the shock frame
+- `uz_sk`: bulk fluid velocity in the z-direction, in the shock frame
+- `utot`: total bulk fluid velocity, in the shock frame
+- `γᵤ_sf`: Lorentz factor of fluid bulk motion in the shock frame
+- `b_cosθ`:
+- `b_sinθ`:
+- `x_PT_cm`:
+- `x_PT_old`:
 
 ### Modifies
-TODO
-- i_grid
-- i_grid_old
-- n_cr_count
-- num_crossings (array modified in-place)
-- pₓ_esc_UpS
-- energy_esc_UpS
-- pₓₓ_flux (array modified in-place)
-- pxz_flux (array modified in-place)
-- energy_flux (array modified in-place)
-- spectra_sf (array modified in-place)
-- spectra_pf (array modified in-place)
-- psd (array modified in-place)
+- `i_grid`
+- `i_grid_old`
+- `n_cr_count`
+- `num_crossings` (array modified in-place)
+- `pₓ_esc_UpS`
+- `energy_esc_UpS`
+- `pxx_flux` (array modified in-place)
+- `pxz_flux` (array modified in-place)
+- `energy_flux` (array modified in-place)
+- `spectra_sf` (array modified in-place)
+- `spectra_pf` (array modified in-place)
+- `psd` (array modified in-place)
 """
 function all_flux!(
         i_prt, aa, pb_pf, p_perp_b_pf, ptot_pf, γₚ_pf, φ_rad,
         weight, i_grid, uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
         x_PT_cm, x_PT_old, inj, nc_unit,
-        i_grid_feb, pₓₓ_flux, pxz_flux, energy_flux, energy_esc_UpS, pₓ_esc_UpS,
+        i_grid_feb, pxx_flux, pxz_flux, energy_flux, energy_esc_UpS, pₓ_esc_UpS,
         spectra_sf, spectra_pf, n_cr_count, num_crossings, psd,
         # from controls
         n_xspec, x_spec, feb_UpS, γ₀, u₀, mc,
@@ -157,8 +154,9 @@ function all_flux!(
     end  # check on direction of motion
     n_cr_count = flux_stream!(
         i_range, inj_check, sign_fac,
-        pₓₓ_flux, pxz_flux, energy_flux,
-        p_sk, ptot_sk, weight, energy_flux_add, inj, n_cr_count, abs_inv_vx_sk)
+        pxx_flux, pxz_flux, energy_flux,
+        p_sk, ptot_sk, weight, energy_flux_add, inj, n_cr_count, abs_inv_vx_sk,
+        therm_ptot_sk)
     #--------------------------------------------------------------------------
     # Finished updating fluxes for crossed grid boundaries
 
@@ -177,8 +175,9 @@ end
 
 function flux_stream!(
         i_range, inj_check, sign_fac,
-        pₓₓ_flux, pxz_flux, energy_flux,
+        pxx_flux, pxz_flux, energy_flux,
         p_sk, ptot_sk, weight, energy_flux_add, inj, n_cr_count, abs_inv_vx_sk,
+        therm_ptot_sk,
     )
 
     # Check if particle has already been injected into acceleration process;
@@ -195,11 +194,12 @@ function flux_stream!(
         # Then don't count flux contributions to grid zones UpS from FEB
         inj_check && inj && i ≤ i_grid_feb && continue
 
-        # Update fluxes; note the minus signs in sign_fac force pₓₓ_flux to increase
-        # (b/c particle is moving UpS and p_sk.x < 0) and force energy_flux to decrease
-        pₓₓ_flux[i]    += sign_fac *  p_sk.x *weight * γ₀*u₀
-        pxz_flux[i]    +=         abs(p_sk.z)*weight * γ₀*u₀
-        energy_flux[i] += sign_fac * energy_flux_add * γ₀*u₀
+        # Update fluxes; note the minus signs in sign_fac force pxx_flux to increase
+        # (because particle is moving upstream and p_sk.x < 0) and force energy_flux to decrease
+        @debug "About to update" sign_fac p_sk weight γ₀ u₀ energy_flux_add pxx_flux pxz_flux energy_flux
+        pxx_flux[i]    += sign_fac *  p_sk.x *weight * γ₀*u₀ / 1u"cm^3" # FIXME why 1u"cm^3" here?
+        pxz_flux[i]    +=         abs(p_sk.z)*weight * γ₀*u₀ / 1u"cm^3" # FIXME why 1u"cm^3" here?
+        energy_flux[i] += sign_fac * energy_flux_add * γ₀*u₀ / 1u"cm^3"
 
         # Update PSD, or add to list of tracked thermal particles
         if inj

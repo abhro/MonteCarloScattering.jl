@@ -25,10 +25,10 @@ FIXME
   so uz_sk_grid = 0 identically; just used for output
 - θ_grid: angle[rad] between mean magnetic field and shock normal.
   This is a parallel shock, so θ_grid = 0 identically; just used for output
-- pₓₓ_flux: momentum flux of particles across grid zone boundaries
+- pxx_flux: momentum flux of particles across grid zone boundaries
 - energy_flux: energy flux of particles across grid zone boundaries
 - Γ₂: DwS adiabatic index
-- flux_pₓ_UpS: far UpS momentum flux, calculated in upstream_fluxes
+- flux_px_UpS: far UpS momentum flux, calculated in upstream_fluxes
 - flux_energy_UpS: far UpS energy flux, calculated in upstream_fluxes
 
 ### Returns
@@ -50,8 +50,8 @@ function smooth_grid_par(
         i_iter, i_shock, n_grid, x_grid_rg, x_grid_cm,
         Γ_grid, uz_sk_grid, θ_grid,
         pressure_psd_par, pressure_psd_perp,
-        flux_pₓ_UpS, flux_energy_UpS, Γ₂, q_esc_cal_pₓ, q_esc_cal_energy,
-        pₓₓ_flux, energy_flux, uₓ_sk_grid, γ_sf_grid, btot_grid, utot_grid,
+        flux_px_UpS, flux_energy_UpS, Γ₂, q_esc_cal_pₓ, q_esc_cal_energy,
+        pxx_flux, energy_flux, uₓ_sk_grid, γ_sf_grid, btot_grid, utot_grid,
         γ_ef_grid, β_ef_grid, εB_grid,
         n_ions, aa_ion, zz_ion, T₀_ion, n₀_ion,
         rg₀, do_prof_fac_damp, prof_weight_fac, γ₀, u₀, β₀,
@@ -60,7 +60,7 @@ function smooth_grid_par(
         ω, bturb_comp_frac, bfield_amp, bmag₀,
         x_art_start_rg, use_custom_εB)
 
-    pₓₓ_norm = zeros(n_grid)
+    pxx_norm = zeros(n_grid)
     energy_norm = zeros(n_grid)
     pxz_tot = zeros(n_grid)
     pxz_norm = zeros(n_grid)
@@ -91,7 +91,7 @@ function smooth_grid_par(
 
     x_grid_log = zeros(n_grid)
     x_grid_log_cm = zeros(n_grid)
-    pₓₓ_tot = zeros(n_grid)
+    pxx_tot = zeros(n_grid)
     energy_tot = zeros(n_grid)
     # Compute a bunch of stuff about the current shock profile and print it
     # to file; loop 4111 in old code
@@ -150,22 +150,22 @@ function smooth_grid_par(
         B_x = bmag * cos(θ_grid[i])
         B_z = bmag * sin(θ_grid[i])
 
-        pₓₓ_EM = γβ^2 / 8π * bmag^2 + γ² / 8π * (B_z^2 - B_x^2) - (γ² - γᵤ_sf) / 2π * (β_uz/β_uₓ) * B_x * B_z
+        pxx_EM = γβ^2 / 8π * bmag^2 + γ² / 8π * (B_z^2 - B_x^2) - (γ² - γᵤ_sf) / 2π * (β_uz/β_uₓ) * B_x * B_z
 
         energy_EM  = γᵤ_sf^2 / 4π * β_uₓ * B_z^2 - (2γ_sq - γᵤ_sf) / 4π * β_uz * B_x * B_z
 
         # Total momentum/energy fluxes, including electrons (if needed) and EM.
         # Also normalized against far UpS values and in log space for plotting.
-        pₓₓ_tot[i] = pₓₓ_flux[i] + pₓₓ_EM
+        pxx_tot[i] = pxx_flux[i] + pxx_EM
         energy_tot[i] = energy_flux[i] + energy_EM + Γ_post/(Γ_post-1) * uₓ
 
-        pₓₓ_norm[i] = pₓₓ_tot[i] / flux_pₓ_UpS
+        pxx_norm[i] = pxx_tot[i] / flux_px_UpS
         energy_norm[i]  = energy_tot[i]  / flux_energy_UpS
 
-        if pₓₓ_norm[i] > 1e-99
-            pₓₓ_norm_log = log10(pₓₓ_norm[i])
+        if pxx_norm[i] > 1e-99
+            pxx_norm_log = log10(pxx_norm[i])
         else
-            pₓₓ_norm_log = -99.0
+            pxx_norm_log = -99.0
         end
 
         if energy_norm[i] > 1e-99
@@ -188,7 +188,7 @@ function smooth_grid_par(
         # TODO: per original code, "there is an unresolved question as to whether or not to
         # use the escaping fluxes in these expressions". Using the escaping fluxes sounds
         # reasonable, esp. in the nonrelativistic case. Make sure it's actually reasonable
-        pₓ_numer = flux_pₓ_UpS * (1.0 - q_esc_cal_pₓ) - γβ^2 * density_ratio * n₀*E₀_proton
+        pₓ_numer = flux_px_UpS * (1.0 - q_esc_cal_pₓ) - γβ^2 * density_ratio * n₀*E₀_proton
         pₓ_denom = 1 + γβ^2 * Γ_pre / (Γ_pre - 1)
         pressure_pₓ  = pₓ_numer / pₓ_denom
 
@@ -214,7 +214,7 @@ function smooth_grid_par(
         # particle limit. No escaping flux to worry about here, but still need to add in the
         # rest mass-energy flux
         if i == 1
-            pₓ_numer = flux_pₓ_UpS - γ₂*β₂ * γ₀*Β₀ * n₀*E₀_proton
+            pₓ_numer = flux_px_UpS - γ₂*β₂ * γ₀*Β₀ * n₀*E₀_proton
             pₓ_denom = 1 + (γ₂*β₂)^2 * Γ₂/(Γ₂ - 1)
             pressure_pₓ_tp = pₓ_numer / pₓ_denom
 
@@ -238,8 +238,8 @@ function smooth_grid_par(
                x_grid_log[i],                   # 2
                x_grid_cm[i],                    # 3
                x_grid_log_cm[i],                # 4
-               pₓₓ_norm[i],                     # 5
-               pₓₓ_norm_log,                    # 6
+               pxx_norm[i],                     # 5
+               pxx_norm_log,                    # 6
                pxz_norm[i],                     # 7
                pxz_norm_log,                    # 8
                energy_norm[i],                  # 9
@@ -331,7 +331,7 @@ function smooth_grid_par(
         #     energy_density(x)  =  F_en₀/u(x) - F_px₀
         # assuming flux conservation everywhere.
         if use_custom_εB
-            energy_density = (flux_energy_UpS + γ₀*u₀*n₀*E₀_proton) / uₓ_sk_grid[i] - flux_pₓ_UpS
+            energy_density = (flux_energy_UpS + γ₀*u₀*n₀*E₀_proton) / uₓ_sk_grid[i] - flux_px_UpS
             btot_grid[i] = √(8π * εB_grid[i] * energy_density)
         end
     end
@@ -342,7 +342,7 @@ end
 function relativistic_velocity_profile()
     avg_DwS_uₓ_pₓ = 0.0
     avg_DwS_uₓ_energy = 0.0
-    Qpₓ = q_esc_cal_pₓ * pₓₓ_flux[1]
+    Qpₓ = q_esc_cal_pₓ * pxx_flux[1]
     Qen = q_esc_cal_energy * energy_flux[1]
 
     for i in 1:n_grid
@@ -363,14 +363,14 @@ function relativistic_velocity_profile()
         B_x = bmag * cos(θ_grid[i])
         B_z = bmag * sin(θ_grid[i])
 
-        pₓₓ_EM = γβ^2 / 8π * bmag^2 + γ² / 8π * (B_z^2 - B_x^2)
+        pxx_EM = γβ^2 / 8π * bmag^2 + γ² / 8π * (B_z^2 - B_x^2)
         energy_EM = γᵤ_sf^2 / 4π * β_uₓ * B_z^2
 
         # Calculate the pressure using the momentum equation only, since the energy equation
         # can give negative fluxes if fast push is used. Do not include EM flux here, since
-        # pₓₓ_flux tracked only particle contributions to F_pₓ. Also do not include escaping
+        # pxx_flux tracked only particle contributions to F_pₓ. Also do not include escaping
         # flux, since we only care about the particles that remain
-        pressure_pₓ  = (pₓₓ_flux[i] - γβ^2 * density_loc*E₀_proton) / (1 + γβ^2 * Γ_post/(Γ_post - 1))
+        pressure_pₓ  = (pxx_flux[i] - γβ^2 * density_loc*E₀_proton) / (1 + γβ^2 * Γ_post/(Γ_post - 1))
 
         # Combine flux-based pressure and PSD-based pressure as directed by user input
         pressure_loc = (1-ω)*pressure_pₓ + ω*pressure_tot_MC[i]
@@ -384,7 +384,7 @@ function relativistic_velocity_profile()
         #------------------------------------------------------------------------
         function p(γβ) # momentum
             pₓ_term = γ₀*β₀ * n₀/density_loc * γβ * (density_loc*E₀_proton + pressure_loc * Γ_post/(Γ_post - 1))
-            return flux_pₓ_UpS - Qpₓ - pₓₓ_EM - pₓ_term - pressure_loc
+            return flux_px_UpS - Qpₓ - pxx_EM - pₓ_term - pressure_loc
         end
         γβ_found = Roots.find_zero(p, γ₀*β₀*1e-4, Roots.Newton())
         uₓ_new_pₓ[i] = γβ_found / √(1 + γβ_found^2) * c
@@ -460,7 +460,7 @@ function nonrelativistic_velocity_profile()
         B_x    = bmag * cos(θ_grid[i])
         B_z    = bmag * sin(θ_grid[i])
 
-        pₓₓ_EM = γβ^2 * bmag^2 / 8π + γ² * (B_z^2 - B_x^2) / 8π
+        pxx_EM = γβ^2 * bmag^2 / 8π + γ² * (B_z^2 - B_x^2) / 8π
         energy_EM = γᵤ_sf^2 / 4π * β_uₓ * B_z^2
 
         # Calculate the pressure using the momentum equation only, since the
@@ -468,10 +468,10 @@ function nonrelativistic_velocity_profile()
         # Determining pressure relies on near cancellation of two terms, so use
         # a form for the non-relativistic equations that is expanded to β^2 to
         # allow for better joining between relativistic and non-relativistic
-        # calculations. Do not include EM flux here, since pₓₓ_flux tracked only
+        # calculations. Do not include EM flux here, since pxx_flux tracked only
         # particle contributions to F_pₓ. Also do not include escaping flux,
         # since we only care about the particles that remain
-        pressure_pₓ = (pₓₓ_flux[i] - n₀*mp * u₀ * uₓ * (1+β_uₓ^2)) / (1 + β_uₓ^2 * Γ_post/(Γ_post - 1))
+        pressure_pₓ = (pxx_flux[i] - n₀*mp * u₀ * uₓ * (1+β_uₓ^2)) / (1 + β_uₓ^2 * Γ_post/(Γ_post - 1))
 
         # Combine flux-based pressure and PSD-based pressure as directed by user input
         pressure_loc = (1-ω)*pressure_pₓ + ω*pressure_tot_MC[i]
@@ -487,7 +487,7 @@ function nonrelativistic_velocity_profile()
             β = u / c
             p_term_1 = n₀*mp * u₀ * uₓ_guess * (1 + β^2)
             p_term_2 = (1 + β^2 * Γ_post/(Γ_post - 1)) * pressure_loc
-            return flux_pₓ_UpS - Qpₓ - pₓₓ_EM - p_term_1 - p_term_2
+            return flux_px_UpS - Qpₓ - pxx_EM - p_term_1 - p_term_2
         end
         uₓ_new_pₓ[i] = Roots.find_zero(p, u₀ * 1e-4, Roots.Newton())
 
