@@ -1,6 +1,6 @@
 function iter_finalize()
     # Compute the escaping flux for this iteration
-    pₓ_esc_flux_UpS[i_iter] = pₓ_esc_UpS / flux_pₓ_UpS
+    pₓ_esc_flux_UpS[i_iter] = pₓ_esc_UpS / flux_px_UpS
     energy_esc_flux_UpS[i_iter] = energy_esc_UpS / flux_energy_UpS
 
     # Compute the adiabatic index everywhere on grid now that all particles are accounted
@@ -20,7 +20,7 @@ function iter_finalize()
     Γ_grid[index_mask,2] .= 1e-99
 
     # Also compute the adiabatic index of particles that were lost DwS
-    Γ_DwS[i_iter] = 1 + ∑P_DwS/sum_KEdensity_DwS
+    Γ_DwS[i_iter] = 1 + ∑P_DwS/∑KEdensity_DwS
 
     # Calculate expected escaping fluxes, now that adiabatic index is known
     # far DwS. Also average them so that the smoothing subroutine treats
@@ -35,7 +35,7 @@ function iter_finalize()
     # slight variations in the smoothing algorithm across different runs.
     # Correct for that here by rounding off the last two decimal places
     # (the second place is a fudge factor).
-    pₓₓ_flux[1:n_grid] .= round(pₓₓ_flux[1:n_grid], digits=13)
+    pxx_flux[1:n_grid] .= round(pxx_flux[1:n_grid], digits=13)
     # Commented out because it's not necessary for smoothing parallel shocks
     #pxz_flux[1:n_grid] = round(pxz_flux[1:n_grid], digits=13)
     energy_flux[1:n_grid] = round(energy_flux[1:n_grid], digits=13)
@@ -43,9 +43,9 @@ function iter_finalize()
     # Output grid data for this iteration, and smooth the grid for the next iteration
     smooth_grid_par(i_iter, i_shock, n_grid, x_grid_rg, x_grid_cm,
                     Γ_grid, uz_sk_grid, θ_grid,
-                    pressure_psd_par, pressure_psd_perp, flux_pₓ_UpS,
+                    pressure_psd_par, pressure_psd_perp, flux_px_UpS,
                     flux_energy_UpS, Γ₂_RH, q_esc_cal_pₓ_avg,
-                    q_esc_cal_energy_avg, pₓₓ_flux, energy_flux, uₓ_sk_grid,
+                    q_esc_cal_energy_avg, pxx_flux, energy_flux, uₓ_sk_grid,
                     γ_sf_grid, btot_grid, utot_grid, γ_ef_grid,
                     β_ef_grid, εB_grid)
 
@@ -67,8 +67,8 @@ function iter_finalize()
             " Esc. en flux FEB/UpS  for i_iter = ", i_iter, ":   en esc = ",
             energy_esc_flux_UpS[i_iter], "   Avg. esc en  = ", energy_esc_avg)
     println(outfile,
-            " Esc. pₓₓ flux FEB/UpS for i_iter = ", i_iter, ":  pₓₓ esc = ",
-            pₓ_esc_flux_UpS[i_iter], "   Avg. esc pₓₓ = ", pₓ_esc_avg)
+            " Esc. pxx flux FEB/UpS for i_iter = ", i_iter, ":  pxx esc = ",
+            pₓ_esc_flux_UpS[i_iter], "   Avg. esc pxx = ", pₓ_esc_avg)
 
     if iszero(q_esc_cal_pₓ_avg)
         println(outfile, " Avg q_pₓ_MC/q_pₓ_cal N/A, because q_pₓ_cal = 0")

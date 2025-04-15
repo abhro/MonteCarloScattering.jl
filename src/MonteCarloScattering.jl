@@ -35,9 +35,15 @@ begin
     include("ion_finalize.jl")
 end
 
-const MomentumCGS = typeof(1.0g*cm/s)
-const LengthCGS = typeof(1.0cm)
-const BFieldCGS = typeof(1.0G)
+const LengthCGS              = typeof(1.0cm)
+const TimeCGS                = typeof(1.0s)
+const MomentumCGS            = typeof(1.0g*cm/s)
+const BFieldCGS              = typeof(1.0G)
+const MomentumFluxCGS        = typeof(1.0erg) # (g*cm/s) * cm/s
+const MomentumDensityFluxCGS = typeof(1.0erg/cm^3)
+const EnergyFluxCGS          = typeof(1.0erg*cm/s)
+const EnergyDensityFluxCGS   = typeof(1.0erg/(cm^2*s))
+
 
 # Start the wall clock for this run
 t_start = now()
@@ -105,7 +111,7 @@ psd_mom_max = let
         # Something has gone very wrong.
         error("Max CR energy not set in data_input, so can not set PSD bins.")
     end
-end
+end |> u"g*cm/s"
 
 # Adjust max momentum based on a SF->PF Lorentz transform
 psd_mom_max *= 2γ₀
@@ -126,8 +132,8 @@ end
 
 begin # "module" iteration_vars
     # units of momentum flux density: [p] * [v] * [n] = [energy density]
-    pₓₓ_flux = Vector{typeof(1.0u"erg/cm^3")}(undef, n_grid)
-    pxz_flux = Vector{typeof(1.0u"erg/cm^3")}(undef, n_grid)
+    pxx_flux = Vector{MomentumDensityFluxCGS}(undef, n_grid)
+    pxz_flux = Vector{MomentumDensityFluxCGS}(undef, n_grid)
     energy_flux = Vector{Float64}(undef, n_grid)
     esc_flux = zeros(n_ions)
     pₓ_esc_feb = zeros(n_ions, n_itrs)
@@ -222,7 +228,7 @@ B_CMBz = B_CMB0 * (1 + redshift)^2
 #energy_esc_flux_UpS_tot = 0.0
 pₓ_esc_flux_UpS     = zeros(n_itrs)
 energy_esc_flux_UpS = zeros(n_itrs)
-flux_pₓ_UpS, flux_pz_UpS, flux_energy_UpS = upstream_fluxes(
+flux_px_UpS, flux_pz_UpS, flux_energy_UpS = upstream_fluxes(
     number_density.(species), temperature.(species), mass.(species),
     bmag₀, θ_B₀, u₀, β₀, γ₀)
 
@@ -237,7 +243,7 @@ if ! do_old_prof
      β_ef_grid, γ_ef_grid, btot_grid, θ_grid, εB_grid, bmag₂,
     ) = setup_profile(
                       u₀, β₀, γ₀, bmag₀, θ_B₀, r_comp, bturb_comp_frac, bfield_amp, use_custom_εB,
-                      n_ions, species, flux_pₓ_UpS, flux_energy_UpS, grid_axis,
+                      n_ions, species, flux_px_UpS, flux_energy_UpS, grid_axis,
                       x_grid_cm, x_grid_rg,
                      )
 else
@@ -245,7 +251,7 @@ else
     (
      x_grid_rg, x_grid_cm, uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid, β_ef_grid, γ_ef_grid,
      btot_grid, εB_grid, θ_grid, n_grid, u₀, γ₀, rg₀, r_comp, r_RH, β₀, bmag₀,
-     u₂, β₂, γ₂, θᵤ₂, bmag₂, θ_B₀, θ_B₂, flux_pₓ_UpS, flux_pz_UpS, flux_energy_UpS
+     u₂, β₂, γ₂, θᵤ₂, bmag₂, θ_B₀, θ_B₂, flux_px_UpS, flux_pz_UpS, flux_energy_UpS
     ) = read_old_prof(n_old_skip, n_old_profs, n_old_per_prof)
 
     # Must set far UpS and DwS limits manually, since they won't be read in from the file
@@ -302,9 +308,9 @@ begin # "module" species_vars
     # Arrays will hold crossing data for thermal particles; pₓ and pt are shock frame values
     num_crossings = zeros(Int, n_grid)
     therm_grid = zeros(Int, na_cr)
-    therm_pₓ_sk = zeros(na_cr)
-    therm_ptot_sk = zeros(na_cr)
-    therm_weight = zeros(na_cr)
+    therm_pₓ_sk = zeros(MomentumCGS, na_cr)
+    therm_ptot_sk = zeros(MomentumCGS, na_cr)
+    therm_weight = zeros(typeof(1.0s/cm), na_cr)
 
     # Spectra at x_spec locations
     spectra_sf = zeros(0:psd_max, n_grid)
@@ -351,8 +357,8 @@ begin # "module" pcut_vars
     x_PT_cm_sav     = zeros(LengthCGS, na_particles)
     xn_per_sav      = zeros(na_particles)
     #zz_sav         = zeros(na_particles)
-    prp_x_cm_sav    = zeros(na_particles)
-    acctime_sec_sav = zeros(na_particles)
+    prp_x_cm_sav    = zeros(LengthCGS, na_particles)
+    acctime_sec_sav = zeros(TimeCGS, na_particles)
     φ_rad_sav       = zeros(na_particles)
 
     grid_new        = zeros(Int, na_particles)
@@ -362,7 +368,7 @@ begin # "module" pcut_vars
     xn_per_new      = zeros(na_particles)
     #zz_new         = zeros(na_particles)
     prp_x_cm_new    = zeros(LengthCGS, na_particles)
-    acctime_sec_new = zeros(na_particles)
+    acctime_sec_new = zeros(TimeCGS, na_particles)
     φ_rad_new       = zeros(na_particles)
 end
 
@@ -387,16 +393,16 @@ for i_iter in 1:n_itrs # loop_itr
 
     # Zero out numerous quantities that will be modified over the course of this iteration.
     # Minimally positive number is used to prevent errors when taking logarithms later
-    fill_minimal_positive!((pₓₓ_flux, pxz_flux), 1e-99erg/cm^3)
-    fill_minimal_positive!((
-        energy_flux, esc_spectra_feb_UpS, esc_spectra_feb_DwS,
-        pressure_psd_par, pressure_psd_perp, energy_density_psd,
-        weight_coupled,))
+    # XXX uses the type-pirated version of Base.fill!
+    fill!((pxx_flux, pxz_flux), 1e-99erg/cm^3)
+    fill!((energy_flux, pressure_psd_par, pressure_psd_perp, energy_density_psd), 1e-99)
+    fill!((esc_spectra_feb_UpS, esc_spectra_feb_DwS), 1e-99)
+    fill!(weight_coupled, 1e-99)
 
 
     # Additionally, set/reset scalar quantities that will change
-    ∑P_DwS  = 1e-99 # downstream pressure
-    sum_KEdensity_DwS = 1e-99
+    ∑P_DwS  = 1e-99erg/cm^3         # total downstream pressure
+    ∑KEdensity_DwS = 1e-99erg/cm^3  # total downstream kinetic energy density
 
     energy_esc_UpS    = 1e-99
     pₓ_esc_UpS        = 1e-99
@@ -411,10 +417,8 @@ for i_iter in 1:n_itrs # loop_itr
     z_max = γ₀ * β₀ / (γ₂ * β₂)
     populate_ε_target!(ε_target, z_max, γ_sf_grid, uₓ_sk_grid, u₀, γ₀, energy_transfer_frac)
 
-    fill!(energy_transfer_pool, 0.0)
-    fill!(energy_recv_pool, 0.0)
-    fill!(energy_density, 0.0)
-    fill!(therm_energy_density, 0.0)
+    fill!((energy_transfer_pool, energy_recv_pool), 0.0)
+    fill!((energy_density, therm_energy_density), 0.0)
 
     #------------------------------------------------------------------------
     #  Start of loop over particle species
@@ -426,6 +430,12 @@ for i_iter in 1:n_itrs # loop_itr
     for i_ion in 1:n_ions # loop_ion
 
         vals = ion_init(i_iter, i_ion, species)
+
+        # Determine the pcut at which to switch from low-E particle counts to high-E
+        # particle counts. Recall that energy_pcut_hi has units of keV per aa, so when
+        # dividing by particle mass the factor of aa is already present in the denominator.
+        # Also set the maximum momentum cutoff based on the values given in keyword "ENMAX"
+        p_pcut_hi = pcut_hi(energy_pcut_hi, energy_rel_pt, mass(species[i_ion]))
 
         #----------------------------------------------------------------------
         #  Start of loop over pcuts
@@ -441,11 +451,11 @@ for i_iter in 1:n_itrs # loop_itr
             for arr in (:weight_sav, :ptot_pf_sav, :pb_pf_sav, :x_PT_cm_sav, :grid_sav, :DwS_sav,
                         :inj_sav, :xn_per_sav, :prp_x_cm_sav, :acctime_sec_sav, :φ_rad_sav, :tcut_sav)
                 # zero out each array in a type stable manner
-                @eval $arr .= zero(eltype($arr))
+                @eval fill!($arr, zero(eltype($arr)))
             end
 
-            # A separate variable tracks the number of finished particles, so
-            # that race conditions can be avoided in OMP mode
+            # A separate variable tracks the number of finished particles,
+            # so that race conditions can be avoided in OMP mode
             i_fin = 0
 
             # For high-energy electrons in a strong magnetic field, need to know
@@ -475,14 +485,14 @@ for i_iter in 1:n_itrs # loop_itr
             #$omp parallel for default(none), schedule(dynamic,1), num_threads(6)
             for i_prt in 1:n_pts_use # loop_pt
 
-                particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_esc_UpS, pcut_prev)
+                i_fin = particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_esc_UpS, pcut_prev, i_fin, ∑P_DwS, ∑KEdensity_DwS)
 
             end # loop_pt
             #$omp end parallel do
             #--------------------------------------------------------------------
             # Conclusion of particle loop
 
-            break_pcut = pcut_finalize()
+            break_pcut = pcut_finalize(i_iter, i_ion, i_cut, p_pcut_hi, n_pts_pcut, n_pts_pcut_hi)
             break_pcut && break
 
 

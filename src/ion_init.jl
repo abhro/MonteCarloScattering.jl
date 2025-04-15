@@ -8,22 +8,12 @@ function ion_init(i_iter, i_ion, species)
     # At the start of each ion, print a glyph to the screen
     @info("Starting species iteration", i_iter, i_ion)
 
-    # Determine the pcut at which to switch from low-E particle counts to high-E
-    # particle counts. Recall that energy_pcut_hi has units of keV per aa, so when
-    # dividing by particle mass the factor of aa is already present in the denominator.
-    # Also set the maximum momentum cutoff based on the values given in keyword "ENMAX"
-    E_pcut_hi_rmproton = energy_pcut_hi*u"keV" / E₀_proton # FIXME pick better name
-    if E_pcut_hi_rmproton < energy_rel_pt
-        p_pcut_hi = √(2 * E_pcut_hi_rmproton)
-    else
-        p_pcut_hi = aa * mp * c * √((E_pcut_hi_rmproton + 1)^2 - 1)
-    end
-
     pmax_cutoff = get_pmax_cutoff(Emax_keV, Emax_keV_per_aa, pmax_cgs)
 
     # Zero out the phase space distributions and set variables related to
     # tracking thermal particles
-    n_cr_count = clear_psd!()
+    n_cr_count = clear_psd!(num_crossings, therm_grid, therm_pₓ_sk, therm_ptot_sk,
+                            therm_weight, psd, esc_psd_feb_UpS, esc_psd_feb_DwS)
 
     # In addition to initializing the phase space distribution, open the scratch (i.e.
     # temporary) file to which we will write information about thermal particle grid crossings
@@ -45,13 +35,13 @@ function ion_init(i_iter, i_ion, species)
         n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid,
         ptot_inj, weight_inj, n_pts_MB,
     )
-    global pₓₓ_flux = globals[1]
+    global pxx_flux = globals[1]
     global pxz_flux = globals[2]
     global energy_flux = globals[3]
     @info("Finished init_pop on",
           i_iter, i_ion,
           n_pts_use, i_grid_in, weight_in, ptot_pf_in,
-          pb_pf_in, x_PT_cm_in, pₓₓ_flux, pxz_flux, energy_flux)
+          pb_pf_in, x_PT_cm_in, pxx_flux, pxz_flux, energy_flux)
 
     # Assign the various particle properties to the population
     assign_particle_properties_to_population!(n_pts_use, xn_per_fine, x_grid_stop)
@@ -72,21 +62,23 @@ function ion_init(i_iter, i_ion, species)
     # Convert to momentum for this species
     pcuts_use[1:n_pcuts] .= pcuts_in[1:n_pcuts] * aa*mp*c
 
-    return (
+    return (;
             aa, zz, m, mc,
-            nc_unit, n_cr_count, pmax_cutoff
+            nc_unit, n_cr_count, pmax_cutoff,
            )
 end
 
-function clear_psd!()
-    fill!(num_crossings,   0)
-    fill!(therm_grid,      0)
+function clear_psd!(num_crossings, therm_grid, therm_pₓ_sk, therm_ptot_sk,
+                    therm_weight, psd, esc_psd_feb_UpS, esc_psd_feb_DwS)
+
+    for arr in (:num_crossings, :therm_grid, :therm_pₓ_sk, :therm_ptot_sk, :therm_weight)
+        # zero out each array in a type stable manner
+        @eval fill!($arr, zero(eltype($arr)))
+    end
+
     fill!(psd,             1e-99)
     fill!(esc_psd_feb_UpS, 1e-99)
     fill!(esc_psd_feb_DwS, 1e-99)
-    fill!(therm_pₓ_sk,     0.0)
-    fill!(therm_ptot_sk,   0.0)
-    fill!(therm_weight,    0.0)
     n_cr_count = 0
     return n_cr_count
 end
@@ -101,7 +93,7 @@ function assign_particle_properties_to_population!(n_pts_use, xn_per_fine, x_gri
     inj_new[1:n_pts_use]         .= false
     xn_per_new[1:n_pts_use]      .= xn_per_fine
     prp_x_cm_new[1:n_pts_use]    .= x_grid_stop
-    acctime_sec_new[1:n_pts_use] .= 0.0
+    acctime_sec_new[1:n_pts_use] .= 0.0s
     tcut_new[1:n_pts_use]        .= 1
 
     φ_rad_new[1:n_pts_use] .= 2π*Random.rand(n_pts_use)
@@ -122,4 +114,14 @@ function get_pmax_cutoff(Emax_keV, Emax_keV_per_aa, pmax_cgs)
     end
 
     return pmax_cutoff
+end
+
+function pcut_hi(energy_pcut_hi, energy_rel_pt, m)
+    E_pcut_hi_rmproton = energy_pcut_hi*u"keV" / E₀_proton # FIXME pick better name
+    if E_pcut_hi_rmproton < energy_rel_pt
+        p_pcut_hi = √(2 * E_pcut_hi_rmproton)
+    else
+        p_pcut_hi = m*c * √((E_pcut_hi_rmproton + 1)^2 - 1)
+    end
+    return p_pcut_hi
 end
