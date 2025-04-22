@@ -62,6 +62,7 @@ function particle_finish!(
     # Now take additional action based on *how* the particle left the grid
     if i_reason == 1     # Particle escape: DwS, with or without scattering enabled
 
+        @info "About to increase this boy" weight weight_factor
         esc_psd_feb_DwS[ip, jθ] += weight * weight_factor
 
     elseif i_reason == 2 # Particle escape: pmax, UpS FEB, transverse distance

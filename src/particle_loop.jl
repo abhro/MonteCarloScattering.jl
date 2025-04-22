@@ -477,8 +477,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
                 vel /= γₚ_pf
             end
 
-            @info "About to increase downstream pressure" ptot_pf vel weight aa E₀_proton γₚ_pf ∑P_DwS ∑KEdensity_DwS
-            ∑P_DwS += ptot_pf/3 * vel * weight # downstream pressure
+            ∑P_DwS += ptot_pf/3 * vel * weight * density(species[i_ion]) # downstream pressure
             ∑KEdensity_DwS += (γₚ_pf - 1) * aa*E₀_proton * weight * density(species[i_ion])
 
             i_reason = 1
@@ -517,7 +516,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
     #if i_fin % 16 == 0
     #    print_progress_bar(i_fin, n_pts_use)
     #end
-    return i_fin
+    return i_fin, ∑P_DwS, ∑KEdensity_DwS
 end
 
 function no_DSA_loop(
