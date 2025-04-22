@@ -319,6 +319,7 @@ begin # "module" species_vars
     # Escaping spectra UpS and DwS from shock; 2-D arrays store angular information
     esc_spectra_feb_UpS = zeros(0:psd_max)
     esc_spectra_feb_DwS = zeros(0:psd_max)
+    # should these be inverse velocity?
     esc_psd_feb_UpS = zeros(0:psd_max, 0:psd_max)
     esc_psd_feb_DwS = zeros(0:psd_max, 0:psd_max)
 end # "module" species_vars
@@ -485,7 +486,9 @@ for i_iter in 1:n_itrs # loop_itr
             #$omp parallel for default(none), schedule(dynamic,1), num_threads(6)
             for i_prt in 1:n_pts_use # loop_pt
 
-                i_fin = particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_esc_UpS, pcut_prev, i_fin, ∑P_DwS, ∑KEdensity_DwS)
+                (i_fin, ∑P_DwS, ∑KEdensity_DwS) = particle_loop(
+                    i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_esc_UpS,
+                    pcut_prev, i_fin, ∑P_DwS, ∑KEdensity_DwS)
 
             end # loop_pt
             #$omp end parallel do
