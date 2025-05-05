@@ -125,47 +125,15 @@ function retro_time(
             tcut_curr += 1
         end
 
-
         # Large-angle scattering. Comment out pitch-angle diffusion section below if using LAS.
         φ_rad = 2π * Random.rand()   # Completely randomize phase angle
 
         pb_pf = (2Random.rand() - 1) * ptot_pf  # Completely randomize pb_pf
         p_perp_b_pf = √(ptot_pf^2 - pb_pf^2)
 
+        # Pitch-angle diffusion. Comment out large-angle scattering section above if using PAD.
+        #pitch_angle_diffusion()
 
-        ## Pitch-angle diffusion. Comment out large-angle scattering section above if using PAD.
-        #
-        ## Compute maximum allowed pitch angle cosine
-        #vp_tg = 2π * gyro_rad_tot_cm
-        #use_custom_frg && error("Use of custom f(r_g) not yet supported. Add functionality or use standard.")
-        #λ_mfp = η_mfp * gyro_rad_tot_cm
-        #cos_max = cos(√(6vp_tg / (xn_per*λ_mfp)))
-        #
-        ## Compute change to pitch angle and roll
-        #Δcos = 1 - Random.rand()*(1 - cos_max)
-        #Δθ_scat = acos(Δcos)
-        #Δsin = sin(Δθ_scat)
-        #φ_scat = Random.rand()*2π - π
-        #
-        ## New pitch angle
-        #cos_new_pitch = cos_old_pitch * Δcos + sin_old_pitch * Δsin * cos(φ_scat)
-        #sin_new_pitch = √(1 - cos_new_pitch^2)
-        #
-        ## Adjust components of ptot_pf and phase angle
-        #pb_pf       = ptot_pf * cos_new_pitch
-        #p_perp_b_pf = ptot_pf * sin_new_pitch
-        #
-        #φ_p_old = φ_rad + π/2
-        #if sin_new_pitch != 0
-        #    sin_Δφ = sin(φ_scat) * Δsin / sin_new_pitch
-        #    if abs(sin_Δφ) > sin_upper_limit
-        #        sin_Δφ = copysign(sin_upper_limit, sin_Δφ)
-        #    end
-        #    φ_p_new = φ_p_old + asin(sin_Δφ)
-        #else
-        #    φ_p_new = φ_p_old
-        #end
-        #φ_rad = φ_p_new - π/2
 
         if do_rad_losses && aa < 1 # Radiative losses
             # Note that here dp_synch is actually dp/p. If this value is too large we will
@@ -203,4 +171,39 @@ function retro_time(
     end  # retro time loop
 
     return lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, gyro_denom, acctime_sec
+end
+
+function pitch_angle_diffusion()
+
+    # Compute maximum allowed pitch angle cosine
+    vp_tg = 2π * gyro_rad_tot_cm
+    use_custom_frg && error("Use of custom f(r_g) not yet supported. Add functionality or use standard.")
+    λ_mfp = η_mfp * gyro_rad_tot_cm
+    cos_max = cos(√(6vp_tg / (xn_per*λ_mfp)))
+
+    # Compute change to pitch angle and roll
+    Δcos = 1 - Random.rand()*(1 - cos_max)
+    Δθ_scat = acos(Δcos)
+    Δsin = sin(Δθ_scat)
+    φ_scat = Random.rand()*2π - π
+
+    # New pitch angle
+    cos_new_pitch = cos_old_pitch * Δcos + sin_old_pitch * Δsin * cos(φ_scat)
+    sin_new_pitch = √(1 - cos_new_pitch^2)
+
+    # Adjust components of ptot_pf and phase angle
+    pb_pf       = ptot_pf * cos_new_pitch
+    p_perp_b_pf = ptot_pf * sin_new_pitch
+
+    φ_p_old = φ_rad + π/2
+    if sin_new_pitch != 0
+        sin_Δφ = sin(φ_scat) * Δsin / sin_new_pitch
+        if abs(sin_Δφ) > sin_upper_limit
+            sin_Δφ = copysign(sin_upper_limit, sin_Δφ)
+        end
+        φ_p_new = φ_p_old + asin(sin_Δφ)
+    else
+        φ_p_new = φ_p_old
+    end
+    φ_rad = φ_p_new - π/2
 end

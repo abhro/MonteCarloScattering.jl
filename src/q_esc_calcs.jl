@@ -27,10 +27,12 @@ function q_esc_calcs(
 end
 
 
-# Solution comes from Ellison (1985) [1985JGR....90...29E] (Eqs 8-10).
-# Note assumption of zero escaping momentum flux, which is good to
-# within a couple percent for strong nonrelativistic shocks.
-# #TODO: check how much of a difference this assumption makes
+"""
+Solution comes from Ellison (1985) [1985JGR....90...29E] (Eqs 8-10).
+Note assumption of zero escaping momentum flux, which is good to
+within a couple percent for strong nonrelativistic shocks.
+#TODO: check how much of a difference this assumption makes
+"""
 function q_esc_calcs_nonrelativistic()
     # Calculate thermal pressure of far upstream gas
     P₀ = dot(n₀_ion, T₀_ion) * k    # pressure (thermal)
@@ -54,22 +56,24 @@ function q_esc_calcs_nonrelativistic()
     return q_esc_cal_energy, q_esc_cal_pₓ
 end
 
-# Solution comes from Ellison+ (1990) [1991ApJ...378..214E]. Uses relativistic Rankine-Hugoniot
-# relations. See that paper for details of equations and associated quantities. Briefly,
-#    R-H1:   g₀  n₀ b₀        =  g₂  n₂ b₂
-#    R-H2:   g₀² w₀ b₀²  + P₀ =  g₂² w₂ b₂²  + P₂ + Q_px
-#    R-H3:   g₀² w₀ b₀ c      =  g₂² w₂ b₂ c      + Q_en
-# where
-#    w    = E_rm + E_ke + P,   <--- enthalpy as total energy density + pressure
-#    E_rm =      nmc²          <--- rest mass energy density
-#    E_ke = (γ-1)nmc²          <--- kinetic energy density, with γ = √(1 + (p/mc)²)
-#    P    =     ⅓npv           <--- pressure
-#
-# For closure, it is assumed that the two escaping fluxes are related by
-#     Q_en = √[(1+β₀)/2] * Q_px * c,
-# i.e. the geometric mean of the arithmetic mean of u₀ and c. This allows the solution to
-# smoothly join with the non-relativstic version. Use only fluid component of
-# fluxes, not fluid+EM, for now.
+"""
+Solution comes from Ellison+ (1990) [1991ApJ...378..214E]. Uses relativistic Rankine-Hugoniot
+relations. See that paper for details of equations and associated quantities. Briefly,
+   R-H1:   g₀  n₀ b₀        =  g₂  n₂ b₂
+   R-H2:   g₀² w₀ b₀²  + P₀ =  g₂² w₂ b₂²  + P₂ + Q_px
+   R-H3:   g₀² w₀ b₀ c      =  g₂² w₂ b₂ c      + Q_en
+where
+   w    = E_rm + E_ke + P,   <--- enthalpy as total energy density + pressure
+   E_rm =      nmc²          <--- rest mass energy density
+   E_ke = (γ-1)nmc²          <--- kinetic energy density, with γ = √(1 + (p/mc)²)
+   P    =     ⅓npv           <--- pressure
+
+For closure, it is assumed that the two escaping fluxes are related by
+    Q_en = √[(1+β₀)/2] * Q_px * c,
+i.e. the geometric mean of the arithmetic mean of u₀ and c. This allows the solution to
+smoothly join with the non-relativstic version. Use only fluid component of
+fluxes, not fluid+EM, for now.
+"""
 function q_esc_calcs_relativistic()
     # Factor relating Q_en and Q_px
     q_fac = c * √((1 + β₀)/2)
