@@ -5,6 +5,8 @@ using .transformers: transform_p_PS
 const _pf_spike_away = 1000.0
 
 """
+    particle_finish!(...)
+
 Handles particles that leave the system during loop_helix for any reason.
 
 ### Arguments

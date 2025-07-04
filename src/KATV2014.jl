@@ -1,4 +1,6 @@
 """
+    get_σ_π(Tₚ, i_data, s_ECM)
+
 Implementation of code from Kafexhiu et al. (2014)
 
 ### References

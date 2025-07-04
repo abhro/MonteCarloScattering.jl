@@ -1,26 +1,28 @@
 """
+    thermo_calcs(...)
+
 Reads in the PSD -- as well as the thermal arrays & scratch file -- to
 calculate the pressure (which may be anisotropic) everywhere on the grid.
 
 ### Arguments
 
-- num_crossings: array containing number of thermal particle crossings recorded at each grid zone
-- n_cr_count: total number (up to na_cr) of thermal particle crossings; signals whether
+- `num_crossings`: array containing number of thermal particle crossings recorded at each grid zone
+- `n_cr_count`: total number (up to na_cr) of thermal particle crossings; signals whether
   scratch file was used
-- therm_grid: array of grid zone number for thermal crossings
-- therm_pₓ_sk: array of x-momentum for thermal crossings
-- therm_ptot_sk: array of total momentum for thermal crossings
-- therm_weight: array of flux-adjusted particle weights for thermal particle crossings
-- nc_unit: unit number for the scratch file holding crossing data
-- psd: 3-D phase space distribution holding shock-frame ptot and cos(θ) for all recorded CR
+- `therm_grid`: array of grid zone number for thermal crossings
+- `therm_pₓ_sk`: array of x-momentum for thermal crossings
+- `therm_ptot_sk`: array of total momentum for thermal crossings
+- `therm_weight:` array of flux-adjusted particle weights for thermal particle crossings
+- `nc_unit`: unit number for the scratch file holding crossing data
+- `psd:` 3-D phase space distribution holding shock-frame ptot and cos(θ) for all recorded CR
   grid crossings
-- zone_pop: (Lorentz-invariant) number of particles in each grid zone
+- `zone_pop`: (Lorentz-invariant) number of particles in each grid zone
 
 ### Returns
 
-- pressure_psd_par: component of pressure parallel to magnetic field
-- pressure_psd_perp: component of pressure perpendicular to magnetic field
-- energy_density_psd: local kinetic energy density of fluid in every grid zone
+- `pressure_psd_par`: component of pressure parallel to magnetic field
+- `pressure_psd_perp`: component of pressure perpendicular to magnetic field
+- `energy_density_psd`: local kinetic energy density of fluid in every grid zone
 """
 function thermo_calcs(
         num_crossings, n_cr_count, therm_grid, therm_pₓ_sk,
@@ -42,8 +44,8 @@ function thermo_calcs(
     # points of all bins to save time later
     rest_mass_energy = aa_ion[i_ion] * E₀_proton  # Rest mass-energy of the current particle species
 
-    cos_center = zeros(0:psd_max)
-    for jθ in 0:num_psd_θ_bins
+    cos_center = zeros(0:num_psd_θ_bins)
+    for jθ in eachindex(cos_center)
         # Determine current cosines, remembering that psd_θ_bounds has both a
         # linearly-spaced region in cosine and logarithmically-spaced region in θ.
         if jθ > (num_psd_θ_bins - psd_lin_cos_bins)
@@ -175,31 +177,29 @@ function thermo_calcs(
         βᵤ = uₓ_sk_grid[i] / c
 
         # Loop over cells in d²N_sf
-        for jθ in 0:num_psd_mom_bins
-            for k in 0:num_psd_θ_bins
+        for jθ in 0:num_psd_θ_bins, k in 0:num_psd_mom_bins
 
-                psd[k,jθ,i] ≤ 1e-66 && continue # Skip empty zones
+            psd[k,jθ,i] ≤ 1e-66 && continue # Skip empty zones
 
-                cell_weight = psd[k,jθ,i]
+            cell_weight = psd[k,jθ,i]
 
-                # Transform the center of the zone into the new frame
-                cos_θ_sk = cos_center[jθ]
-                ptot_sk  = pt_cgs_center[k]
-                pₓ_sk    = ptot_sk * cos_θ_sk
-                etot_sk  = hypot(ptot_sk*c, rest_mass_energy)
+            # Transform the center of the zone into the new frame
+            cos_θ_sk = cos_center[jθ]
+            ptot_sk  = pt_cgs_center[k]
+            pₓ_sk    = ptot_sk * cos_θ_sk
+            etot_sk  = hypot(ptot_sk*c, rest_mass_energy)
 
-                pₓ_Xf    = γᵤ * (pₓ_sk - βᵤ*etot_sk/c)
-                pt_Xf    = √(ptot_sk^2 - pₓ_sk^2 + pₓ_Xf^2)
+            pₓ_Xf    = γᵤ * (pₓ_sk - βᵤ*etot_sk/c)
+            pt_Xf    = √(ptot_sk^2 - pₓ_sk^2 + pₓ_Xf^2)
 
-                # Get location of center in transformed d²N_pf
-                kpt_Xf = get_psd_bin_momentum(pt_Xf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
-                jθ_Xf = get_psd_bin_angle(pₓ_Xf, pt_Xf, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
+            # Get location of center in transformed d²N_pf
+            kpt_Xf = get_psd_bin_momentum(pt_Xf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
+            jθ_Xf = get_psd_bin_angle(pₓ_Xf, pt_Xf, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
 
-                # And add particle count to the appropriate bin in d²N_pf
-                d²N_pf[jθ_Xf, kpt_Xf, i] += cell_weight
+            # And add particle count to the appropriate bin in d²N_pf
+            d²N_pf[jθ_Xf, kpt_Xf, i] += cell_weight
 
-            end # loop over angles
-        end # loop over ptot
+        end # loop over angles and ptot
 
         mask = (d²N_pf[:,:,i] .> 1e-66)
         norm_fac = sum(d²N_pf[mask...,i])

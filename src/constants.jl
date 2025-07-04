@@ -16,16 +16,24 @@ using UnitfulGaussian: Fr, G
 
 const qₚ_cgs = uconvert(Fr, q, ChargeEquivalence())   # Proton charge in cgs ESU units
 
-const E₀_proton   = mp * c^2 |> erg # proton rest mass energy
-const E₀_electron = me * c^2 |> erg # electron rest mass energy
+"Proton rest mass energy"
+const E₀_proton   = mp * c^2 |> erg
+"Electron rest mass energy"
+const E₀_electron = me * c^2 |> erg
 
-const B_CMB0 = 3.27e-6G  # Equivalent B field to CMB energy density at a redshift of 0
-const T_CMB0 = 2.725K    # Temperature of CMB at a redshift of 0
+"Equivalent B field to CMB energy density at a redshift of 0"
+const B_CMB0 = 3.27e-6G
+"Temperature of CMB at a redshift of 0"
+const T_CMB0 = 2.725K
 
-const T_th  = 0.2797GeV                 # Threshold kinetic energy, for pion production
-const M_res = 1.1883GeV                 # Resonance mass
-const Γ_res = 0.2264GeV                 # Resonance width
-const rmpi  = 0.134976GeV               # Neutral pion rest energy
+"Threshold kinetic energy, for pion production"
+const T_th  = 0.2797GeV
+"Resonance mass"
+const M_res = 1.1883GeV
+"Resonance width"
+const Γ_res = 0.2264GeV
+"Neutral pion rest energy"
+const rmpi  = 0.134976GeV
 
 const Tₜₕ = T_th # alias
 

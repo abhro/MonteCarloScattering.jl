@@ -4,6 +4,8 @@ using .parameters: na_photons, energy_rel_pt
 using .io: print_plot_vals
 
 """
+    photon_IC(...)
+
 Calculates photon production by inverse Compton emission for a provided distribution of electrons.
 
 While the subroutine can handle any number of photon distributions, and can readily be

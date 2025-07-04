@@ -1,41 +1,39 @@
 using .parameters: psd_max
 
 """
+    identify_corners(...)
+
 Given particular cell in PSD, identify the corners with lowest and highest
 total momenta and the lower/higher of the two remaining cos(θ) values.
 
 ### Arguments
 
-- i: marker for location on the total momentum axis
-- j: marker for location on the cos(θ) axis
-- transform_corner_pt: values of total momentum for the corners of PSD, transformed into desired frame
-- transform_corner_cθ: values of cos(θ) for the corners of PSD, transformed into desired frame
-- ii_sk_pf: integer giving frame into which corners were transformed
+- `i`: marker for location on the total momentum axis
+- `j`: marker for location on the cos(θ) axis
+- `transform_corner_pt`: values of total momentum for the corners of PSD, transformed into desired frame
+- `transform_corner_cθ`: values of cos(θ) for the corners of PSD, transformed into desired frame
+- `ii_sk_pf`: integer giving frame into which corners were transformed
 
 ### Returns
 
-- pt_lo_pt: momentum of the corner with lowest total momentum
-- pt_lo_cθ: cos(θ) of the corner with lowest total momentum
-- pt_hi_pt: momentum of the corner with highest total momentum
-- pt_hi_cθ: cos(θ) of the corner with highest total momentum
-- cθ_lo_pt: momentum of the remaining corner with lower cos(θ)
-- cθ_lo_cθ: cos(θ) of the remaining corner with lower cos(θ)
-- cθ_hi_pt: momentum of the remaining corner with higher cos(θ)
-- cθ_hi_cθ: cos(θ) of the remaining corner with higher cos(θ)
-- pt_lo_tied: flag used if multiple cells are tied for lowest ptot
-- pt_hi_tied: flag used if multiple cells are tied for highest ptot
+- `pt_lo_pt`: momentum of the corner with lowest total momentum
+- `pt_lo_cθ`: cos(θ) of the corner with lowest total momentum
+- `pt_hi_pt`: momentum of the corner with highest total momentum
+- `pt_hi_cθ`: cos(θ) of the corner with highest total momentum
+- `cθ_lo_pt`: momentum of the remaining corner with lower cos(θ)
+- `cθ_lo_cθ`: cos(θ) of the remaining corner with lower cos(θ)
+- `cθ_hi_pt`: momentum of the remaining corner with higher cos(θ)
+- `cθ_hi_cθ`: cos(θ) of the remaining corner with higher cos(θ)
+- `pt_lo_tied`: flag used if multiple cells are tied for lowest ptot
+- `pt_hi_tied`: flag used if multiple cells are tied for highest ptot
 """
 function identify_corners(i, j, transform_corner_pt, transform_corner_cθ, ii_sk_pf)
 
     # Get momentum and cos(θ) values from the grid
-    corner_pts = [transform_corner_pt[i,   j],
-                  transform_corner_pt[i+1, j],
-                  transform_corner_pt[i,   j+1],
-                  transform_corner_pt[i+1, j+1]]
-    corner_cθs = [transform_corner_cθ[i,   j],
-                  transform_corner_cθ[i+1, j],
-                  transform_corner_cθ[i,   j+1],
-                  transform_corner_cθ[i+1, j+1]]
+    corner_pts = [transform_corner_pt[i,   j],   transform_corner_pt[i+1, j],
+                  transform_corner_pt[i,   j+1], transform_corner_pt[i+1, j+1]]
+    corner_cθs = [transform_corner_cθ[i,   j],   transform_corner_cθ[i+1, j],
+                  transform_corner_cθ[i,   j+1], transform_corner_cθ[i+1, j+1]]
 
     # Pre-set logical array
     mask = fill(true, 4)

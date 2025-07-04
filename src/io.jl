@@ -6,6 +6,8 @@ using UnitfulAstro: pc
 export print_input, print_plot_vals, tcut_print
 
 """
+    tcut_print(...)
+
 If tcuts were tracked during the run, print out the particle counts and spectra at each tcut
 
 ### Arguments

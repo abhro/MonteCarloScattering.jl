@@ -4,6 +4,8 @@ using .parameters: energy_rel_pt, na_cr
 all_flux_spike_away = 1000.0 # Max value for 1/cosine
 
 """
+    all_flux!(...)
+
 Tracks particle flux due to motion on the grid. Also finds number of new grid zone
 
 ### Arguments
@@ -173,6 +175,11 @@ function all_flux!(
     return (i_grid, i_grid_old, n_cr_count, pₓ_esc_UpS, energy_esc_UpS)
 end
 
+"""
+    flux_stream!(...)
+
+TODO
+"""
 function flux_stream!(
         i_range, inj_check, sign_fac,
         pxx_flux, pxz_flux, energy_flux,
