@@ -81,7 +81,7 @@ function get_summed_emission(
     # Determine number of emission types based on whether electrons were used during this run.
     kmax = (count(aa_ion .< 1) < 1) ? 1 : 3
 
-    # Read in data from all threee emission types: pion decay, synchrotron, and inverse Compton
+    # Read in data from all three emission types: pion decay, synchrotron, and inverse Compton
     #-------------------------------------------------------------------------
     for k in 1:kmax
 
@@ -142,7 +142,7 @@ function get_summed_emission(
             photon_flux_in[1:n_photon, i_grid_start[k]:n_grid] .= ic_photon_sum[1:n_photon, i_grid_start[k]:n_grid]
             energy_MeV_in[1:n_photon] .= log10.(energy_IC_MeV[1:n_photon])
 
-        elseif k == 2 # Make sure different formats of synch. and other emission processes are managed
+        elseif k == 2 # Make sure different formats of synchrotron and other emission processes are managed
 
             # First spectrum read in gets slightly special treatment, in that its
             # energy bins are assigned directly to energy_γ_MeV_in without error checking.
@@ -181,7 +181,7 @@ function get_summed_emission(
 
                 end
 
-                # Again, exit the loop if DwS FEB means some grid zones don't have emission recorded
+                # Again, exit the loop if downstream FEB means some grid zones don't have emission recorded
                 m < 0 && break
 
                 read(grid_file_unit,"(2I5,8ES12.3E2)") # Advance past output of print_plot_vals
@@ -228,7 +228,7 @@ function get_summed_emission(
                     photon_flux_in[j,i] = photon_flux_tmp
                 end
 
-                # Again, exit the loop if DwS FEB means some grid zones don't have emission recorded
+                # Again, exit the loop if downstream FEB means some grid zones don't have emission recorded
                 m < 0 && break
 
                 read(grid_file_unit) # Advance past output of print_plot_vals

@@ -61,7 +61,7 @@ function photon_synch(
     # Convert units of energy_γ_cgs and synch_emis
     # Note that synch_emis is energy radiated per second per logarithmic energy bin, i.e.,
     # dP/d(lnE). Its units are [erg/sec].
-    energy_γ_MeV = ustrip(u"MeV", energy_γ_cgs*u"erg")
+    energy_γ_MeV = ustrip(MeV, energy_γ_cgs*erg)
     emis_γ       = max.(synch_emis / (4π*dist_lum^2), 1e-99)
 
     # Don't write out anything if emis_γ is empty; different structure compared to pion
@@ -82,7 +82,7 @@ function photon_synch(
             # Energy in spectrum is area under curve when plotted with a
             # logarithmic energy axis, i.e. [dΦ/d(lnE) * d(lnE)].
             if emis_γ[i] > 1e-99
-                emis_γ_MeV = ustrip(u"MeV", emis_γ[i]*u"erg")  # MeV/(cm²⋅s) at earth
+                emis_γ_MeV = ustrip(MeV, emis_γ[i]*erg)  # MeV/(cm²⋅s) at earth
             else
                 emis_γ_MeV = 1e-99
             end
@@ -96,7 +96,7 @@ function photon_synch(
             #ν_γ = energy_γ_cgs[i]/h_cgs # frequency (ν)
             #ω_γ = energy_γ_cgs[i]/ħ_cgs # ω
 
-            #f_jansky = max(ustrip(u"Jy", emis_γ[i]/ν_γ * u"erg/cm^2"), 1e-99)
+            #f_jansky = max(ustrip(Jy, emis_γ[i]/ν_γ * erg/cm^2), 1e-99)
 
             xMeV_log   = log10(energy_γ_MeV[i])
             xkeV_log   = xMeV_log + 3

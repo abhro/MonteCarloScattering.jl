@@ -19,11 +19,11 @@ function iter_finalize()
     index_mask = (energy_density_psd .== 1e-99)
     Γ_grid[index_mask,2] .= 1e-99
 
-    # Also compute the adiabatic index of particles that were lost DwS
+    # Also compute the adiabatic index of particles that were lost downstream
     Γ_DwS[i_iter] = 1 + ∑P_DwS/∑KEdensity_DwS
 
     # Calculate expected escaping fluxes, now that adiabatic index is known
-    # far DwS. Also average them so that the smoothing subroutine treats
+    # far downstream. Also average them so that the smoothing subroutine treats
     # calculated and actual escaping fluxes identically
     q_esc_cal_pₓ[i_iter], q_esc_cal_energy[i_iter] = q_esc_calcs(Γ_DwS[i_iter],)
     n_avg = min(i_iter, 4)
