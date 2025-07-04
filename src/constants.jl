@@ -3,7 +3,7 @@ module constants
 export qₚ_cgs
 export E₀_proton, E₀_electron
 export B_CMB0, T_CMB0
-export T_th, M_res, Γ_res, rmp, rmpi
+export T_th, M_res, Γ_res, rmpi
 export Tₜₕ
 
 using PhysicalConstants: CODATA2018
