@@ -24,6 +24,22 @@ UnitfulEquivalences = "da9c4bc3-91c8-4f02-8a40-6b990d2a7e0c"
 UnitfulGaussian = "203183ea-d3ea-452b-8588-590cbae10604"
 
 [compat]
+Cosmology = "1"
+DelimitedFiles = "1"
+Format = "1"
+Glob = "1"
+JLD2 = "0.5"
+OffsetArrays = "1"
+PhysicalConstants = "0.2"
+PolynomialRoots = "1"
+QuadGK = "2"
+Roots = "2.2"
+StaticArrays = "1.9"
+TOML = "1"
+Unitful = "1.23"
+UnitfulAstro = "1.2"
+UnitfulEquivalences = "0.2"
+UnitfulGaussian = "0.0"
 julia = "1.9"
 
 [sources]
