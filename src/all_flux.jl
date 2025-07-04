@@ -1,7 +1,7 @@
 using .constants: E₀_proton
 using .parameters: energy_rel_pt, na_cr
 
-all_flux_spike_away = 1000.0 # Max value for 1/cosine
+const all_flux_spike_away = 1000.0 # Max value for 1/cosine
 
 """
     all_flux!(...)
@@ -135,7 +135,6 @@ function all_flux!(
     end
 
 
-
     # Main loop for all_flux: depending on motion of particle, travel UpS or DwS and update
     # fluxes across all zone boundaries the particle crossed. WARNING: the particle quantity
     # "weight" is the fraction of the far UpS density each particle represents. However, the
@@ -203,14 +202,14 @@ function flux_stream!(
 
         # Update fluxes; note the minus signs in sign_fac force pxx_flux to increase
         # (because particle is moving upstream and p_sk.x < 0) and force energy_flux to decrease
-        @debug "About to update" sign_fac p_sk weight γ₀ u₀ energy_flux_add pxx_flux pxz_flux energy_flux
-        pxx_flux[i]    += sign_fac *  p_sk.x *weight * γ₀*u₀ / 1u"cm^3" # FIXME why 1u"cm^3" here?
-        pxz_flux[i]    +=         abs(p_sk.z)*weight * γ₀*u₀ / 1u"cm^3" # FIXME why 1u"cm^3" here?
-        energy_flux[i] += sign_fac * energy_flux_add * γ₀*u₀ / 1u"cm^3"
+        #@debug "About to update" sign_fac p_sk weight γ₀ u₀ energy_flux_add pxx_flux pxz_flux energy_flux
+        pxx_flux[i]    += sign_fac *  p_sk.x *weight * γ₀*u₀ / cm^3 # FIXME why cm^3 here?
+        pxz_flux[i]    +=         abs(p_sk.z)*weight * γ₀*u₀ / cm^3 # FIXME why cm^3 here?
+        energy_flux[i] += sign_fac * energy_flux_add * γ₀*u₀ / cm^3
 
         # Update PSD, or add to list of tracked thermal particles
         if inj
-            psd[i_pt, jθ, i] += weight * abs_inv_vx_sk
+            psd[i_pt, jθ, i] += weight * ustrip(s/cm, abs_inv_vx_sk) # FIXME dimensionality
         else
             # Particle is a thermal particle. Increment crossing counter and attempt to add
             # entry to the various arrays. If arrays already full, write out crossing data to

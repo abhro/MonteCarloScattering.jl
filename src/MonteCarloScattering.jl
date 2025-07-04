@@ -2,19 +2,35 @@ import Random
 using Dates
 using JLD2
 using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
-using Unitful: g, K, cm, s, erg, keV, GeV
+using Unitful: g, K, cm, s, dyn, erg, keV, GeV
 using Unitful: mp, me, c, q, k as kB, h, ħ    # physical constants
-using UnitfulGaussian: Fr, G
+using UnitfulGaussian: Fr, G, qcgs
+using PhysicalConstants.CODATA2018: σ_e as σ_T
 using Cosmology
 using Statistics: mean
 using StaticArrays
 using OffsetArrays
 using JuliaInterpreter
 
+module CGSTypes
+using Unitful: g, K, cm, s, dyn, erg, keV, GeV
+using UnitfulGaussian: Fr, G, qcgs
+export LengthCGS, TimeCGS, MomentumCGS, BFieldCGS, MomentumFluxCGS, MomentumDensityFluxCGS, EnergyFluxCGS, EnergyDensityFluxCGS
+const LengthCGS              = typeof(1.0 * cm)
+const TimeCGS                = typeof(1.0 * s)
+const MomentumCGS            = typeof(1.0 * g*cm/s)
+const BFieldCGS              = typeof(1.0 * G)
+const MomentumFluxCGS        = typeof(1.0 * g*cm^2/s^2) # (g*cm/s) * cm/s
+const MomentumDensityFluxCGS = typeof(1.0 * erg/cm^3)
+const EnergyFluxCGS          = typeof(1.0 * erg*cm/s)
+const EnergyDensityFluxCGS   = typeof(1.0 * erg/(cm^2*s))
+end
+using .CGSTypes
+
 include("parameters.jl"); using .parameters
 include("constants.jl"); using .constants
 include("utils.jl")
-include("initializers.jl")
+include("initializers.jl"); using .initializers
 include("io.jl")
 include("transformers.jl"); using .transformers
 include("cosmo_calc.jl"); using .cosmo_calc
@@ -34,15 +50,6 @@ begin
     include("ion_init.jl")
     include("ion_finalize.jl")
 end
-
-const LengthCGS              = typeof(1.0cm)
-const TimeCGS                = typeof(1.0s)
-const MomentumCGS            = typeof(1.0g*cm/s)
-const BFieldCGS              = typeof(1.0G)
-const MomentumFluxCGS        = typeof(1.0erg) # (g*cm/s) * cm/s
-const MomentumDensityFluxCGS = typeof(1.0erg/cm^3)
-const EnergyFluxCGS          = typeof(1.0erg*cm/s)
-const EnergyDensityFluxCGS   = typeof(1.0erg/(cm^2*s))
 
 
 # Start the wall clock for this run
@@ -67,8 +74,8 @@ psd_θ_min  = psd_θ_fine / 10^psd_log_θ_decs
 @debug("Phase space angle parameters", psd_cos_fine, psd_θ_fine, psd_θ_min)
 
 if inp_distr == 1
-    # Set minimum PSD energy using thermal distribution for UpS plasma
-    Emin_keV = uconvert(u"keV", minimum(temperature.(species)), Thermal())
+    # Set minimum PSD energy using thermal distribution for upstream plasma
+    Emin_keV = uconvert(keV, minimum(temperature.(species)), Thermal())
 
     # Allow for a few extra zones below the thermal peak
     Emin_keV *= emin_therm_fac
@@ -84,12 +91,12 @@ end
 # relativistic/nonrelativistic calculation.
 psd_mom_min = let
     rest_mass_min = minimum(mass.(species))
-    rest_energy_min = uconvert(u"erg", rest_mass_min, MassEnergy())
+    rest_energy_min = uconvert(erg, rest_mass_min, MassEnergy())
     if Emin_keV < 1e-3*rest_energy_min
         √(2 * rest_mass_min * Emin_keV)
     else
         γ = 1 + Emin_keV/rest_energy_min
-        rest_mass_min*u"c" * √(γ^2 - 1)
+        rest_mass_min*c * √(γ^2 - 1)
     end
 end
 
@@ -98,20 +105,20 @@ end
 # "ENMAX"
 psd_mom_max = let
     rest_mass_max = maximum(mass.(species))
-    rest_energy_max = uconvert(u"erg", rest_mass_max, MassEnergy())
-    if Emax_keV > 0u"keV"
+    rest_energy_max = uconvert(erg, rest_mass_max, MassEnergy())
+    if Emax_keV > 0keV
         γ = 1 + Emax_keV/rest_energy_max
-        rest_mass_max*u"c" * √(γ^2 - 1)
-    elseif Emax_keV_per_aa > 0u"keV"
+        rest_mass_max*c * √(γ^2 - 1)
+    elseif Emax_keV_per_aa > 0keV
         γ = 1 + Emax_keV_per_aa/E₀_proton
-        rest_mass_max*u"c" * √(γ^2 - 1)
-    elseif pmax_cgs > 0u"mp*c"
+        rest_mass_max*c * √(γ^2 - 1)
+    elseif pmax_cgs > 0g*cm/s
         pmax_cgs
     else
         # Something has gone very wrong.
         error("Max CR energy not set in data_input, so can not set PSD bins.")
     end
-end |> u"g*cm/s"
+end |> g*cm/s
 
 # Adjust max momentum based on a SF->PF Lorentz transform
 psd_mom_max *= 2γ₀
@@ -144,7 +151,7 @@ begin # "module" iteration_vars
     # Arrays for holding thermal distribution information; they're set at the start of
     # the run, but included here because of chance they could change due to fast push
     n_pts_MB   = zeros(Int, n_ions)
-    ptot_inj   = zeros(typeof(1.0u"g*cm/s"), na_particles, n_ions)
+    ptot_inj   = zeros(MomentumCGS, na_particles, n_ions)
     weight_inj = zeros(na_particles, n_ions)
     # Arrays for holding information about particle counts and spectra at various tcuts
     weight_coupled  = Matrix{Float64}(undef, na_c, n_ions)
@@ -204,7 +211,7 @@ if cosmo_var == 1
     # figure out scoping issues
     redshift = get_redshift(jet_dist_Mpc)
 else
-    jet_dist_Mpc = ustrip(u"Mpc", comoving_radial_distance(cosmo_calc_params.cosmo, redshift))
+    jet_dist_Mpc = ustrip(Mpc, comoving_radial_distance(cosmo_calc_params.cosmo, redshift))
 end
 
 
@@ -216,11 +223,10 @@ end
 # comes from average over pitch and is Eq (16) of Sturner+ (1997) [1997ApJ...490..619S].
 # Note the extra factor of c in the denominator, because code tracks dp/dt, not dE/dt as
 # given in Sturner+ (1997).
-σ_T = 8π/3 * (ustrip(u"Fr^2/erg", qₚ_cgs^2 / E₀_electron) * u"cm")^2 |> u"cm^2" # Thomson scattering cross-section
 # unit shenanigans because of overflow
 rad_loss_fac = 4//3 * c * σ_T / (c^3 * me^2 * 8π) |> u"s^2/g^2"
 B_CMBz = B_CMB0 * (1 + redshift)^2
-@debug "Calculated radiation loss constants" σ_T rad_loss_fac B_CMBz
+@debug "Calculated radiation loss constants" rad_loss_fac B_CMBz
 
 
 # Zero out total escaping fluxes and calculate the far UpS fluxes

@@ -1,4 +1,3 @@
-using .constants: qₚ_cgs
 using .parameters: na_c
 
 # Floating point error can cause sin_Δφ to fall outside [-1,1]; place
@@ -38,7 +37,7 @@ particle (its PRP1→DwS→PRP2 path) resembles on average its backwards history
 - ptot_pf: total plasma frame momentum of particle
 - pb_pf/p_perp_b_pf: components of ptot_pf parallel/perpendicular to B field
 - γₚ_pf: Lorentz factor associated with ptot_pf
-- gyro_denom: denominator of gyroradius fraction, zz*qₚ_cgs*bmag
+- gyro_denom: denominator of gyroradius fraction, zz*qcgs*bmag
 - acctime_sec: total accumulated acceleration time
 - tcut_curr: current tcut for particle tracking
 """
@@ -98,10 +97,10 @@ function retro_time(
         if use_custom_εB
             bmag       = btot_grid[n_grid] * √(x_grid_stop / x_PT)
             B_tot_sq   = bmag^2 + B_CMB_loc^2
-            gyro_denom = 1 / (zz*qₚ_cgs * bmag)
+            gyro_denom = 1 / (zz * bmag)
         end
-        gyro_rad_cm     = p_perp_b_pf * c * gyro_denom
-        gyro_rad_tot_cm =     ptot_pf * c * gyro_denom
+        gyro_rad_cm     = p_perp_b_pf * c * gyro_denom |> cm
+        gyro_rad_tot_cm =     ptot_pf * c * gyro_denom |> cm
 
         # Update φ_rad
         φ_rad = mod2pi(φ_rad_old + φ_step)
@@ -110,7 +109,8 @@ function retro_time(
         # pb_pf*t_step*m_pt/γₚ_pf, but t_step = t_step_fac*γₚ_pf, so the
         # factors of γₚ_pf divide out
         t_step      =         t_step_fac * γₚ_pf
-        x_move_bpar = pb_pf * t_step_fac * aa*mp
+        @debug "" pb_pf t_step_fac aa mp gyro_denom xn_per
+        x_move_bpar = pb_pf * t_step_fac * aa*mp |> cm
 
 
         # Move particle and update the acceleration time; note that we don't

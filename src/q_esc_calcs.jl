@@ -1,6 +1,8 @@
 using .parameters: β_rel_fl
 
 """
+    q_esc_calcs(...)
+
 Use the Rankine-Hugoniot relations to calculate the escaping momentum & energy flux.
 """
 function q_esc_calcs(

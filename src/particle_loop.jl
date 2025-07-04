@@ -32,8 +32,8 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
 
     r_PT_cm = SVector{3,LengthCGS}(x_PT_cm_new[i_prt], # x
                                    # Not currently tracked, but could be added in at later date
-                                   0.0u"cm", # y
-                                   0.0u"cm") # z
+                                   0.0cm, # y
+                                   0.0cm) # z
 
     γₚ_pf = hypot(1, ptot_pf/mc)
 
@@ -43,12 +43,10 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
     if use_custom_εB && (r_PT_cm.x > x_grid_stop)
         gyro_denom *=  √(r_PT_cm.x / x_grid_stop)
     end
-    @debug "Calculated gyro_denom" gyro_denom
 
     # Gyroradius assuming all motion is perpendicular to B field;
     # pitch-angle-correct gyroradius is gyro_rad_cm
-    global gyro_rad_tot_cm = ptot_pf * c * gyro_denom |> u"cm"
-    @debug "Calculated gyro_rad_tot_cm" gyro_rad_tot_cm
+    global gyro_rad_tot_cm = ptot_pf * c * gyro_denom |> cm
 
     # Gyroperiod in seconds
     gyro_period_sec = 2π * γₚ_pf * aa*mp * c * gyro_denom
@@ -111,7 +109,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
     i_reason = 0
     lose_pt  = false
 
-    r_PT_old = SVector{3,LengthCGS}(0u"cm", 0u"cm", 0u"cm")
+    r_PT_old = SVector{3,LengthCGS}(0cm, 0cm, 0cm)
     while keep_looping # loop_helix
 
         # Track number of times through the main loop. This will only be
@@ -164,7 +162,6 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
             end
 
             gyro_denom = 1 / (zz * bmag)
-            @debug "Calculated gyro_denom" gyro_denom
 
             # If particle crossed a velocity gradient, find its new shock frame properties
             if uₓ_sk != uₓ_sk_old
@@ -193,7 +190,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
                 i_stop  = min(i_grid, i_shock)
 
                 # Subtract energy from the ions and add it to the pool of energy for this grid zone.
-                @debug "" i_start i_stop i_grid i_shock
+                #@debug "" i_start i_stop i_grid i_shock
                 if aa ≥ 1 && maximum(ε_target[i_start+1:i_stop]) > 0
 
                     # Subtract energy based on the difference between current
@@ -315,7 +312,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
                 ptot_pf = electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, rad_loss_fac, ptot_pf, t_step)
 
                 # Catch electrons that have somehow lost all their energy in a single time step
-                if ptot_pf ≤ 0u"g*cm/s"
+                if ptot_pf ≤ 0g*cm/s
                     ptot_pf = 1e-99MomentumCGS
                     pb_pf = 1e-99MomentumCGS
                     p_perp_b_pf = 1e-99MomentumCGS
@@ -331,7 +328,6 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
                 # Modify components of ptot_pf due to losses
                 pb_pf       *= ptot_pf/ptot_pf_old
                 p_perp_b_pf *= ptot_pf/ptot_pf_old
-                @debug "After electron radiation loss" ptot_pf pb_pf p_perp_b_pf
 
                 # Also recalculate gyroradii
                 gyro_rad_tot_cm =     ptot_pf * c * gyro_denom |> cm
@@ -347,9 +343,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
                     aa, gyro_denom, ptot_pf, γₚ_pf, xn_per, pb_pf, p_perp_b_pf, φ_rad,
                     use_custom_frg, pₑ_crit, γₑ_crit, η_mfp,
                 )
-                @debug("Didn't scatter. Got", gyro_period_sec, pb_pf, p_perp_b_pf, φ_rad)
             end
-
 
             # Update acceleration time in explosion frame, so convert t_step from plasma frame
             # Only start the clock once a particle has crossed the shock for the first time
@@ -401,13 +395,13 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
 
 
         # Find time step
-        global t_step = gyro_period_sec / xn_per |> u"s"
+        global t_step = gyro_period_sec / xn_per |> s
 
         # Odd little loop that only matters if DSA has been disabled per the input file
         #------------------------------------------------------------------------------
         (; pb_pf, φ_rad, x_move_bpar, r_PT_cm) = no_DSA_loop(
             φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA,
-            inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk)
+            inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion)
         #----------------------------------------------------------------
         # DSA injection prevented if specified
 
@@ -472,7 +466,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
         # If particle escaped DwS, handle final calculations here
         if i_return == 0
 
-            vel = ptot_pf / (aa*mp) |> u"cm/s"
+            vel = ptot_pf / (aa*mp) |> cm/s
             if (γₚ_pf - 1) ≥ energy_rel_pt
                 vel /= γₚ_pf
             end
@@ -521,7 +515,7 @@ end
 
 function no_DSA_loop(
         φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA,
-        inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk)
+        inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion)
     local x_move_bpar
     while true # loop_no_DSA
 
@@ -537,11 +531,8 @@ function no_DSA_loop(
       # Remember to take gyration about magnetic field into account
       φ_rad = mod2pi(φ_rad + 2π/xn_per)
 
-      x_move_bpar = pb_pf * t_step / (γₚ_pf * aa*mp) |> u"cm"
+      x_move_bpar = pb_pf * t_step / (γₚ_pf * aa*mp) |> cm
 
-      @debug("With params", γᵤ_sf, x_move_bpar, b_cosθ
-                          , gyro_rad_cm , b_sinθ , φ_rad, φ_rad_old
-                          , uₓ_sk , t_step)
       Δx_PT_cm = γᵤ_sf * (x_move_bpar * b_cosθ
                           - gyro_rad_cm * b_sinθ * (cos(φ_rad)-cos(φ_rad_old))
                           + uₓ_sk * t_step)
@@ -589,10 +580,8 @@ function electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, rad_loss_fac, p, Δt)
     # Note that here dp_synch is actually dp/p. If this value is too large we will
     # directly integrate from p_i to get p_f, since the discrete approach would
     # result in too high a loss in a single time step
-    # FIXME unit shenanigans here. confirm that the unit in ustrip
-    # is equal to 1.
-    dp_synch = ustrip(u"cm*s^2*G^2/g", rad_loss_fac * (bmag^2 + B_CMB_loc^2) * p * Δt)
-    @debug "In rad losses" B_CMB_loc rad_loss_fac bmag p Δt dp_synch
+    # FIXME unit shenanigans here. confirm that the unit in ustrip is equal to 1.
+    dp_synch = rad_loss_fac * (bmag^2 + B_CMB_loc^2) * p * Δt |> NoUnits
 
     # Correction to make sure electrons don't lose too much energy in a single time step
     if dp_synch > 1e-2
@@ -607,7 +596,7 @@ end
 function downstream_test(feb_DwS, prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, i_return)
     do_prob_ret = true
 
-    if feb_DwS > 0u"cm" && r_PT_cm.x > feb_DwS
+    if feb_DwS > 0cm && r_PT_cm.x > feb_DwS
 
         # Particle flagged as escaping downstream
         i_return    = 0

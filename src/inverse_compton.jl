@@ -1,5 +1,5 @@
 # using Unitful, UnitfulAstro
-using .constants: E₀_proton, E₀_electron, qₚ_cgs, T_CMB0, kB
+using .constants: E₀_proton, E₀_electron, T_CMB0, kB
 using .parameters: na_photons, energy_rel_pt
 using .io: print_plot_vals
 
@@ -84,7 +84,7 @@ function photon_IC(
         # log energy bin, i.e. dP/(d(lnE)-dA). Pion production and synchrotron both require
         # processing from dP/d(lnE). The units of ic_emis are [erg/s⋅cm²].
         for i in 1:n_photon_IC
-            energy_γ_MeV[i] = ustrip(u"MeV", energy_γ_cgs[i]*u"erg")
+            energy_γ_MeV[i] = ustrip(MeV, energy_γ_cgs[i]*erg)
 
             # Add the current photon flux to the running total over all fields
             if ic_emis[i] > 1e-99
@@ -106,7 +106,7 @@ function photon_IC(
             # Energy in spectrum is area under curve when plotted with a
             # logarithmic energy axis, i.e. [dΦ/d(lnE) * d(lnE)].
             if ic_emis[i] > 1e-99
-                emis_γ_MeV = ustrip(u"MeV", ic_emis[i]*u"erg")  # MeV/(cm²⋅s) at earth
+                emis_γ_MeV = ustrip(MeV, ic_emis[i]*erg)  # MeV/(cm²⋅s) at earth
             else
                 emis_γ_MeV = 1e-99
             end
@@ -165,23 +165,23 @@ from a given electron distribution upscattering a specified photon field.
 
 ### Arguments
 
-- num_psd_mom_bins: number of momentum bins in the distribution of particles
-- p_pf_cgs_cr: momentum boundary values, cgs units, of cosmic ray distribution histogram
-- num_psd_θ_bins: number of angular bins in the distribution array
-- cos_bounds: boundaries of the angular cosine bins for determining CR pitch angle
-- d²N_slice: particle distribution array. It is pure number of particles
+- `num_psd_mom_bins`: number of momentum bins in the distribution of particles
+- `p_pf_cgs_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
+- `num_psd_θ_bins`: number of angular bins in the distribution array
+- `cos_bounds`: boundaries of the angular cosine bins for determining CR pitch angle
+- `d²N_slice`: particle distribution array. It is pure number of particles
   in each dp (NOT per dp), split by pitch angle (NOT per pitch angle)
-- n_photon_IC: number of energy bins to use for photon production
-- j3: which photon field to use (e.g. CMB, synchrotron photons, etc.)
-- photon_ic_min_MeV: minimum photon energy, in MeV, to use for IC spectrum
-- bins_per_dec_photon: number of energy bins per decade of photon spectrum
-- dist_lum: luminosity distance (i.e. including redshift correction) to source
-- redshift: redshift of source, used to adjust photon energies and CMB
+- `n_photon_IC`: number of energy bins to use for photon production
+- `j3`: which photon field to use (e.g. CMB, synchrotron photons, etc.)
+- `photon_ic_min_MeV`: minimum photon energy, in MeV, to use for IC spectrum
+- `bins_per_dec_photo`n: number of energy bins per decade of photon spectrum
+- `dist_lum`: luminosity distance (i.e. including redshift correction) to source
+- `redshift`: redshift of source, used to adjust photon energies and CMB
 
 ### Returns
 
-- energy_γ_cgs: energy bin values of resultant photon distribution
-- ic_emis: observed IC spectrum at Earth, units of erg/sec-cm^2. Note that this is NOT the
+- `energy_γ_cgs`: energy bin values of resultant photon distribution
+- `ic_emis`: observed IC spectrum at Earth, units of erg/(sec⋅cm²). Note that this is NOT the
   same units as produced by the other two photon production subroutines. They do not
   convert to flux, while IC_emission_FCJ does.
 """
@@ -194,7 +194,7 @@ function IC_emission_FCJ(
 
     # Constants that will be used during the calculation
     #----------------------------------------------------------------------------
-    photon_out_erg_min = ustrip(u"erg", photon_ic_min_MeV*u"MeV") # Minimum photon energy in erg
+    photon_out_erg_min = ustrip(erg, photon_ic_min_MeV*MeV) # Minimum photon energy in erg
 
     photon_out_min_rm  = photon_out_erg_min/E₀_electron  # minimum en/(mₑc²)
     photon_out_min_log = log10(photon_out_min_rm)
@@ -211,7 +211,7 @@ function IC_emission_FCJ(
     jθ_max = findfirst(>(2jet_sph_frac - 1), cos_bounds)
 
     # for Eq.(9), Frank Jones, PhysRev. 1968, V.167, p.1159
-    r_z = qₚ_cgs^2/E₀_electron
+    r_z = qcgs^2/E₀_electron
     #-------------------------------------------------------------------------
     # End constants section
 

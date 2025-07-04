@@ -17,16 +17,16 @@ const u₀, β₀, γ₀ = let
         skspd > 1 || error("SKSPD: Lorentz factor must be > 1")
         γ = skspd
         β = √(1 - 1/γ^2)
-        u = β * Unitful.c |> u"cm/s"
+        u = β * c |> cm/s
     else
         if skspd_unit == "km/s"
-            0 < skspd < ustrip(u"km/s", Unitful.c0) || error("SKSPD: u must be between 0 and c")
-            u = (skspd * 1e5)u"cm/s"
+            0 < skspd < ustrip(km/s, Unitful.c0) || error("SKSPD: u must be between 0 and c")
+            u = (skspd * 1e5) * cm/s
             β = u / c
         elseif skspd_unit == "c"
             0 < skspd < 1 || error("SKSPD: β must be between 0 and 1")
             β = skspd
-            u = β * Unitful.c |> u"cm/s"
+            u = β * c |> cm/s
         else
             error("SKSPD: unknown units provided with SKSPD_UNIT")
         end
@@ -39,7 +39,7 @@ end
 const species = let
     masses = cfg_toml["AA_ION"] # species mass in units of proton mass
     electron_index = findfirst(isnan, masses)
-    masses[electron_index] = NoUnits(u"me/mp") # electron mass over proton mass
+    masses[electron_index] = NoUnits(me/mp) # electron mass over proton mass
 
     charges = cfg_toml["ZZ_ION"]
     charges[electron_index] = -1
@@ -51,12 +51,12 @@ const species = let
         error("Inconsistent number of ion parameters given (AA_ION, ZZ_ION, TZ_ION, DENZ_ION)")
     end
 
-    Species.(masses*u"mp", charges*qₚ_cgs, temperatures*u"K", densities*u"cm^-3")
+    Species.(masses*mp, charges*qcgs, temperatures*K, densities/cm^3)
 end
 const n_ions = length(species)
 
 const inp_distr = cfg_toml["INDST"]
-const energy_inj = cfg_toml["ENINJ"] * u"keV"
+const energy_inj = cfg_toml["ENINJ"] * keV
 const inj_weight = get(cfg_toml, "INJWT", true)
 
 const Emax_keV, Emax_keV_per_aa, pmax_cgs = let
@@ -87,7 +87,7 @@ const η_mfp = get(cfg_toml, "GYFAC", 1)
 const bmag₀ = cfg_toml["BMAGZ"]*G
 # rg₀ below is the gyroradius of a proton whose speed is u₀ that is gyrating in a field
 # of strength bmag₀. Note that this formula is relativistically correct
-const rg₀ = (γ₀ * E₀_proton * β₀) / (qₚ_cgs * bmag₀) |> cm
+const rg₀ = (γ₀ * E₀_proton * β₀) / (qcgs * bmag₀) |> cm
 
 
 begin
@@ -115,7 +115,7 @@ const feb_UpS = let
     if febup[1] < 0
         feb_UpS = febup[1] * rg₀
     elseif febup[2] < 0
-        feb_UpS = uconvert(u"cm", febup[2] * u"pc")
+        feb_UpS = uconvert(cm, febup[2] * pc)
     else
         error("FEBUP: at least one choice must be negative.")
     end
@@ -134,9 +134,9 @@ const feb_DwS, use_prp = let
     if febdw[1] > 0
         feb_DwS = febdw[1] * rg₀
     elseif febdw[2] > 0
-        feb_DwS = uconvert(u"cm", febdw[2] * u"pc")
+        feb_DwS = uconvert(cm, febdw[2] * pc)
     else
-        feb_DwS = 0.0u"cm"
+        feb_DwS = 0.0cm
         use_prp = true
     end
     (feb_DwS, use_prp)
@@ -168,25 +168,25 @@ begin
     const n_pcuts = length(pcuts_in)
     n_pcuts+1 > na_c && error("PCUTS: parameter na_c smaller than desired number of pcuts.")
 
-    if Emax_keV > 0u"keV"
+    if Emax_keV > 0keV
         # Convert from momentum[mₚc/aa] to energy[keV]
-        Emax_eff = 56 * pcuts_in[n_pcuts-1] * ustrip(u"keV", E₀_proton*u"erg")
+        Emax_eff = 56 * pcuts_in[n_pcuts-1] * ustrip(keV, E₀_proton*erg)
 
         if Emax_keV > Emax_eff
             error("PCUTS: max energy exceeds highest pcut. Add more pcuts or lower Emax_keV. ",
                   "Emax_keV (assuming Fe) = $Emax_keV; Emax_eff = $Emax_eff")
         end
-    elseif Emax_keV_per_aa > 0u"keV"   # Limit was on energy per nucleon
+    elseif Emax_keV_per_aa > 0keV   # Limit was on energy per nucleon
         # Convert from momentum[mₚc/aa] to energy[keV/aa]
-        Emax_eff = pcuts_in[n_pcuts-1] * ustrip(u"keV", E₀_proton*u"erg")
+        Emax_eff = pcuts_in[n_pcuts-1] * ustrip(keV, E₀_proton*erg)
 
         if Emax_keV_per_aa > Emax_eff
             error("PCUTS: max energy per aa exceeds highest pcut. Add more pcuts or lower Emax_keV_per_aa. ",
                   "Emax_keV_per_aa = $Emax_keV_per_aa; Emax_eff/aa = $Emax_eff")
         end
 
-    elseif pmax_cgs > 0u"mp*c" # Limit was on total momentum. Assume Fe for strictest limit on mom/nuc.
-        pmax_eff = 56u"mp*c" * pcuts_in[n_pcuts-1]
+    elseif pmax_cgs > 0mp*c # Limit was on total momentum. Assume Fe for strictest limit on mom/nuc.
+        pmax_eff = 56mp*c * pcuts_in[n_pcuts-1]
         if pmax_cgs > pmax_eff
             error("PCUTS: max momentum exceeds highest pcut. Add more pcuts or lower pmax. ",
                   "pmax[m_pc] = $pmax_cgs; pmax_eff (for Fe) = $pmax_eff")
@@ -278,9 +278,9 @@ end
 
 const pₑ_crit, γₑ_crit = let
 
-    energyₑ_crit_keV = get(cfg_toml, "EMNFP", nothing) * u"keV"
+    energyₑ_crit_keV = get(cfg_toml, "EMNFP", nothing) * keV
     # If needed, convert input energy to momentum and Lorentz factor
-    if !isnothing(energyₑ_crit_keV) && energyₑ_crit_keV > 0u"keV"
+    if !isnothing(energyₑ_crit_keV) && energyₑ_crit_keV > 0keV
         energyₑ_crit_rm = energyₑ_crit_keV / E₀_electron
 
         # Different forms for nonrelativistic and relativstic momenta

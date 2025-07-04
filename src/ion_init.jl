@@ -1,9 +1,8 @@
 function ion_init(i_iter, i_ion, species)
     zz = charge(species[i_ion])
     m = mass(species[i_ion])
-    aa = m/u"mp" |> NoUnits
-
-    mc = aa*mp*c
+    aa = m/mp |> NoUnits
+    mc = m*c
 
     # At the start of each ion, print a glyph to the screen
     @info("Starting species iteration", i_iter, i_ion)
@@ -100,13 +99,13 @@ function assign_particle_properties_to_population!(n_pts_use, xn_per_fine, x_gri
 end
 
 function get_pmax_cutoff(Emax_keV, Emax_keV_per_aa, pmax_cgs)
-    if Emax_keV > 0u"keV"
+    if Emax_keV > 0keV
         γ = 1 + Emax_keV/(aa*E₀_proton)
         pmax_cutoff = aa*mp * c * √(γ^2 - 1)
-    elseif Emax_keV_per_aa > 0u"keV"
+    elseif Emax_keV_per_aa > 0keV
         γ = 1 + Emax_keV_per_aa/E₀_proton
         pmax_cutoff = aa*mp * c * √(γ^2 - 1)
-    elseif pmax_cgs > 0u"mp*c"
+    elseif pmax_cgs > 0g*cm/s
         pmax_cutoff = pmax_cgs
     else
         # Something has gone very wrong.
@@ -117,7 +116,7 @@ function get_pmax_cutoff(Emax_keV, Emax_keV_per_aa, pmax_cgs)
 end
 
 function pcut_hi(energy_pcut_hi, energy_rel_pt, m)
-    E_pcut_hi_rmproton = energy_pcut_hi*u"keV" / E₀_proton # FIXME pick better name
+    E_pcut_hi_rmproton = energy_pcut_hi*keV / E₀_proton # FIXME pick better name
     if E_pcut_hi_rmproton < energy_rel_pt
         p_pcut_hi = √(2 * E_pcut_hi_rmproton)
     else

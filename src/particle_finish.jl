@@ -10,19 +10,20 @@ const _pf_spike_away = 1000.0
 Handles particles that leave the system during loop_helix for any reason.
 
 ### Arguments
-- aa: particle atomic mass
-- pb_pf: component of ptot_pf parallel to magnetic field
-- p_perp_b_pf: component of ptot_pf perpendicular to magnetic field
-- γₚ_pf: Lorentz factor associated with ptot_pf
-- φ_rad: phase angle of gyration; looking UpS, counts clockwise from +z axis
-- uₓ_sk: bulk flow speed along x axis
-- uz_sk: bulk flow speed along z axis
-- utot: total bulk flow speed
-- γᵤ_sf: Lorentz factor associated with utot
-- b_cosθ: component of magnetic field along x axis
-- b_sinθ: component of magnetic field along z axis
-- i_reason: integer reason for why particle left system
-- weight: particle's weight
+- `aa`: particle atomic mass
+- `pb_pf`: component of ptot_pf parallel to magnetic field
+- `p_perp_b_pf`: component of ptot_pf perpendicular to magnetic field
+- `γₚ_pf`: Lorentz factor associated with ptot_pf
+- `φ_rad`: phase angle of gyration; looking upstream, counts clockwise from +z axis
+- `uₓ_sk`: bulk flow speed along x axis
+- `uz_sk`: bulk flow speed along z axis
+- `utot`: total bulk flow speed
+- `γᵤ_sf`: Lorentz factor associated with utot
+- `b_cosθ`: component of magnetic field along x axis
+- `b_sinθ`: component of magnetic field along z axis
+- `i_reason`: integer reason for why particle left system
+- `weight`: particle's weight
+TODO Add the other arguments
 
 ### Modifies
 TODO
@@ -39,35 +40,33 @@ function particle_finish!(
         b_cosθ, b_sinθ, weight, mc,
     )
 
-    @debug("Input arguments:", aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
-           b_cosθ, b_sinθ, i_reason, weight, esc_psd_feb_DwS, esc_psd_feb_UpS, esc_flux,
-           pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
-           i_iter, i_ion, mc)
+    #@debug("Input arguments:", aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
+    #       b_cosθ, b_sinθ, i_reason, weight, esc_psd_feb_DwS, esc_psd_feb_UpS, esc_flux,
+    #       pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
+    #       i_iter, i_ion, mc)
 
 
     # Transform plasma frame momentum into shock frame for binning
     ptot_sk, p_sk, γₚ_sk = transform_p_PS(
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
         b_cosθ, b_sinθ, mc)
-    @debug("Values from transform_p_PS:", ptot_sk, p_sk, γₚ_sk)
+    #@debug("Values from transform_p_PS:", ptot_sk, p_sk, γₚ_sk)
 
-    # Get PSD bins for this particle
+    # Get phase space bins for this particle
     ip = get_psd_bin_momentum(ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
     jθ = get_psd_bin_angle(p_sk.x, ptot_sk, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
 
     if ptot_sk > abs(_pf_spike_away*p_sk.x)
         weight_factor = γₚ_sk * aa*mp * _pf_spike_away / ptot_sk
     else
-        weight_factor = γₚ_sk * aa*mp / abs(p_sk.x)
+        weight_factor = γₚ_sk * ustrip(s/cm, aa*mp / abs(p_sk.x)) # FIXME dimensionality
     end
 
     # Now take additional action based on *how* the particle left the grid
-    if i_reason == 1     # Particle escape: DwS, with or without scattering enabled
-
-        @info "About to increase this boy" weight weight_factor
+    if i_reason == 1     # Particle escape: downstream, with or without scattering enabled
         esc_psd_feb_DwS[ip, jθ] += weight * weight_factor
 
-    elseif i_reason == 2 # Particle escape: pmax, UpS FEB, transverse distance
+    elseif i_reason == 2 # Particle escape: pmax, upstream FEB, transverse distance
 
         esc_flux[i_ion] += weight
         esc_psd_feb_UpS[ip, jθ] += weight * weight_factor
@@ -88,8 +87,8 @@ function particle_finish!(
 
     elseif i_reason == 3 # Particle escape: age_max
 
-        # TODO: write out particles to be read in during a later run, i.e. a
-        # pre-existing population of CRs. Also include new keyword for this purpose
+        # TODO: write out particles to be read in during a later run, i.e. a pre-existing
+        # population of cosmic rays. Also include new keyword for this purpose
 
     elseif i_reason == 4 # Zero energy after radiative losses
 

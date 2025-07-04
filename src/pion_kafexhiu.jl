@@ -60,9 +60,9 @@ function pion_kafexhiu(
 
     # Set parameters that affect energy_γ_cgs and "zero" out emission prior to the calculation
     γ_min_log = log10(photon_pion_min_MeV)
-    energy_γ_cgs = ustrip(u"erg", exp10.(range(start = γ_min_log,
-                                               step = 1/bins_per_dec_photon,
-                                               length = n_photon_pion)) * u"MeV")
+    log_photon_energy_MeV = range(start = γ_min_log, length = n_photon_pion,
+                                  step = 1/bins_per_dec_photon)
+    energy_γ_cgs = ustrip(erg, exp10.(log_photon_energy_MeV) * MeV)
     pion_emis = fill(1e-99, n_photon_pion)
 
     # "1" to use GEANT 4 data
@@ -114,7 +114,7 @@ function pion_kafexhiu(
         #-----------------------------------------------------------------------
         for i_γ in 1:n_photon_pion
 
-            Eγ = ustrip(u"GeV", energy_γ_cgs[i_γ]*u"erg")  # in GeV
+            Eγ = ustrip(GeV, energy_γ_cgs[i_γ]*erg)  # in GeV
 
             # Calculate F function for current value of Tₚ and Eγ
             F_func = get_Ffunc(Tₚ, Eγ, i_data, Eγ_max)
