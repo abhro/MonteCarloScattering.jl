@@ -1,20 +1,17 @@
 module constants
 
-export qₚ_cgs
 export E₀_proton, E₀_electron
 export B_CMB0, T_CMB0
 export T_th, M_res, Γ_res, rmpi
 export Tₜₕ
 
 using PhysicalConstants: CODATA2018
-using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
+using Unitful, UnitfulAstro, UnitfulEquivalences
 using Unitful: g, K, cm, s, erg, keV, GeV
 using Unitful: mp, me, c, q, k as kB, h, ħ    # physical constants
 using UnitfulGaussian: Fr, G
 
 # Physical or arithmetic constants
-
-const qₚ_cgs = uconvert(Fr, q, ChargeEquivalence())   # Proton charge in cgs ESU units
 
 "Proton rest mass energy"
 const E₀_proton   = mp * c^2 |> erg
