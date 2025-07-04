@@ -21,7 +21,7 @@ function get_psd_bin_momentum(ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_ps
         bin = 0
     else
         # Particle falls into logarithmic spacing region
-        @debug("", ptot_sk, psd_mom_min, psd_bins_per_dec_mom)
+        #@debug("", ptot_sk, psd_mom_min, psd_bins_per_dec_mom)
         bin = trunc(Int, log10(ptot_sk/psd_mom_min) * psd_bins_per_dec_mom) + 1
     end
 

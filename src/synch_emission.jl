@@ -1,5 +1,5 @@
 using SpecialFunctions: besselk
-using .constants: E₀_proton, qₚ_cgs, ħ_cgs, c
+using .constants: E₀_proton, ħ_cgs, c
 
 """
     synch_emission(...)
@@ -35,7 +35,7 @@ function synch_emission(
 
     # Minimum energy for synch photon spectrum.
     # Max set by value of n_γ_synch and bins_per_dec_photon.
-    energy_γ_min_log = log10(ustrip(u"erg", photon_synch_min_MeV*u"MeV")) # Min photon energy in log(ergs)
+    energy_γ_min_log = log10(ustrip(erg, photon_synch_min_MeV*MeV)) # Min photon energy in log(ergs)
     Δγ = 1 / bins_per_dec_photon
 
     # Get strength of magnetic field, which will be used to find p_fac below. Note that
@@ -53,7 +53,7 @@ function synch_emission(
     # Rybicki & Lightman eq. 6.18 without F factor.
     # units are power per unit frequency per electron (cgs)
     # Above: Note there is no sin(α) factor
-    p_fac = √3/2π * (qₚ_cgs^3 * bmag_curr/E₀_electron)
+    p_fac = √3/2π * (qcgs^3 * bmag_curr/E₀_electron)
 
 
     # Initialize emission array and set energy of output photons
@@ -116,13 +116,13 @@ function synch_emission_thermal_particles!(synch_emis)
 
         # Assume electrons with E < 3 MeV contribute no synchrotron emission
         p1 = √(p_pf_cgs_therm[iii] * p_pf_cgs_therm[iii+1]) # Geometric mean
-        p1*c*u"erg" < 3u"MeV" && continue
+        p1*c < 3MeV && continue
 
         # Lorentz factor for electron
         γ_electron = hypot(p1/mc, 1)
 
         # Eq. 6.17c Rybicki & Lightman without sin(α)
-        ω_c = 3*(γ_electron^2)*qₚ_cgs*bmag_curr / 2mc
+        ω_c = 3*(γ_electron^2)*qcgs*bmag_curr / 2mc
 
         # Calculate F factor in eq. 6.18 Rybicki & Lightman (see Eq 6.31c)
         #     F(x) ≡ x ∫_x^∞ K_{5/3}(ξ) dξ              (6.31c)
@@ -169,13 +169,13 @@ function synch_emission_cosmic_ray!(synch_emis)
 
         # Assume electrons with E < 3 MeV contribute no synchrotron emission
         p1 = √(p_pf_cgs_cr[iii] * p_pf_cgs_cr[iii+1]) # Geometric mean
-        p1*c*u"erg" < 3u"MeV" && continue
+        p1*c < 3MeV && continue
 
         # Lorentz factor for electron
         γ_electron = hypot(p1/mc, 1)
 
         # Eq. 6.17c Rybicki & Lightman without sin(α)
-        ω_c = 3*(γ_electron^2)*qₚ_cgs*bmag_curr / 2mc
+        ω_c = 3*(γ_electron^2)*qcgs*bmag_curr / 2mc
 
         # Calculate F factor in eq. 6.18 Rybicki & Lightman (see Eq 6.31c)
         #     F(x) ≡ x ∫_x^∞ K_{5/3}(ξ) dξ              (6.31c)

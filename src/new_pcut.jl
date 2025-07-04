@@ -8,27 +8,27 @@ saved particles to form the population of the next pcut
 
 ### Arguments
 TODO
-- n_pts_target
-- n_saved
-- grid_sav
-- tcut_sav
-- l_save
-- DwS_sav
-- inj_sav
-- weight_sav
-- ptot_pf_sav
-- pb_pf_sav
-- x_PT_cm_sav
-- xn_per_sav
-- prp_x_cm_sav
-- acctime_sec_sav
-- φ_rad_sav
+- `n_pts_target`
+- `n_saved`
+- `grid_sav`
+- `tcut_sav`
+- `l_save`
+- `DwS_sav`
+- `inj_sav`
+- `weight_sav`
+- `ptot_pf_sav`
+- `pb_pf_sav`
+- `x_PT_cm_sav`
+- `xn_per_sav`
+- `prp_x_cm_sav`
+- `acctime_sec_sav`
+- `φ_rad_sav`
 
 ### Returns
 TODO
 
 ### Modifies
-- weight_running: weight factor of each particle remaining after this pcut
+- `weight_running`: weight factor of each particle remaining after this pcut
 """
 function new_pcut(
         n_pts_target, n_saved, l_save, grid_sav, DwS_sav,
@@ -37,7 +37,7 @@ function new_pcut(
         n_pts_use, weight_running)
 
     # Determine multiplicity of splitting; perhaps none needed
-    i_mult = max(n_pts_target ÷ n_saved, 1) # In case n_pts_target drops btwn pcuts
+    i_mult = max(n_pts_target ÷ n_saved, 1) # In case n_pts_target drops between pcuts
 
     grid_new        = zeros(Int,        n_pts_use*i_mult)
     tcut_new        = zeros(Int,        n_pts_use*i_mult)

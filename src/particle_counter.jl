@@ -58,7 +58,7 @@ function get_dNdp_cr(
     # Degree of approximation to use in distributing cell_weight if NOT in shock
     # frame (where uniform distribution may be assumed):
     #   i_approx = 0:  assume uniform distribution
-    #   i_approx = 1:  assume isosceles trianglular distribution of cell_weight
+    #   i_approx = 1:  assume isosceles triangular distribution of cell_weight
     #   i_approx = 2:  assume scalene triangular distribution of cell_weight, with
     #                  peak of triangle centered on mean of ct_hi_pt and ct_lo_pt
     #   i_approx = 3:  exact calculation of fractional area, i.e. use no approximations
@@ -222,20 +222,20 @@ function get_dNdp_cr(
         #
         #        write(k_unit,      # fort.90**
         #              k, j_plot,
-        #              ct_bounds[l],                     # 1
-        #              θ,                                # 2
-        #              log10(θ),                         # 3
-        #              i,                                # 4
+        #              ct_bounds[l],                  # 1
+        #              θ,                             # 2
+        #              log10(θ),                      # 3
+        #              i,                             # 4
         #              cθ_pf_xw[l,i]/∑cθ_pf_xw)       # 5
         #
         #        j_plot += 1
         #        if l < num_psd_θ_bins
         #            write(k_unit,    # fort.90**
         #                  k, j_plot,
-        #                  ct_bounds[l+1],               # 1
-        #                  θ_next,                       # 2
-        #                  log10(θ_next),                # 3
-        #                  i,                            # 4
+        #                  ct_bounds[l+1],            # 1
+        #                  θ_next,                    # 2
+        #                  log10(θ_next),             # 3
+        #                  i,                         # 4
         #                  cθ_pf_xw[l,i]/∑cθ_pf_xw)   # 5
         #        end
         #
@@ -258,18 +258,18 @@ function get_dNdp_cr(
         #
         #        write(k_unit,      # fort.90**
         #              k, j_plot,
-        #              ct_bounds[l],                     # 1
-        #              θ,                                # 2
-        #              log10(θ),                         # 3
+        #              ct_bounds[l],                  # 1
+        #              θ,                             # 2
+        #              log10(θ),                      # 3
         #              sum(cθ_pf_xw[l,:])/∑cθ_pf_xw)  # 4
         #
         #        j_plot += 1
         #        if l < num_psd_θ_bins
         #            write(k_unit,
         #                  k, j_plot,    # fort.90**
-        #                  ct_bounds[l+1],                   # 1
-        #                  θ_next,                           # 2
-        #                  log10(θ_next),                    # 3
+        #                  ct_bounds[l+1],                # 1
+        #                  θ_next,                        # 2
+        #                  log10(θ_next),                 # 3
         #                  sum(cθ_pf_xw[l,:])/∑cθ_pf_xw)  # 4
         #        end
         #
@@ -310,7 +310,7 @@ First, use the scratch file and the phase space distribution to generate d²N/(d
 the 2-D version of dN/dp (with extra information about the angular distribution). Combine
 the results from thermal and CR particles into a single d²N/(dp dcos) to save memory.
 After d²N/(dp dcos) is found in the shock frame, transform it to the plasma and ISM frames
-by rebinning the *center* of each shock frame bin. Leave the computationally difficult
+by re-binning the *center* of each shock frame bin. Leave the computationally difficult
 problem of overlap for a later date. Finally, condense each d²N/(dp dcos) into dN/dp for
 comparison against the results of the original dN/dp subroutines.
 
@@ -492,7 +492,7 @@ function get_dNdp_2D(
             norm_factor = 0.0
         end
 
-        # Renormalize all nonempty cells of d²N_dpdcos_sf
+        # Re-normalize all nonempty cells of d²N_dpdcos_sf
         for k in 0:psd_max, jθ in 0:psd_max
             if d²N_dpdcos_sf[jθ,k,i] > 1e-99 && norm_factor > 0
                 d²N_dpdcos_sf[jθ,k,i] *= norm_factor
@@ -504,9 +504,9 @@ function get_dNdp_2D(
 
 
     # Now, generate d²N_dpdcos_ef and d²n_dpdcos_pf. Do this by transforming the bin
-    # *centers* of d²N_dpdcos_sf into each frame, using just the center location to rebin.
+    # *centers* of d²N_dpdcos_sf into each frame, using just the center location to re-bin.
     # TODO: consider doing an exact calculation of bin overlaps rather than just the
-    # center-point rebinning that currently happens
+    # center-point re-binning that currently happens
     #----------------------------------------------------------------------------
     # Calculate the center points of all the bins to save time later
     cos_center = zeros(0:psd_max)
@@ -621,21 +621,21 @@ upstream using plasma-frame density and volume, and then uses fractional area of
 to determine number of particles in it. Handles non-injected (i.e. thermal) particles
 differently than injected ones, due to very small p.f. spread in momenta.
 
-The array that would be dNdp_cr_pvals is already set, as psd_mom_bounds
+The array that would be `dNdp_cr_pvals` is already set, as `psd_mom_bound`s
 
 ### Arguments
 
-- nc_unit: unit number for the scratch file holding crossing data
+- `nc_unit`: unit number for the scratch file holding crossing data
 
 ### Returns
 
-- dNdp_therm: 3-D array, containing 1-D array for each grid zone of dN/dp for the thermal particles
-- dNdp_therm_pvals: array of momentum bin boundaries for each row of dNdp_therm; each row
+- `dNdp_therm`: 3-D array, containing 1-D array for each grid zone of dN/dp for the thermal particles
+- `dNdp_therm_pvals`: array of momentum bin boundaries for each row of dNdp_therm; each row
   handled separately to maximize resolution of what may be an extremely narrow peak at
   radically different energy from the upstream population
-- dNdp_cr: 3-D array, containing 1-D array for each grid zone of dN/dp for the population
+- `dNdp_cr`: 3-D array, containing 1-D array for each grid zone of dN/dp for the population
   of accelerated particles
-- zone_pop: (Lorentz-invariant) number of particles in each grid zone
+- `zone_pop`: (Lorentz-invariant) number of particles in each grid zone
 """
 function get_normalized_dNdp(
         nc_unit,
@@ -1062,14 +1062,14 @@ function get_dNdp_therm(
         # Create arrays to hold plasma frame and ISM frame values, then
         # initialize them. Since the arrays are handled independently for each
         # grid zone, all positions in the arrays should be filled with correct
-        # data. However, initialzing them to non-physical values serves as an
+        # data. However, initializing them to non-physical values serves as an
         # additional check against error.
         ptot_pf = fill(-1.0, num_crossings[i])
         cθ_pf = fill(-2.0, num_crossings[i])
         ptot_ef = fill(-1.0, num_crossings[i])
         cθ_ef = fill(-2.0, num_crossings[i])
 
-        # Set up min. and max. values for total momentum and cos(θ) in the shock frame
+        # Set up min and max values for total momentum and cos(θ) in the shock frame
         cθ_sk_min =  2.0
         cθ_sk_max = -2.0
         ptot_sk_min =  1e99
@@ -1330,22 +1330,22 @@ function get_dNdp_therm(
 end # get_dNdp_therm
 
 """
-This subroutine takes the distribution of thermal particles and rebins it in the bins used
+This subroutine takes the distribution of thermal particles and re-bins it in the bins used
 for the cosmic rays.
-Note that the thermal distribution is provided (and rebinned separately) in
+Note that the thermal distribution is provided (and re-binned separately) in
 all three frames: shock, plasma, and ISM.
 
 ### Arguments
-- num_hist_bins: number of bins used for the thermal distribution
-- dNdp_therm: distribution of thermal particles in all three frames
-- dNdp_therm_pvals: arrays holding bin boundary values for the thermal distributions;
+- `num_hist_bins`: number of bins used for the thermal distribution
+- `dNdp_therm`: distribution of thermal particles in all three frames
+- `dNdp_therm_pvals`: arrays holding bin boundary values for the thermal distributions;
   as with the distributions themselves, they change based on grid location
-- num_psd_mom_bins: number of bins used for the cosmic ray distribution
-- psd_mom_bounds: boundaries of the bins for the cosmic ray distribution
+- `num_psd_mom_bins`: number of bins used for the cosmic ray distribution
+- `psd_mom_bounds`: boundaries of the bins for the cosmic ray distribution
   Unlike the thermal boundaries, these are constant everywhere on the grid.
 
 ### Returns
-Rebinned histogram of the thermal distribution
+Re-binned histogram of the thermal distribution
 """
 function rebin_dNdp_therm(num_hist_bins, dNdp_therm, dNdp_therm_pvals, num_psd_mom_bins, psd_mom_bounds)
 

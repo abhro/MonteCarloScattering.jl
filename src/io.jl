@@ -241,7 +241,7 @@ function print_plot_vals(
         iunit,
         n_pts_inj, n_pts_pcut, do_fast_push, inp_distr,
         dont_DSA, u₀, γ₀, r_comp, r_RH, θ_B₀, θ_B₂, θ_u₂,
-        bmag₀, feb_UpS, rg₀, Emax_keV, Emax_keV_per_aa, pmax_cgs,
+        bmag₀, feb_UpS, rg₀, Emax, Emax_per_aa, pmax_cgs,
         xn_per_coarse, xn_per_fine, mach_sonic, mach_alfven, x_grid_start_rg,
         x_grid_stop_rg, x_fast_stop_rg, η_mfp, x_art_start_rg, x_art_scale,
         feb_DwS, jet_rad_pc, jet_sph_frac, jet_dist_kpc, n_ions, aa_ion,
@@ -275,8 +275,8 @@ function print_plot_vals(
            θ_u₂,                            # 7
            bmag₀,                           # 8
            feb_UpS/rg₀,                     # 9
-           Emax_keV,                        # 10
-           Emax_keV_per_aa,                 # 11
+           Emax,                            # 10
+           Emax_per_aa,                     # 11
            pmax_cgs/(mp*c),                 # 12
            x_pts_inj,                       # 13
            x_pts_pcut,                      # 14

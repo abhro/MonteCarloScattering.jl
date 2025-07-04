@@ -1,4 +1,3 @@
-using .constants: qₚ_cgs
 include("retro_time.jl")
 
 """
@@ -12,7 +11,7 @@ of tests to determine whether it will be culled from the simulation.
   function retro_time when needed
 - x_PT_old: particle position before most recent move
 - aa: atomic mass number of ion species
-- gyro_denom: denominator of gyroradius fraction, zz*qₚ_cgs*bmag
+- gyro_denom: denominator of gyroradius fraction, zz*qcgs*bmag
 - helix_count: counter for number of times through main propagation loop for current particle
 - i_cut: current pcut; needed when electrons are undergoing radiative losses
 - pcut_prev: momentum of previous pcut; needed when electrons are undergoing radiative losses
@@ -29,14 +28,14 @@ of tests to determine whether it will be culled from the simulation.
 - prp_x_cm: location of probability-of-return plane
 - ptot_pf: total plasma frame momentum of particle
 - γₚ_pf: Lorentz factor associated with ptot_pf
-- gyro_denom: denominator of gyroradius fraction, zz*qₚ_cgs*bmag
+- gyro_denom: denominator of gyroradius fraction, zz*qcgs*bmag
 - pb_pf/p_perp_b_pf: components of ptot_pf parallel/perpendicular to B field
 - acctime_sec: total accumulated acceleration time
 - φ_rad: phase angle of particle's gyration
 - tcut_curr: current tcut for particle tracking; passed to retro_time if called
 """
 function prob_return(
-        rad_loss_fac, B_CMBz, x_PT_old, aa, zz, gyro_denom,
+        i_ion, rad_loss_fac, B_CMBz, x_PT_old, aa, zz, gyro_denom,
         x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf, pb_pf, p_perp_b_pf,
         acctime_sec, φ_rad, helix_count::Integer, pcut_prev, weight, tcut_curr,
         x_grid_stop, u₂, use_custom_εB, η_mfp, do_retro, bmag₂, mc)
@@ -72,7 +71,7 @@ function prob_return(
         else
             gyro_tmp = 1.0
         end
-        gyro_rad_tot_cm = ptot_pf * c * gyro_tmp / (qₚ_cgs * bmag₂)
+        gyro_rad_tot_cm = ptot_pf * c * gyro_tmp / (qcgs * bmag₂)
         L_diff          = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp*γₚ_pf * u₂)
 
         # Make absolutely sure particles will have enough distance to isotropize before
@@ -103,7 +102,7 @@ function prob_return(
             if do_retro
                 (lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf,
                  gyro_denom, acctime_sec) = retro_time(
-                    rad_loss_fac, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
+                    i_ion, rad_loss_fac, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
                     ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, acctime_sec, weight,
                     tcut_curr,
                     use_custom_εB, x_grid_stop, do_rad_losses, do_tcuts, tcuts,

@@ -46,7 +46,7 @@ function geometric_center(y)
     end
 end
 
-lorentz(v::Unitful.Velocity) = lorentz(NoUnits(v/u"c"))
+lorentz(v::Unitful.Velocity) = lorentz(NoUnits(v/c))
 """
 Get Lorentz factor γ from velocity β (in units of c)
 """
@@ -88,10 +88,10 @@ end
 
 
 @kwdef struct Species
-    mass::typeof(1.0u"g")
-    charge::typeof(1.0u"Fr")
-    temperature::typeof(1.0u"K")
-    number_density::typeof(1.0u"cm^-3")
+    mass::typeof(1.0g)
+    charge::typeof(1.0Fr)
+    temperature::typeof(1.0K)
+    number_density::typeof(1.0/cm^3)
 end
 function Base.getproperty(s::Species, sym::Symbol)
     if sym == :m

@@ -32,8 +32,8 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
 
     r_PT_cm = SVector{3,LengthCGS}(x_PT_cm_new[i_prt], # x
                                    # Not currently tracked, but could be added in at later date
-                                   0.0u"cm", # y
-                                   0.0u"cm") # z
+                                   0.0cm, # y
+                                   0.0cm) # z
 
     γₚ_pf = hypot(1, ptot_pf/mc)
 
@@ -43,12 +43,10 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
     if use_custom_εB && (r_PT_cm.x > x_grid_stop)
         gyro_denom *=  √(r_PT_cm.x / x_grid_stop)
     end
-    @debug "Calculated gyro_denom" gyro_denom
 
     # Gyroradius assuming all motion is perpendicular to B field;
     # pitch-angle-correct gyroradius is gyro_rad_cm
-    global gyro_rad_tot_cm = ptot_pf * c * gyro_denom |> u"cm"
-    @debug "Calculated gyro_rad_tot_cm" gyro_rad_tot_cm
+    global gyro_rad_tot_cm = ptot_pf * c * gyro_denom |> cm
 
     # Gyroperiod in seconds
     gyro_period_sec = 2π * γₚ_pf * aa*mp * c * gyro_denom
@@ -91,8 +89,8 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
     #  goto 2001
     #
     # Code Block 1: start of helix loop; minor setup
-    # Code Block 2: particle movement; check on DwS PRP return
-    # Code Block 3: grid zone changes; non-DwS escape (exception: if no
+    # Code Block 2: particle movement; check on downstream PRP return
+    # Code Block 3: grid zone changes; non-downstream escape (exception: if no
     #   scattering); radiative losses; momentum splitting; scattering
     #
     # loop_helix in this code is the old loop 2001. The first part of loop 5702 has been
@@ -105,13 +103,13 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
     # Control variable for "condition 1":
     #  -1: default
     #   0: particle escapes
-    #   1: particle returns from DwS via convection
+    #   1: particle returns from downstream via convection
     #   2: particle didn't enter return calculations
     i_return = -1
     i_reason = 0
     lose_pt  = false
 
-    r_PT_old = SVector{3,LengthCGS}(0u"cm", 0u"cm", 0u"cm")
+    r_PT_old = SVector{3,LengthCGS}(0cm, 0cm, 0cm)
     while keep_looping # loop_helix
 
         # Track number of times through the main loop. This will only be
@@ -133,7 +131,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
 
         else
 
-            # Code Block 3: grid zone changes; non-DwS escape (exception:
+            # Code Block 3: grid zone changes; non-downstream escape (exception:
             # if no scattering); radiative losses; momentum splitting; scattering
             #--------------------------------------------------------------
             # Store values from the previous run through loop_helix; only
@@ -164,7 +162,6 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
             end
 
             gyro_denom = 1 / (zz * bmag)
-            @debug "Calculated gyro_denom" gyro_denom
 
             # If particle crossed a velocity gradient, find its new shock frame properties
             if uₓ_sk != uₓ_sk_old
@@ -185,7 +182,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
 
             # Energy transfer from ions to electrons in the UpS region; only bother with this if
             #  1. Electrons are a separate species and energy transfer is enabled
-            #  2. Particles are still on their first trip to the DwS region of the shock structure
+            #  2. Particles are still on their first trip to the downstream region of the shock structure
             #  3. Particles have entered a new grid zone, and energy should be either subtracted or added
             # TODO factor this out
             if energy_transfer_frac > 0 && !inj && r_PT_old.x ≤ 0cm && i_grid_old != i_grid
@@ -193,7 +190,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
                 i_stop  = min(i_grid, i_shock)
 
                 # Subtract energy from the ions and add it to the pool of energy for this grid zone.
-                @debug "" i_start i_stop i_grid i_shock
+                #@debug "" i_start i_stop i_grid i_shock
                 if aa ≥ 1 && maximum(ε_target[i_start+1:i_stop]) > 0
 
                     # Subtract energy based on the difference between current
@@ -258,7 +255,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
             # end check on energy_transfer_frac
 
 
-            # Particle escape: DwS with scattering disabled
+            # Particle escape: downstream with scattering disabled
             if dont_scatter && r_PT_cm.x > 10gyro_rad_cm
                 i_return = 0
                 i_reason = 1
@@ -315,7 +312,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
                 ptot_pf = electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, rad_loss_fac, ptot_pf, t_step)
 
                 # Catch electrons that have somehow lost all their energy in a single time step
-                if ptot_pf ≤ 0u"g*cm/s"
+                if ptot_pf ≤ 0g*cm/s
                     ptot_pf = 1e-99MomentumCGS
                     pb_pf = 1e-99MomentumCGS
                     p_perp_b_pf = 1e-99MomentumCGS
@@ -331,7 +328,6 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
                 # Modify components of ptot_pf due to losses
                 pb_pf       *= ptot_pf/ptot_pf_old
                 p_perp_b_pf *= ptot_pf/ptot_pf_old
-                @debug "After electron radiation loss" ptot_pf pb_pf p_perp_b_pf
 
                 # Also recalculate gyroradii
                 gyro_rad_tot_cm =     ptot_pf * c * gyro_denom |> cm
@@ -347,9 +343,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
                     aa, gyro_denom, ptot_pf, γₚ_pf, xn_per, pb_pf, p_perp_b_pf, φ_rad,
                     use_custom_frg, pₑ_crit, γₑ_crit, η_mfp,
                 )
-                @debug("Didn't scatter. Got", gyro_period_sec, pb_pf, p_perp_b_pf, φ_rad)
             end
-
 
             # Update acceleration time in explosion frame, so convert t_step from plasma frame
             # Only start the clock once a particle has crossed the shock for the first time
@@ -393,7 +387,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
         end  # check on i_return
 
 
-        # Code Block 2: particle movement; fluxes; DwS escape/return
+        # Code Block 2: particle movement; fluxes; downstream escape/return
         #---------------------------------------------------------------
         # Store old x/y/z/φ positions
         r_PT_old  = r_PT_cm
@@ -401,28 +395,28 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
 
 
         # Find time step
-        global t_step = gyro_period_sec / xn_per |> u"s"
+        global t_step = gyro_period_sec / xn_per |> s
 
         # Odd little loop that only matters if DSA has been disabled per the input file
         #------------------------------------------------------------------------------
         (; pb_pf, φ_rad, x_move_bpar, r_PT_cm) = no_DSA_loop(
             φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA,
-            inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk)
+            inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion)
         #----------------------------------------------------------------
         # DSA injection prevented if specified
 
 
-        # If particle crosses shock going UpS -> DwS
+        # If particle crosses shock going UpS -> downstream
         if r_PT_old.x < 0cm && r_PT_cm.x ≥ 0cm
             l_DwS = true
 
             # Ensure the downstream region is sufficiently long to allow particle to isotropize.
             # This simple equation is decidedly non-trivial, and comes from two assumptions:
-            # 1. the particle's diffusion coefficient D may be described by D = ⅓⋅η_mfp⋅r_g⋅v_pt
+            # 1. The particle's diffusion coefficient D may be described by D = ⅓⋅η_mfp⋅r_g⋅v_pt
             #    (by default; a different f(r_g) may be specified as desired in place of η⋅r_g)
-            # 2. the relation between the diffusion coefficient D and the diffusion length L is
+            # 2. The relation between the diffusion coefficient D and the diffusion length L is
             #    L = D/⟨u⟩, where ⟨u⟩ is the average speed of diffusion. Assuming isotropic
-            #    particles in the DwS frame, ⟨u⟩ = u₂ since the average thermal *velocity* of
+            #    particles in the downstream frame, ⟨u⟩ = u₂ since the average thermal *velocity* of
             #    the population is 0.
             #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
             L_diff = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp*γₚ_pf * u₂)
@@ -461,7 +455,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
              i_return, lose_pt, tcut_curr, _x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf,
              gyro_denom, pb_pf, p_perp_b_pf, acctime_sec, φ_rad
             ) = prob_return(
-                            rad_loss_fac, B_CMBz, r_PT_old.x, aa, zz, gyro_denom,
+                            i_ion, rad_loss_fac, B_CMBz, r_PT_old.x, aa, zz, gyro_denom,
                             r_PT_cm.x, prp_x_cm, ptot_pf, γₚ_pf, pb_pf, p_perp_b_pf,
                             acctime_sec, φ_rad, helix_count, pcut_prev, weight, tcut_curr,
                             x_grid_stop, u₂, use_custom_εB, η_mfp, do_retro, bmag₂, mc,
@@ -469,10 +463,10 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
             r_PT_cm = SVector(_x_PT_cm, r_PT_cm.y, r_PT_cm.z)
         end
 
-        # If particle escaped DwS, handle final calculations here
+        # If particle escaped downstream, handle final calculations here
         if i_return == 0
 
-            vel = ptot_pf / (aa*mp) |> u"cm/s"
+            vel = ptot_pf / (aa*mp) |> cm/s
             if (γₚ_pf - 1) ≥ energy_rel_pt
                 vel /= γₚ_pf
             end
@@ -521,7 +515,7 @@ end
 
 function no_DSA_loop(
         φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA,
-        inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk)
+        inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion)
     local x_move_bpar
     while true # loop_no_DSA
 
@@ -537,11 +531,8 @@ function no_DSA_loop(
       # Remember to take gyration about magnetic field into account
       φ_rad = mod2pi(φ_rad + 2π/xn_per)
 
-      x_move_bpar = pb_pf * t_step / (γₚ_pf * aa*mp) |> u"cm"
+      x_move_bpar = pb_pf * t_step / (γₚ_pf * aa*mp) |> cm
 
-      @debug("With params", γᵤ_sf, x_move_bpar, b_cosθ
-                          , gyro_rad_cm , b_sinθ , φ_rad, φ_rad_old
-                          , uₓ_sk , t_step)
       Δx_PT_cm = γᵤ_sf * (x_move_bpar * b_cosθ
                           - gyro_rad_cm * b_sinθ * (cos(φ_rad)-cos(φ_rad_old))
                           + uₓ_sk * t_step)
@@ -559,8 +550,8 @@ function no_DSA_loop(
       #Search original code for "out of ions"
 
       # Reflect particles under two conditions:
-      #  1. they've been DwS and are crossing back UpS
-      #  2. either DSA is disabled or they fail an injection check
+      #  1. They've been downstream and are crossing back UpS
+      #  2. Either DSA is disabled or they fail an injection check
       # continue again if particles get reflected
       if r_PT_cm.x ≤ 0cm && r_PT_old.x > 0cm && !inj && (dont_DSA || inj_fracs[i_ion] < 1)
           if dont_DSA || (Random.rand() > inj_fracs[i_ion])
@@ -589,10 +580,8 @@ function electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, rad_loss_fac, p, Δt)
     # Note that here dp_synch is actually dp/p. If this value is too large we will
     # directly integrate from p_i to get p_f, since the discrete approach would
     # result in too high a loss in a single time step
-    # FIXME unit shenanigans here. confirm that the unit in ustrip
-    # is equal to 1.
-    dp_synch = ustrip(u"cm*s^2*G^2/g", rad_loss_fac * (bmag^2 + B_CMB_loc^2) * p * Δt)
-    @debug "In rad losses" B_CMB_loc rad_loss_fac bmag p Δt dp_synch
+    # FIXME unit shenanigans here. Confirm that the unit in ustrip is equal to 1.
+    dp_synch = rad_loss_fac * (bmag^2 + B_CMB_loc^2) * p * Δt |> NoUnits
 
     # Correction to make sure electrons don't lose too much energy in a single time step
     if dp_synch > 1e-2
@@ -607,7 +596,7 @@ end
 function downstream_test(feb_DwS, prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, i_return)
     do_prob_ret = true
 
-    if feb_DwS > 0u"cm" && r_PT_cm.x > feb_DwS
+    if feb_DwS > 0cm && r_PT_cm.x > feb_DwS
 
         # Particle flagged as escaping downstream
         i_return    = 0
@@ -617,11 +606,11 @@ function downstream_test(feb_DwS, prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, i_r
 
         # The following simple equation is decidedly non-trivial, and comes from two
         # assumptions:
-        # 1. the particle's diffusion coefficient D may be described by D = ⅓⋅η_mfp⋅r_g⋅v_pt
+        # 1. The particle's diffusion coefficient D may be described by D = ⅓⋅η_mfp⋅r_g⋅v_pt
         #    (by default; a different f(r_g) may be specified as desired in place of η⋅r_g)
-        # 2. the relation between the diffusion coefficient D and the diffusion length L is
+        # 2. The relation between the diffusion coefficient D and the diffusion length L is
         #    L = D/⟨u⟩, where ⟨u⟩ is the average speed of diffusion. Assuming isotropic
-        #    particles in the DwS frame, ⟨u⟩ = u₂ since the average thermal *velocity* of
+        #    particles in the downstream frame, ⟨u⟩ = u₂ since the average thermal *velocity* of
         #    the population is 0.
         #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
         if aa < 1 && ptot_pf < pₑ_crit

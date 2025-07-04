@@ -7,31 +7,31 @@ Calculates photon production by the particle distribution due to pion decay emis
 TODO: Incorporate possibility that target particles aren't at rest
 
 ### Arguments
-- n_grid: current grid zone. Used to get plasma-frame density and for
+- `n_grid`: current grid zone. Used to get plasma-frame density and for
   tracking emission output
-- num_hist_bins: number of momentum bins in the distribution of thermal particles
-- p_pf_cgs_therm: momentum boundary values, cgs units, of thermal distribution histogram
-- dNdp_pf_therm: thermal particle distribution. Calculated at end of each ion species, it is
+- `num_hist_bins`: number of momentum bins in the distribution of thermal particles
+- `p_pf_cgs_therm`: momentum boundary values, cgs units, of thermal distribution histogram
+- `dNdp_pf_therm`: thermal particle distribution. Calculated at end of each ion species, it is
   number of particles per dp (NOT #/cm³/dp)
-- num_psd_mom_bins: number of momentum bins in the distribution of accelerated particles
-- p_pf_cgs_cr: momentum boundary values, cgs units, of cosmic ray distribution histogram
-- dNdp_pf_cr: cosmic ray distribution. Calculated at end of each ion species, it is
+- `num_psd_mom_bins`: number of momentum bins in the distribution of accelerated particles
+- `p_pf_cgs_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
+- `dNdp_pf_cr`: cosmic ray distribution. Calculated at end of each ion species, it is
   number of particles per dp (NOT #/cm³/dp)
-- n_photon_pion: number of energy bins to use for photon production
-- photon_pion_min_MeV: minimum photon energy, in MeV, to use for pion decay spectrum.
+- `n_photon_pion`: number of energy bins to use for photon production
+- `photon_pion_min_MeV`: minimum photon energy, in MeV, to use for pion decay spectrum.
+  Passed to `pion_karlsson()`.
+- `bins_per_dec_photon`: number of energy bins per decade of photon spectrum.
   Passed to pion_karlsson().
-- bins_per_dec_photon: number of energy bins per decade of photon spectrum.
-  Passed to pion_karlsson().
-- dist_lum: luminosity distance (i.e. including redshift correction) to source
-- redshift: redshift of source, used to adjust photon energies
+- `dist_lum`: luminosity distance (i.e. including redshift correction) to source
+- `redshift`: redshift of source, used to adjust photon energies
 
 ### Returns
 TODO
 
 ### Modifies
 TODO
-- energy_pion_MeV
-- pion_photon_sum
+- `energy_pion_MeV`
+- `pion_photon_sum`
 """
 function photon_pion_decay(
         n_grid, num_hist_bins, p_pf_cgs_therm,
@@ -111,7 +111,7 @@ function photon_pion_decay(
         # Note that pion_emis is energy radiated per second per logarithmic
         # energy bin, i.e. dP/d(lnE). Its units are [erg/sec].
         for i in 1:n_photon_pion
-            energy_γ_MeV[i] = ustrip(u"MeV", energy_γ_cgs[i]*u"erg")
+            energy_γ_MeV[i] = ustrip(MeV, energy_γ_cgs[i]*erg)
             emis_γ[i]       = pion_emis[i] / (4π*dist_lum^2)
             if emis_γ[i] < 1e-99
                 emis_γ[i]  = 1e-99
@@ -134,7 +134,7 @@ function photon_pion_decay(
             # Energy in spectrum is area under curve when plotted with a logarithmic
             # energy axis, i.e. dΦ/d(lnE) ⋅ d(lnE).
             if emis_γ[i] > 1e-99
-                emis_γ_MeV = ustrip(u"MeV", emis_γ[i]*u"erg")  # MeV/(cm²⋅sec) at earth
+                emis_γ_MeV = ustrip(MeV, emis_γ[i]*erg)  # MeV/(cm²⋅sec) at earth
             else
                 emis_γ_MeV = 1e-99
             end
@@ -147,7 +147,7 @@ function photon_pion_decay(
 
             ν_γ        = energy_γ_cgs[i]/h_cgs # frequency (ν)
             #ω_γ       = energy_γ_cgs[i]/ħ_cgs # angular frequency (ω)
-            #f_jansky  = max(1e-99, ustrip(u"Jy", emis_γ[i]/ν_γ*u"erg/cm^2"))
+            #f_jansky  = max(1e-99, ustrip(Jy, emis_γ[i]/ν_γ*(erg/cm^2)))
             xMeV_log   = log10(energy_γ_MeV[i])
             energy_keV = energy_γ_MeV[i]*1000
             #xkeV_log  = xMeV_log + 3
