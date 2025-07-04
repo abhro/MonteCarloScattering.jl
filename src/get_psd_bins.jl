@@ -1,12 +1,14 @@
 """
+    get_psd_bin_momentum(...)
+
 Given parallel component and total of a particle's momentum in the shock frame,
 determine which bin of psd particle will fall into.
 
 Binning is done by the value of ptot_sk in code units. All binning is logarithmic.
 
 ### Arguments
-- pₓ_sk: component of momentum parallel to shock normal (to B-field?), in code units
-- ptot_sk: total particle momentum, in code units
+- `pₓ_sk`: component of momentum parallel to shock normal (to B-field?), in code units
+- `ptot_sk`: total particle momentum, in code units
 
 ### Returns
 Bin in momentum into which particle falls
@@ -35,6 +37,8 @@ function get_psd_bin_momentum(ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_ps
 end
 
 """
+    get_psd_bin_angle(...)
+
 Given parallel component and total of a particle's momentum in the shock frame,
 determine which bin of psd particle will fall into.
 
@@ -53,8 +57,9 @@ the parameter bins_per_decade_*** determines the fineness of the bins.
     angles are essentially measured from the -x axis rather than the +x axis.
 
 ### Arguments
-- pₓ_sk: component of momentum parallel to shock normal (to B-field?), in code units
-- ptot_sk: total particle momentum, in code units
+- `pₓ_sk`: component of momentum parallel to shock normal (to B-field?), in code units
+- `ptot_sk`: total particle momentum, in code units
+- TODO
 
 ### Returns
 Bin in angle into which particle falls

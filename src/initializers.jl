@@ -7,6 +7,8 @@ using Unitful, UnitfulAstro
 using Distributions: Uniform
 
 """
+    calc_DwS(...)
+
 Uses the Rankine-Hugoniot jump conditions to calculate the downstream conditions for a test
 particle shock. Big difference between this subroutine and calc_rRH is that we already know
 what the DwS speed is, courtesy of r_comp in the input.
@@ -37,6 +39,8 @@ function calc_DwS(bmag₀, r_comp, β₀)
 end
 
 """
+    calc_rRH(...)
+
 Uses the Rankine-Hugoniot jump conditions to calculate the compression ratio for a shock
 assuming test-particle conditions. In other words, (1) sharp shock, (2) negligible/no DSA,
 and (3) no escaping flux. Additionally assumes that the inflowing plasma has
@@ -102,6 +106,9 @@ function calc_rRH(u₀, β₀, γ₀, species)
     return r_RH, Γ₂_RH
 end
 
+"""
+    calc_rRH_nonrelativistic(P₀, ρ₀, β₀)
+"""
 function calc_rRH_nonrelativistic(P₀, ρ₀, β₀)
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativstic ideal
@@ -120,6 +127,9 @@ function calc_rRH_nonrelativistic(P₀, ρ₀, β₀)
 
     return r_RH, Γ₂_RH
 end
+"""
+    calc_rRH_relativistic(species, ρ₀, P₀, β₀, n₀_ion)
+"""
 function calc_rRH_relativistic(species, ρ₀, P₀, β₀, n₀_ion)
 
     # FIXME the comment refers to old version of variables
@@ -176,6 +186,8 @@ function calc_rRH_relativistic(species, ρ₀, P₀, β₀, n₀_ion)
 end
 
 """
+    set_psd_mom_bins(...)
+
 Sets the BOUNDARIES of the bins of the phase space distribution. The bins are numbered from
 0 to num_psd_mom_bins, each boundary denotes the lower edge of that # bin; the indices thus
 run from 0 to num_psd_mom_bins + 1.
@@ -210,6 +222,8 @@ function set_psd_mom_bins(psd_mom_min, psd_mom_max, psd_bins_per_dec_mom)
 end
 
 """
+    set_psd_angle_bins(...)
+
 Sets the BOUNDARIES of the bins of the phase space distribution. The bins are numbered from
 0 to num_psd_θ_bins, each boundary denotes the lower edge of that # bin; the indices thus
 run from 0 to num_psd_θ_bins + 1.
@@ -254,6 +268,8 @@ function set_psd_angle_bins(psd_bins_per_dec_θ, psd_lin_cos_bins, psd_cos_fine,
 end
 
 """
+    set_photon_shells(...)
+
 If photon calculation is desired, photons will be collected into UpS and DwS shells for
 easier viewing. This subroutine sets the endpoints of the shells, as well as their midpoints.
 
@@ -290,6 +306,11 @@ function set_photon_shells(
     return (x_shell_midpoints, x_shell_endpoints)
 end
 
+"""
+    set_UpS_photon_shells!(...)
+
+TODO
+"""
 function set_UpS_photon_shells!(
         x_shell_midpoints, x_shell_endpoints,
         num_UpS_shells, feb_UpS, rg₀,
@@ -320,6 +341,11 @@ function set_UpS_photon_shells!(
         x_shell_endpoints[num_UpS_shells+1 - i + 1] = -x_region_start
     end
 end
+"""
+    set_DwS_photon_shells(...)
+
+TODO
+"""
 function set_DwS_photon_shells(
         x_shell_midpoints, x_shell_endpoints,
         num_UpS_shells, num_DwS_shells, use_prp, feb_DwS, rg₀, x_grid_stop_rg,
@@ -366,6 +392,11 @@ const EXTREMELY_FINE_SPACING = SVector(-1e-4, -1e-7, 0.0, 1e-7, 1e-4)
 const DOWNSTREAM_SPACING = SVector(1e-3, 1e-2, 2e-2, 3e-2, 5e-2, 7e-2, 0.10,
                                    0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0)
 
+"""
+    setup_grid(...)
+
+TODO
+"""
 function setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_DwS, rg₀)
 
     # Recall that rg₀ is the gyroradius of a proton with speed u₀ in magnetic field bmag₀.
@@ -406,6 +437,8 @@ function setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_DwS, rg₀)
 end
 
 """
+    upstream_fluxes(...)
+
 Calculates the far upstream fluxes for the shock.
 
 Two different cases considered:
@@ -469,6 +502,11 @@ function upstream_fluxes(n₀_ion, T₀_ion, m_ion, bmag₀, θ_B₀, u₀, β�
     return (flux_px_UpS, flux_pz_UpS, flux_energy_UpS)
 end
 
+"""
+    upstream_momentum_flux_relativistic(...)
+
+TODO
+"""
 function upstream_momentum_flux_relativistic(β₀, γ₀, e₀, P₀, bmag₀, B_x, B_z)
 
     # Momentum flux, x-component
@@ -487,6 +525,12 @@ function upstream_momentum_flux_relativistic(β₀, γ₀, e₀, P₀, bmag₀, 
 
     return flux_px_UpS, flux_pz_UpS
 end
+
+"""
+    upstream_momentum_flux_nonrelativistic(...)
+
+TODO
+"""
 function upstream_momentum_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_x, B_z)
     flux_px_UpS = ρ₀ * u₀^2 * (1 + β₀^2) +
                   P₀ * (1 + Γ_sph/(Γ_sph-1)*β₀^2) +
@@ -495,10 +539,20 @@ function upstream_momentum_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀,
     return flux_px_UpS, flux_pz_UpS
 end
 
+"""
+    upstream_energy_flux_nonrelativistic(...)
+
+TODO
+"""
 function upstream_energy_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀)
     return ρ₀ * u₀^3 * (1 + 1.25*β₀^2)/2 + P₀ * u₀ * Γ_sph/(Γ_sph-1) * (1+β₀^2) + u₀*B_z^2/4π
 end
 
+"""
+    upstream_energy_flux_relativistic(...)
+
+TODO
+"""
 function upstream_energy_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_z)
     F_energy_fl = γ₀^2 * β₀ * (e₀ + P₀) # Fluid part (Double+ Eq 20)
     F_energy_EM = ustrip(u"G^2", γ₀^2 * β₀ * B_z^2/4π)*u"erg/cm^3"  # EM part (Double+ Eq 21)
@@ -513,6 +567,8 @@ function upstream_energy_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀
 end
 
 """
+    upstream_machs(β₀, species, bmag₀)
+
 Calculates the sonic and Alfvén mach numbers for the shock.
 
 - For speed of sound, uses Equation (13) of Fujimura & Kennel (1979) [1979A%26A....79..299F]
@@ -599,11 +655,26 @@ end
 alfven_speed_nonrelativistic(ρ, B) = B / √(4π * ρ) # Alfvén wave group velocity
 
 """
+    setup_profile(...)
+
 Sets the initial values of the shock profile
 
 ### Arguments
 
-TODO
+- `u₀`, `β₀`, `γ₀`
+- `bmag₀`
+- `θ_B₀`
+- `r_comp`
+- `bturb_comp_frac`
+- `bfield_amp`
+- `use_custom_εB,`
+- `n_ions`
+- `species`
+- `flux_px_UpS`
+- `flux_energy_UpS`
+- `grid_axis`
+- `x_grid_cm`
+- `x_grid_rg`
 
 ### Returns
 - uₓ_sk_grid: bulk fluid velocity along x axis (i.e., perpendicular to shock face) in shock frame
@@ -684,6 +755,11 @@ function setup_profile(
             β_ef_grid, γ_ef_grid, btot_grid, θ_grid, εB_grid, bmag₂)
 end
 
+"""
+    set_custom_εB!(...)
+
+TODO
+"""
 function set_custom_εB!(
         εB_grid, btot_grid,
         grid_axis,
@@ -750,6 +826,8 @@ function set_custom_εB!(
 end
 
 """
+    init_pop(...)
+
 Initializes the particle populations that will propagate through the shock structure.
 Handles fast push and associated flux-tracking & changes to the population
 
@@ -918,6 +996,11 @@ function init_pop(
 end
 
 
+"""
+    flux_update!(...)
+
+TODO
+"""
 function flux_update!(
         pxx_flux, pxz_flux, energy_flux,
         m_ion, n₀_ion, T₀_ion, relativistic,
@@ -983,6 +1066,8 @@ function flux_update!(
 end
 
 """
+    set_inj_dist(inj_weight, n_pts_inj, inp_distr, T_or_E, m, n₀)
+
 Sets the injected particle distributions for all species. Initially, particles are placed in
 a Maxwell-Boltzmann (thermal) distribution based on supplied temperature and particle mass.
 This is corrected at the end if a δ-function distribution was requested (not worried about
@@ -990,19 +1075,19 @@ the wasted computation because this subroutine runs only rarely).
 
 ### Arguments
 FIXME
-- inj_weight: whether each particle or each bin has equal weights (T for equal weight particles,
-  F for equal weight bins)
-- n_pts_inj: target # of particles for distribution
-- inp_distr: thermal, δ-function, or some other distribution
-- T_or_E: if using thermal distribution, this is temperature[K]; if δ function, it's injection energy[keV]
-- m: mass for this particle species
-- n₀: far UpS number density for this species
+- `inj_weight`: whether each particle or each bin has equal weights (`true` for equal weight particles,
+  `false` for equal weight bins)
+- `n_pts_inj`: target # of particles for distribution
+- `inp_distr`: thermal, δ-function, or some other distribution
+- `T_or_E`: if using thermal distribution, this is temperature[K]; if δ function, it's injection energy[keV]
+- `m`: mass for this particle species
+- `n₀`: far UpS number density for this species
 
 ### Returns
-- ptot_out: array holding plasma frame total momenta for all particles in the distribution
-- weight_out: array holding particle weights
-- n_pts_use: number of particles in the distribution; will almost surely be different from
-  n_pts_inj if using thermal dist
+- `ptot_out`: array holding plasma frame total momenta for all particles in the distribution
+- `weight_out`: array holding particle weights
+- `n_pts_use`: number of particles in the distribution; will almost surely be different from
+  `n_pts_inj` if using thermal distribution
 
 CHECKTHIS: that output distribution matches M-B, just to make sure I haven't made a typo
 """
@@ -1166,6 +1251,11 @@ function set_inj_dist_particle_equal_weight!(
     return n_pts_tot
 end
 
+"""
+    set_inj_dist_bin_equal_weight!(...)
+
+TODO
+"""
 function set_inj_dist_bin_equal_weight!(
         ptot_out, weight_out,
         p_range, E_range, area_tot, Δp, n₀)

@@ -10,6 +10,8 @@ using ..debug: zone_vol, therm_energy_density, energy_density
 using ..io: print_plot_vals
 
 """
+    get_dNdp_cr(...)
+
 Calculate dN/dp (NOT normalized) in plasma frame for particles that *have* been
 injected into acceleration process.
 

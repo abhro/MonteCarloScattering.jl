@@ -10,6 +10,8 @@ using ..constants: E₀_proton
 export transform_p_PS, transform_p_PSP, transform_psd_corners, get_transform_dN
 
 """
+    get_transform_dN(...)
+
 Calculate dN(p) (a 1-D array) for the passed slice of PSD in the specified inertial frame.
 
 ### Arguments
@@ -149,6 +151,11 @@ function get_transform_dN(
     return dN_out
 end
 
+"""
+    uniform_cell_distribution!(...)
+
+TODO
+"""
 function uniform_cell_distribution!(dN_out, l_lo, l_hi, p_cell_lo, p_cell_hi) # TODO fix arguments
     length_tot = 1 / (p_cell_hi - p_cell_lo)
     p_bottom   = p_cell_lo
@@ -176,6 +183,11 @@ function uniform_cell_distribution!(dN_out, l_lo, l_hi, p_cell_lo, p_cell_hi) # 
     return dN_out
 end
 
+"""
+    triangular_distribution!(...)
+
+TODO
+"""
 function triangular_distribution!(dN_out) # TODO fix arguments
     length_tot = 1 / (p_cell_hi - p_cell_lo)
     ct_height  = 2 * cell_weight / length_tot # A = 1/2*b*h
@@ -360,6 +372,8 @@ end
 #----------------------------------------------------------------------------
 
 """
+    transform_p_PS(...)
+
 Takes particle's Plasma frame momentum components and transforms them to the shock frame.
 Transformation formulas are correct for all obliquities.
 
@@ -373,23 +387,23 @@ products along the xyz axes.
 
 ### Arguments
 
-- aa: particle atomic mass
-- pb_pf: component of ptot_pf parallel to magnetic field
-- p_perp_b_pf: component of ptot_pf perpendicular to magnetic field
-- γₚ_pf: Lorentz factor associated with ptot_pf
-- φ_rad: phase angle of gyration; looking UpS, counts clockwise from +z axis
-- uₓ_sk: bulk flow speed along x axis
-- uz_sk: bulk flow speed along z axis
-- utot: total bulk flow speed
-- γᵤ_sf: Lorentz factor associated with utot
-- b_cosθ: component of magnetic field along x axis
-- b_sinθ: component of magnetic field along z axis
+- `aa`: particle atomic mass
+- `pb_pf`: component of ptot_pf parallel to magnetic field
+- `p_perp_b_pf`: component of ptot_pf perpendicular to magnetic field
+- `γₚ_pf`: Lorentz factor associated with ptot_pf
+- `φ_rad`: phase angle of gyration; looking UpS, counts clockwise from +z axis
+- `uₓ_sk`: bulk flow speed along x axis
+- `uz_sk`: bulk flow speed along z axis
+- `utot`: total bulk flow speed
+- `γᵤ_sf`: Lorentz factor associated with `utot`
+- `b_cosθ`: component of magnetic field along x axis
+- `b_sinθ`: component of magnetic field along z axis
 
 ### Returns
 
-- ptot_sk: total shock frame momentum in new grid zone
-- p_sk: components of shock frame momentum
-- γₚ_sk: Lorentz factor associated with ptot_sk
+- `ptot_sk`: total shock frame momentum in new grid zone
+- `p_sk`: components of shock frame momentum
+- `γₚ_sk`: Lorentz factor associated with ptot_sk
 """
 function transform_p_PS(
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot,
@@ -437,6 +451,8 @@ end
 #----------------------------------------------------------------------------
 
 """
+    transform_p_PSP(...)
+
 Takes particle's old plasma frame momentum components and transforms them twice:
 from old Plasma frame to new Shock frame, then from new Shock frame to new Plasma frame.
 Only ever called if particle scattered between zones with different bulk flow velocities.
@@ -452,29 +468,29 @@ scalar products along the xyz axes.
 
 ### Arguments
 
-- aa: particle atomic mass
-- uₓ_sk/old: current and old bulk flow speed along x axis
-- uz_sk/old: current and old bulk flow speed along z axis
-- utot/old: current and old total bulk flow speed
-- γᵤ_sf/old: Lorentz factor associated with utot/old
-- b_cosθ/old: current and old component of magnetic field along x axis
-- b_sinθ/old: current and old component of magnetic field along z axis
+- `aa`: particle atomic mass
+- `uₓ_sk`/`old`: current and old bulk flow speed along x axis
+- `uz_sk`/`old`: current and old bulk flow speed along z axis
+- `utot`/`old`: current and old total bulk flow speed
+- `γᵤ_sf`/`old`: Lorentz factor associated with utot/old
+- `b_cosθ`/`old`: current and old component of magnetic field along x axis
+- `b_sinθ`/`old`: current and old component of magnetic field along z axis
 
 ### Returns
 
-- ptot_pf: total plasma frame momentum in new grid zone
-- ptot_sk: total shock frame momentum in new grid zone
-- p_sk: xyz components of ptot_sk
-- pb_sk: component of ptot_sk parallel to magnetic field
-- p_perp_b_sk: component of ptot_sk perpendicular to magnetic field
-- γₚ_sk: Lorentz factor associated with ptot_sk
+- `ptot_pf`: total plasma frame momentum in new grid zone
+- `ptot_sk`: total shock frame momentum in new grid zone
+- `p_sk`: xyz components of ptot_sk
+- `pb_sk`: component of ptot_sk parallel to magnetic field
+- `p_perp_b_sk`: component of ptot_sk perpendicular to magnetic field
+- `γₚ_sk`: Lorentz factor associated with ptot_sk
 
 ### Modifies
 
-- pb_pf: component of ptot_pf parallel to magnetic field
-- p_perp_b_pf: component of ptot_pf perpendicular to magnetic field
-- γₚ_pf: Lorentz factor associated with ptot_pf
-- φ_rad: phase angle of gyration; looking UpS, counts clockwise from +z axis
+- `pb_pf`: component of ptot_pf parallel to magnetic field
+- `p_perp_b_pf`: component of ptot_pf perpendicular to magnetic field
+- `γₚ_pf`: Lorentz factor associated with ptot_pf
+- `φ_rad`: phase angle of gyration; looking UpS, counts clockwise from +z axis
 """
 function transform_p_PSP(
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
@@ -553,19 +569,21 @@ end
 #----------------------------------------------------------------------------
 
 """
+    transform_psd_corners(...)
+
 Given a relative Lorentz factor between two frames, transform the corners of the PSD into
 the new frame. Outputs total momentum as log of cgs values.
 
-TODO: remove conversion to/from log space here and in get_dndp_cr
+TODO: remove conversion to/from log space here and in `get_dndp_cr`
 
 ### Arguments
 FIXME with actual argument list
-- γ_in: relative Lorentz factor between shock and resultant frame
+- `γ_in`: relative Lorentz factor between shock and resultant frame
 
 ### Returns
 
-- transform_corner_pt: total momenta at the corners
-- transform_corner_ct: cos(θ) (NOT θ!!!) values at the corners
+- `transform_corner_pt`: total momenta at the corners
+- `transform_corner_ct`: cos(θ) (NOT θ!!!) values at the corners
 """
 function transform_psd_corners(
         γ_in,

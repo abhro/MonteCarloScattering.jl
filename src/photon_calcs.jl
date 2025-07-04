@@ -18,7 +18,7 @@ const photon_ic_min_MeV    = 1e-2
 const photon_ic_max_MeV    = photon_energy_max_MeV
 
 """
-TODO
+    photon_calcs(...)
 
 ### Arguments
 TODO
