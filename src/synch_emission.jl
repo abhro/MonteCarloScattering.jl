@@ -2,25 +2,27 @@ using SpecialFunctions: besselk
 using .constants: E₀_proton, qₚ_cgs, ħ_cgs, c
 
 """
+    synch_emission(...)
+
 This subroutine takes an electron distribution and calculates the synchrotron emission.
 
 ### Arguments
 
-- i_grid: current grid zone, used to find magnetic field strength
-- num_hist_bins: number of momentum bins in the distribution of thermal particles
-- p_pf_cgs_therm: momentum boundary values, cgs units, of thermal distribution histogram
-- dN_therm: thermal particle distribution. It is a pure number of particles in the spectral region
-- num_psd_mom_bins: number of momentum bins in the distribution of accelerated particles
-- p_pf_cgs_cr: momentum boundary values, cgs units, of cosmic ray distribution histogram
-- dN_cr: cosmic ray distribution. It is a pure number of particles in the spectral region
-- n_photon_synch: number of energy bins to use for photon production
-- photon_synch_min_MeV: minimum photon energy, in MeV, to use for synchrotron spectrum
-- bins_per_dec_photon: number of energy bins per decade of photon spectrum
+- `i_grid`: current grid zone, used to find magnetic field strength
+- `num_hist_bins`: number of momentum bins in the distribution of thermal particles
+- `p_pf_cgs_therm`: momentum boundary values, cgs units, of thermal distribution histogram
+- `dN_therm`: thermal particle distribution. It is a pure number of particles in the spectral region
+- `num_psd_mom_bins`: number of momentum bins in the distribution of accelerated particles
+- `p_pf_cgs_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
+- `dN_cr`: cosmic ray distribution. It is a pure number of particles in the spectral region
+- `n_photon_synch`: number of energy bins to use for photon production
+- `photon_synch_min_MeV`: minimum photon energy, in MeV, to use for synchrotron spectrum
+- `bins_per_dec_photon`: number of energy bins per decade of photon spectrum
 
 ### Returns
 
-- energy_γ_cgs: energy bin values of resultant photon distribution (in ergs)
-- synch_emis: emitted synchrotron spectrum, units of erg/s
+- `energy_γ_cgs`: energy bin values of resultant photon distribution (in ergs)
+- `synch_emis`: emitted synchrotron spectrum, units of erg/s
 """
 function synch_emission(
         i_grid, num_hist_bins, p_pf_cgs_therm, dN_therm,

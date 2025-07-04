@@ -1,4 +1,6 @@
 """
+    tcut_track!(...)
+
 If directed in data_input, track particles' momenta -- and whether they are
 still interacting with the shock -- at various times since acceleration began.
 

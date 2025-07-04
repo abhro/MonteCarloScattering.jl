@@ -3,6 +3,8 @@ Functions that might be nice to have when the code base is refactored
 """
 
 """
+    adjacent_apply(f, x)
+
 Return f(x[i], x[i+1]) for each i in x's index, excluding the last i.
 """
 function adjacent_apply(f, x)
@@ -11,6 +13,11 @@ function adjacent_apply(f, x)
     return y
 end
 
+"""
+    adjacent_apply!(f, y, x)
+
+In-place version of `adjacent_apply`.
+"""
 function adjacent_apply!(f, y, x)
     length(y) == length(x) - 1 || throw(DimensionMismatch("y must have length one less than x"))
     for i in eachindex(x[begin:end-1], y)

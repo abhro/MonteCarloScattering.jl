@@ -3,6 +3,8 @@ using .parameters: na_photons
 using .io: print_plot_vals
 
 """
+    get_summed_emission(...)
+
 This subroutine takes the output from the various emission subroutines, which are called one
 time for each grid zone of emission, and combines all emission profiles into a single spectrum
 for emission process in each spectral region.
@@ -15,13 +17,13 @@ It then combines all num_UpS_shells + num_DwS_shells spectra into a single energ
 spanning all processes, summing the various emission spectra into a unified profile.
 
 ### Arguments
-- n_shells: number of photon shells, i.e. number of spectra in file photon_***.dat
-- n_spec_endpoints: grid boundaries between spectral regions
-- n_photon_***: one more than number of energy bins used for emission spectrum
-- photon_energy_***_MeV: min/max value of final (summed) emission spectrum's
-- energy range, in units of MeV
-- n_bins_per_decade: number of energy bins per decade of photon spectrum.
-- photon_***_min_MeV: minimum value of specified emission spectrum's energy range,
+- `n_shells`: number of photon shells, i.e. number of spectra in file photon_***.dat
+- `n_spec_endpoints`: grid boundaries between spectral regions
+- `n_photon_***`: one more than number of energy bins used for emission spectrum
+- `photon_energy_***_MeV`: min/max value of final (summed) emission spectrum's
+  energy range, in units of MeV
+- `n_bins_per_decade`: number of energy bins per decade of photon spectrum.
+- `photon_***_min_MeV`: minimum value of specified emission spectrum's energy range,
   in units of MeV
 
 ### Returns

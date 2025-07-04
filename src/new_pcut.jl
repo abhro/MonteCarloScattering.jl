@@ -1,6 +1,8 @@
 using .parameters: na_particles
 
 """
+    new_pcut(...)
+
 Takes the **_sav arrays filled over the course of loop_pt and splits the
 saved particles to form the population of the next pcut
 
