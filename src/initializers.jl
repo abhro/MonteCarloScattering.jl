@@ -1,5 +1,5 @@
 module initializers
-export calc_DwS, calc_rRH, set_psd_mom_bins, init_pop, upstream_fluxes, upstream_machs, setup_profile, setup_grid, set_psd_angle_bins
+export calc_downstream, calc_rRH, set_psd_mom_bins, init_pop, upstream_fluxes, upstream_machs, setup_profile, setup_grid, set_psd_angle_bins
 using Random: rand
 using OffsetArrays: OffsetVector, Origin
 using LinearAlgebra: dot
@@ -15,11 +15,11 @@ import ..density, ..temperature, ..mass, ..number_density
 using ..CGSTypes
 
 """
-    calc_DwS(...)
+    calc_downstream(...)
 
 Uses the Rankine-Hugoniot jump conditions to calculate the downstream conditions for a test
 particle shock. Big difference between this subroutine and calc_rRH is that we already know
-what the DwS speed is, courtesy of r_comp in the input.
+what the downstream speed is, courtesy of r_comp in the input.
 
 Shock must be parallel (not oblique).
 
@@ -31,13 +31,13 @@ Shock must be parallel (not oblique).
 
 ### Returns
 
-- `β`: (total) bulk fluid speed DwS
+- `β`: (total) bulk fluid speed downstream
 - `γ`: Lorentz factor associated with β₂
-- `B`: DwS magnetic field strength[Gauss]
-- `θ_B`: angle[deg] between DwS magnetic field and shock normal
-- `θᵤ`: angle[deg] between DwS fluid velocity and shock normal
+- `B`: downstream magnetic field strength[Gauss]
+- `θ_B`: angle[deg] between downstream magnetic field and shock normal
+- `θᵤ`: angle[deg] between downstream fluid velocity and shock normal
 """
-function calc_DwS(B₀, r_comp, β₀)
+function calc_downstream(B₀, r_comp, β₀)
     β   = β₀ / r_comp
     γ   = 1 / √(1 - β^2)
     B   = B₀
@@ -68,7 +68,7 @@ Unused:
 
 ### Returns
 - `r_RH`: Rankine-Hugoniot compression ratio
-- `Γ₂_RH`: ratio of specific heats (adiabatic index) for DwS region, assuming r_comp = r_RH
+- `Γ₂_RH`: ratio of specific heats (adiabatic index) for downstream region, assuming `r_comp` = `r_RH`
 """
 function calc_rRH(u₀, β₀, γ₀, species)
 
@@ -204,7 +204,7 @@ Sets the BOUNDARIES of the bins of the phase space distribution. The bins are nu
 0 to num_psd_mom_bins, each boundary denotes the lower edge of that # bin; the indices thus
 run from 0 to num_psd_mom_bins + 1.
 
-Logarithmic spacing over all decades from Emin_keV to Emax_keV is used.
+Logarithmic spacing over all decades from Emin to Emax is used.
 Values less than the minimum are equivalent to 0.0.
 
 ### Arguments
@@ -672,7 +672,7 @@ Sets the initial values of the shock profile
 ### Arguments
 
 - `u₀`, `β₀`, `γ₀`
-- `bmag₀`
+- `B₀`
 - `θ_B₀`
 - `r_comp`
 - `bturb_comp_frac`
@@ -687,21 +687,21 @@ Sets the initial values of the shock profile
 - `x_grid_rg`
 
 ### Returns
-- uₓ_sk_grid: bulk fluid velocity along x axis (i.e., perpendicular to shock face) in shock frame
-- uz_sk_grid: bulk fluid velocity along z axis (i.e., parallel to shock face) in shock frame
-- utot_grid: total bulk fluid velocity in shock frame
-- γ_sf_grid: bulk flow Lorentz factor in shock frame
-- β_ef_grid: relative x-axis speed between plasma and explosion frames
-- γ_ef_grid: Lorentz factor associated with β_ef_grid
-- btot_grid: total magnetic field
-- θ_grid: angle of magnetic field[radians] relative to shock normal (i.e., to x axis)
-- εB_grid: user-defined function for fraction of energy density in magnetic field.
+- `uₓ_sk_grid`: bulk fluid velocity along x axis (i.e., perpendicular to shock face) in shock frame
+- `uz_sk_grid`: bulk fluid velocity along z axis (i.e., parallel to shock face) in shock frame
+- `utot_grid`: total bulk fluid velocity in shock frame
+- `γ_sf_grid`: bulk flow Lorentz factor in shock frame
+- `β_ef_grid`: relative x-axis speed between plasma and explosion frames
+- `γ_ef_grid`: Lorentz factor associated with β_ef_grid
+- `btot_grid`: total magnetic field
+- `θ_grid`: angle of magnetic field[radians] relative to shock normal (i.e., to x axis)
+- `εB_grid`: user-defined function for fraction of energy density in magnetic field.
   Sets value of btot_grid
-- bmag₂: field strength in DwS region. Initially set in calc_DwS, it may be reset here
+- `B₂`: field strength in DwS region. Initially set in calc_downstream, it may be reset here
   depending on values of bturb_comp_frac & bfield_amp
 """
 function setup_profile(
-        u₀, β₀, γ₀, bmag₀, θ_B₀,
+        u₀, β₀, γ₀, B₀, θ_B₀,
         r_comp, bturb_comp_frac, bfield_amp, use_custom_εB,
         n_ions, species, flux_px_UpS, flux_energy_UpS,
         grid_axis, x_grid_cm, x_grid_rg,
@@ -712,7 +712,7 @@ function setup_profile(
     γ_sf_grid  = OffsetVector{Float64}(undef, grid_axis)
     β_ef_grid  = OffsetVector{Float64}(undef, grid_axis)
     γ_ef_grid  = OffsetVector{Float64}(undef, grid_axis)
-    btot_grid  = OffsetVector{typeof(bmag₀)}(undef, grid_axis)
+    btot_grid  = OffsetVector{BFieldCGS}(undef, grid_axis)
     θ_grid     = fill(deg2rad(θ_B₀), grid_axis)
 
     comp_fac = 0.0
@@ -805,15 +805,15 @@ function set_custom_εB!(
     energy_density₂ = (flux_energy_UpS + γ₀*u₀*n₀*E₀_proton) / uₓ_sk_grid[end] - flux_px_UpS
     εB₂ = (bmag₀*comp_fac)^2 / (8π * energy_density₂)
     # Use this value to compute the distance downstream at which the field will have decayed to it.
-    # Per the Blandford-McKee solution, energy ∝ 1/χ ∝ 1/distance DwS. Since we do not actually
+    # Per the Blandford-McKee solution, energy ∝ 1/χ ∝ 1/distance downstream. Since we do not actually
     # modify our pressures and densities according to the BM solution, instead modify εB
     end_decay_rg = (5e-3 / εB₂) / rg2sd
 
     @debug("Setting custom εB", n₀, εB₀, n₀_electron, σ, rg2sd, energy_density₂, εB₂, end_decay_rg)
 
     # Now we can calculate εB_grid and use it to calculate btot_grid. Per the Blandford-McKee
-    # solution, energy ∝ 1/χ ∝ 1/distance DwS. Since we do not actually modify our pressures
-    # and densities according to the BM solution, instead modify ε_B
+    # solution, energy ∝ 1/χ ∝ 1/distance downstream. Since we do not actually modify our
+    # pressures and densities according to the BM solution, instead modify ε_B
     for i in grid_axis
         x_grid_sd = x_grid_rg[i]*rg2sd
         if x_grid_sd < -50
@@ -845,24 +845,24 @@ Handles fast push and associated flux-tracking & changes to the population
 
 TODO
 
-- inp_distr
-- i_ion
-- do_fast_push
-- aa
+- `inp_distr`
+- `i_ion`
+- `do_fast_push`
+- `aa`
 
 ### Returns
 
 TODO
 
-- n_pts_use
-- i_grid_in
-- weight_in
-- ptot_pf_in
-- pb_pf_in
-- x_PT_cm_in
-- pxx_flux
-- pxz_flux
-- energy_flux
+- `n_pts_use`
+- `i_grid_in`
+- `weight_in`
+- `ptot_pf_in`
+- `pb_pf_in`
+- `x_PT_cm_in`
+- `pxx_flux`
+- `pxz_flux`
+- `energy_flux`
 """
 function init_pop(
         do_fast_push, inp_distr, i_ion, m,
@@ -1032,12 +1032,12 @@ function flux_update!(
     for i in 1:i_stop
 
         density_ratio = (γ₀ * u₀) / (γ_sf_grid[i] * uₓ_sk_grid[i])
-        ρ_curr        = ρ₀ * density_ratio
+        ρ_curr        = ρ₀ * density_ratio          # current mass density
 
         # Note assumption that Γ_sph doesn't change from zone to zone: #assumecold
-        pressure_curr = P₀ * density_ratio^Γ_sph
+        P_curr = P₀ * density_ratio^Γ_sph           # current pressure
 
-        β_curr   = uₓ_sk_grid[i] / c
+        β_curr   = uₓ_sk_grid[i] / c                # current speed (in units of c)
         γβ_curr = γ_sf_grid[i] * uₓ_sk_grid[i] / c
 
         # Determine fluxes while handling different possible orientations and shock speeds.
@@ -1049,15 +1049,15 @@ function flux_update!(
         flux_pz = 0.0erg/cm^3
         if !relativistic
             flux_pₓ = (ρ_curr * uₓ_sk_grid[i]^2 * (1 + β_curr^2)
-                       + pressure_curr * (1 + Γ_sph/(Γ_sph-1) * β_curr^2))
+                       + P_curr * (1 + Γ_sph/(Γ_sph-1) * β_curr^2))
             flux_energy = (ρ_curr/2 * uₓ_sk_grid[i]^3 * (1 + 1.25*β_curr^2)
-                           + pressure_curr * uₓ_sk_grid[i] * Γ_sph/(Γ_sph-1) * (1 + β_curr^2))
+                           + P_curr * uₓ_sk_grid[i] * Γ_sph/(Γ_sph-1) * (1 + β_curr^2))
         else
             e_curr = ρ_curr*c^2 # energy density
 
-            flux_pₓ = pressure_curr + γβ_curr^2 * (e_curr + Γ_sph/(Γ_sph-1)*pressure_curr)
+            flux_pₓ = P_curr + γβ_curr^2 * (e_curr + Γ_sph/(Γ_sph-1)*P_curr)
             flux_energy = (γβ_curr^2 * c / (uₓ_sk_grid[i]/c) *
-                           (e_curr + Γ_sph/(Γ_sph-1)*pressure_curr)
+                           (e_curr + Γ_sph/(Γ_sph-1)*P_curr)
                            # Subtract mass-energy flux from flux_energy to bring
                            # it in line with non-relativistic calculations
                            - γβ_curr*c * e_curr)
@@ -1065,7 +1065,6 @@ function flux_update!(
         #--------------------------------------------------------------------
         # Fluxes calculated
 
-        @debug "Updating fluxes" flux_pₓ flux_pz flux_energy pxx_flux pxz_flux energy_flux
         pxx_flux[i] = flux_pₓ
         pxz_flux[i] = flux_pz
         energy_flux[i] = flux_energy

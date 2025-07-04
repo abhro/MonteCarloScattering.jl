@@ -59,26 +59,26 @@ const inp_distr = cfg_toml["INDST"]
 const energy_inj = cfg_toml["ENINJ"] * keV
 const inj_weight = get(cfg_toml, "INJWT", true)
 
-const Emax_keV, Emax_keV_per_aa, pmax_cgs = let
+const Emax, Emax_per_aa, pmax_cgs = let
     energy_max = cfg_toml["ENMAX"]
     if energy_max[1] > 0      # All species have same max energy
-        Emax_keV        = energy_max[1]
-        Emax_keV_per_aa = 0.0
-        pmax_cgs        = 0.0
+        Emax        = energy_max[1]
+        Emax_per_aa = 0.0
+        pmax        = 0.0
 
     elseif energy_max[2] > 0  # Max energy depends on aa
-        Emax_keV        = 0.0
-        Emax_keV_per_aa = energy_max[2]
-        pmax_cgs        = 0.0
+        Emax        = 0.0
+        Emax_per_aa = energy_max[2]
+        pmax        = 0.0
 
     elseif energy_max[3] > 0  # All species have same max momentum
-        Emax_keV        = 0.0
-        Emax_keV_per_aa = 0.0
-        pmax_cgs        = energy_max[3]
+        Emax        = 0.0
+        Emax_per_aa = 0.0
+        pmax        = energy_max[3]
     else
         error("ENMAX: at least one choice must be non-zero.")
     end
-    (Emax_keV*keV, Emax_keV_per_aa*keV, pmax_cgs*mp*c)
+    (Emax*keV, Emax_per_aa*keV, pmax*mp*c)
 end
 
 const η_mfp = get(cfg_toml, "GYFAC", 1)
@@ -168,21 +168,21 @@ begin
     const n_pcuts = length(pcuts_in)
     n_pcuts+1 > na_c && error("PCUTS: parameter na_c smaller than desired number of pcuts.")
 
-    if Emax_keV > 0keV
+    if Emax > 0keV
         # Convert from momentum[mₚc/aa] to energy[keV]
         Emax_eff = 56 * pcuts_in[n_pcuts-1] * ustrip(keV, E₀_proton*erg)
 
-        if Emax_keV > Emax_eff
-            error("PCUTS: max energy exceeds highest pcut. Add more pcuts or lower Emax_keV. ",
-                  "Emax_keV (assuming Fe) = $Emax_keV; Emax_eff = $Emax_eff")
+        if Emax > Emax_eff
+            error("PCUTS: max energy exceeds highest pcut. Add more pcuts or lower Emax. ",
+                  "Emax (assuming Fe) = $Emax; Emax_eff = $Emax_eff")
         end
-    elseif Emax_keV_per_aa > 0keV   # Limit was on energy per nucleon
+    elseif Emax_per_aa > 0keV   # Limit was on energy per nucleon
         # Convert from momentum[mₚc/aa] to energy[keV/aa]
         Emax_eff = pcuts_in[n_pcuts-1] * ustrip(keV, E₀_proton*erg)
 
-        if Emax_keV_per_aa > Emax_eff
-            error("PCUTS: max energy per aa exceeds highest pcut. Add more pcuts or lower Emax_keV_per_aa. ",
-                  "Emax_keV_per_aa = $Emax_keV_per_aa; Emax_eff/aa = $Emax_eff")
+        if Emax_per_aa > Emax_eff
+            error("PCUTS: max energy per aa exceeds highest pcut. Add more pcuts or lower Emax_per_aa. ",
+                  "Emax_per_aa = $Emax_per_aa; Emax_eff/aa = $Emax_eff")
         end
 
     elseif pmax_cgs > 0mp*c # Limit was on total momentum. Assume Fe for strictest limit on mom/nuc.
@@ -238,9 +238,9 @@ const r_comp, r_RH, Γ₂_RH = let
 end
 
 begin
-    β₂, γ₂, bmag₂, θ_B₂, θᵤ₂ = calc_DwS(bmag₀, r_comp, β₀)
+    β₂, γ₂, bmag₂, θ_B₂, θᵤ₂ = calc_downstream(bmag₀, r_comp, β₀)
     const u₂ = β₂*c
-    @debug("Results from calc_DwS()", u₂, β₂, γ₂, bmag₂, θ_B₂, θᵤ₂)
+    @debug("Results from calc_downstream()", u₂, β₂, γ₂, bmag₂, θ_B₂, θᵤ₂)
 end
 
 begin
@@ -278,10 +278,10 @@ end
 
 const pₑ_crit, γₑ_crit = let
 
-    energyₑ_crit_keV = get(cfg_toml, "EMNFP", nothing) * keV
+    energyₑ_crit = get(cfg_toml, "EMNFP", nothing) * keV
     # If needed, convert input energy to momentum and Lorentz factor
-    if !isnothing(energyₑ_crit_keV) && energyₑ_crit_keV > 0keV
-        energyₑ_crit_rm = energyₑ_crit_keV / E₀_electron
+    if !isnothing(energyₑ_crit) && energyₑ_crit > 0keV
+        energyₑ_crit_rm = energyₑ_crit / E₀_electron
 
         # Different forms for nonrelativistic and relativstic momenta
         if energyₑ_crit_rm < 1e-2
@@ -292,7 +292,6 @@ const pₑ_crit, γₑ_crit = let
             γₑ_crit = energyₑ_crit_rm + 1.0
         end
     else
-        energyₑ_crit_keV = -1.0
         pₑ_crit = -1.0
         γₑ_crit = -1.0
     end

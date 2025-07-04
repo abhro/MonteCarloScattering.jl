@@ -19,34 +19,34 @@ particle (its PRP1→DwS→PRP2 path) resembles on average its backwards history
 
 ### Arguments
 
-- rad_loss_fac: constant related to radiative losses
-- B_CMBz: effective magnetic field due to CMB at redshift of source
-- aa: atomic mass number of ion species
-- zz: charge number of ion species
-- prp_x_cm: starting (and ending) location for retro_time motion
-- weight: current particle weight
+- `rad_loss_fac`: constant related to radiative losses
+- `B_CMBz`: effective magnetic field due to CMB at redshift of source
+- `aa`: atomic mass number of ion species
+- `zz`: charge of ion species
+- `prp_x_cm`: starting (and ending) location for retro_time motion
+- `weight`: current particle weight
 
 ### Returns
 
-- lose_pt: whether particle is lost due to energy losses despite "returning" from a
+- `lose_pt`: whether particle is lost due to energy losses despite "returning" from a
   probabilistic standpoint
-- φ_rad: phase angle of particle upon return
+- `φ_rad`: phase angle of particle upon return
 
 ### Modifies
 
-- ptot_pf: total plasma frame momentum of particle
-- pb_pf/p_perp_b_pf: components of ptot_pf parallel/perpendicular to B field
-- γₚ_pf: Lorentz factor associated with ptot_pf
-- gyro_denom: denominator of gyroradius fraction, zz*qcgs*bmag
-- acctime_sec: total accumulated acceleration time
-- tcut_curr: current tcut for particle tracking
+- `ptot_pf`: total plasma frame momentum of particle
+- `pb_pf`/`p_perp_b_pf`: components of ptot_pf parallel/perpendicular to B field
+- `γₚ_pf`: Lorentz factor associated with ptot_pf
+- `gyro_denom`: denominator of gyroradius fraction, zz*B
+- `acctime_sec`: total accumulated acceleration time
+- `tcut_curr`: current tcut for particle tracking
 """
 function retro_time(
-        rad_loss_fac, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
+        i_ion::Int, rad_loss_fac, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
         ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, acctime_sec, weight,
         tcut_curr,
         use_custom_εB, x_grid_stop, do_rad_losses, do_tcuts, tcuts,
-        n_grid, uₓ_sk_grid, γ_sf_grid, γ_ef_grid, θ_grid, btot_grid,
+        n_grid::Int, uₓ_sk_grid, γ_sf_grid, γ_ef_grid, θ_grid, btot_grid,
         mc,
         # η_mfp,
     )
@@ -54,21 +54,21 @@ function retro_time(
     # Set constants that will be used during the loop
     xn_per     = 10.0
     φ_step     = 2π / xn_per
-    t_step_fac = 2π * aa*mp * c * gyro_denom / xn_per  # t_step/γₚ_pf
+    t_step_fac = 2π * aa*mp * c * gyro_denom / xn_per |> s  # t_step/γₚ_pf
 
     uₓ_sk = -uₓ_sk_grid[n_grid]
     γᵤ_sf =   γ_sf_grid[n_grid]
     γᵤ_ef =   γ_ef_grid[n_grid]
-    bmag  =   btot_grid[n_grid]
+    B     =   btot_grid[n_grid]
     # Square root corresponds to Blandford-McKee solution, where e ∝ 1/χ ∝ 1/r
     if use_custom_εB
-        bmag *= √(x_grid_stop / prp_x_cm)
+        B *= √(x_grid_stop / prp_x_cm)
     end
     b_cosθ = cos(θ_grid[n_grid])
     b_sinθ = sin(θ_grid[n_grid])
 
     B_CMB_loc = B_CMBz * γᵤ_ef
-    B_tot_sq  = bmag^2 + B_CMB_loc^2
+    B_tot_sq  = B^2 + B_CMB_loc^2
 
     lose_pt = false
 
@@ -85,7 +85,7 @@ function retro_time(
         # Store old values in preparation for the loop
         x_PT_old      = x_PT
         φ_rad_old     = φ_rad
-        ptot_pf_old     = ptot_pf
+        ptot_pf_old   = ptot_pf
         cos_old_pitch = pb_pf / ptot_pf
         sin_old_pitch = p_perp_b_pf / ptot_pf
 
@@ -95,12 +95,12 @@ function retro_time(
         # for gyroradius and radiative cooling
         # Square root corresponds to Blandford-McKee solution, where e ∝ 1/χ ∝ 1/r
         if use_custom_εB
-            bmag       = btot_grid[n_grid] * √(x_grid_stop / x_PT)
-            B_tot_sq   = bmag^2 + B_CMB_loc^2
-            gyro_denom = 1 / (zz * bmag)
+            B          = btot_grid[n_grid] * √(x_grid_stop / x_PT)
+            B_tot_sq   = B^2 + B_CMB_loc^2
+            gyro_denom = 1 / (zz * B)
         end
-        gyro_rad_cm     = p_perp_b_pf * c * gyro_denom |> cm
-        gyro_rad_tot_cm =     ptot_pf * c * gyro_denom |> cm
+        gyro_rad     = p_perp_b_pf * c * gyro_denom |> cm
+        gyro_rad_tot =     ptot_pf * c * gyro_denom |> cm
 
         # Update φ_rad
         φ_rad = mod2pi(φ_rad_old + φ_step)
@@ -108,20 +108,19 @@ function retro_time(
         # Calculate time step and movement distance; note that x_move_bpar =
         # pb_pf*t_step*m_pt/γₚ_pf, but t_step = t_step_fac*γₚ_pf, so the
         # factors of γₚ_pf divide out
-        t_step      =         t_step_fac * γₚ_pf
-        @debug "" pb_pf t_step_fac aa mp gyro_denom xn_per
-        x_move_bpar = pb_pf * t_step_fac * aa*mp |> cm
+        t_step = t_step_fac * γₚ_pf
+        x_move_bpar = pb_pf * t_step_fac / (aa*mp) |> cm    # FIXME confirm formula
 
 
         # Move particle and update the acceleration time; note that we don't
         # care about y or z motion here, and that uₓ_sk is negative per the
         # definition above the loop
-        x_PT = x_PT_old + γᵤ_sf * (x_move_bpar*b_cosθ - gyro_rad_cm*b_sinθ*(cos(φ_rad)-cos(φ_rad_old)) + uₓ_sk*t_step)
+        x_PT = x_PT_old + γᵤ_sf * (x_move_bpar*b_cosθ - gyro_rad*b_sinθ*(cos(φ_rad)-cos(φ_rad_old)) + uₓ_sk*t_step)
         acctime_sec += t_step * γᵤ_ef
 
         # If tcut tracking is enabled, it should continue even during retro_time
         if do_tcuts && acctime_sec ≥ tcuts[tcut_curr]
-            tcut_track(tcut_curr, weight, ptot_pf)
+            tcut_track!(weight_coupled, spectra_coupled, tcut_curr, weight, ptot_pf, i_ion, num_psd_mom_bins)
             tcut_curr += 1
         end
 
@@ -152,8 +151,8 @@ function retro_time(
 
         # Catch electrons that have somehow lost all their energy in a single time step,
         # and update the pitch angle of particles that remain
-        if ptot_pf ≤ 0
-            ptot_pf   = 1e-99
+        if ptot_pf ≤ 0g*cm/s
+            ptot_pf = 1e-99g*cm/s
             γₚ_pf = 1.0
 
             lose_pt = true
@@ -161,7 +160,7 @@ function retro_time(
         else
             pb_pf       = ptot_pf * cos_old_pitch
             p_perp_b_pf = ptot_pf * sin_old_pitch
-            γₚ_pf     = hypot(1, ptot_pf/mc)
+            γₚ_pf = hypot(1, ptot_pf/mc)
         end
 
 
@@ -176,9 +175,9 @@ end
 function pitch_angle_diffusion()
 
     # Compute maximum allowed pitch angle cosine
-    vp_tg = 2π * gyro_rad_tot_cm
+    vp_tg = 2π * gyro_rad_tot
     use_custom_frg && error("Use of custom f(r_g) not yet supported. Add functionality or use standard.")
-    λ_mfp = η_mfp * gyro_rad_tot_cm
+    λ_mfp = η_mfp * gyro_rad_tot
     cos_max = cos(√(6vp_tg / (xn_per*λ_mfp)))
 
     # Compute change to pitch angle and roll

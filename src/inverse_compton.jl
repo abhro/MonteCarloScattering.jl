@@ -14,20 +14,20 @@ photon_pion_decay and photon_synch), right now the subroutine is set up to only 
 one photon field: the CMB.
 
 ### Arguments
-- n_grid: current grid zone. Used for tracking emission output
-- p_pf_cgs_cr: momentum boundary values, cgs units, of cosmic ray distribution histogram
-- num_psd_mom_bins: number of momentum bins in the distribution of accelerated particles
-- cos_bounds: boundaries of the angular bins of PSD, but in cosine form rather than mixed
+- `n_grid`: current grid zone. Used for tracking emission output
+- `p_pf_cgs_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
+- `num_psd_mom_bins`: number of momentum bins in the distribution of accelerated particles
+- `cos_bounds`: boundaries of the angular bins of PSD, but in cosine form rather than mixed
   cosine and θ form (as in psd_θ_bounds)
-- num_psd_θ_bins: number of angular bins in the distribution array
-- d²Ndp_slice: particle distribution array. It is number of particles per dp (NOT #/cm³/dp),
+- `num_psd_θ_bins`: number of angular bins in the distribution array
+- `d²Ndp_slice`: particle distribution array. It is number of particles per dp (NOT #/cm³/dp),
   split by pitch angle (NOT per pitch angle)
-- n_photon_IC: number of energy bins to use for photon production
-- photon_ic_min_MeV: minimum photon energy, in MeV, to use for inverse Compton spectrum.
-  Passed to IC_emission_FCJ.
-- bins_per_dec_photon: number of energy bins per decade of photon spectrum. Passed to IC_emission_FCJ.
-- dist_lum: luminosity distance (i.e. including redshift correction) to source; passed to IC_emission_FCJ.
-- redshift: redshift of source, used to adjust photon energies; passed to IC_emission_FCJ.
+- `n_photon_IC`: number of energy bins to use for photon production
+- `photon_ic_min_MeV`: minimum photon energy, in MeV, to use for inverse Compton spectrum.
+  Passed to `IC_emission_FCJ`.
+- `bins_per_dec_photon`: number of energy bins per decade of photon spectrum. Passed to `IC_emission_FCJ`.
+- `dist_lum`: luminosity distance (i.e. including redshift correction) to source; passed to `IC_emission_FCJ`.
+- `redshift`: redshift of source, used to adjust photon energies; passed to `IC_emission_FCJ`.
 """
 function photon_IC(
         n_grid, p_pf_cgs_cr, num_psd_mom_bins, cos_bounds,
@@ -59,7 +59,7 @@ function photon_IC(
     # Right now, there's just one photon field: the CMB.
     # TODO: have access to synchrotron photon field. Use it.
     # TODO: investigate interplay between j3 and n_IC_specs if more than
-    #  one field is used. not sure current code is right
+    #  one field is used. Not sure current code is right
     for j3 in 1:1# i_photon_fields
 
         # Set number of inverse Compton spectra here. Will be 1 unless more than one photon
@@ -250,12 +250,12 @@ function IC_emission_FCJ(
         #    # read in the variables photon_seed_energy and photon_seed_density from file,
         #    # and then use those to set the five variables below
         #
-        #    photon_energy_rm[i] = ustrip(erg, photon_seed_energy[i]*eV)/E₀_electron
+        #    photon_energy_rm[i] = photon_seed_energy[i]*eV/E₀_electron
         #    xnum_photons_p_vol[i] = photon_seed_density[i]/photon_seed_energy[i]
         #
-        #    ∑energy_photons += ustrip(erg, photon_seed_density[i]*eV) # erg/cm³
+        #    ∑energy_photons += photon_seed_density[i]*eV # erg/cm³
         #    ∑xnum_photons += xnum_photons_p_vol[i]
-        #    ∑photon_energy_density += ustrip(erg, photon_seed_density[i]*eV) #erg/cm³
+        #    ∑photon_energy_density += photon_seed_density[i]*eV #erg/cm³
         #end
     else
         # Below are constants for spectral energy density of CMB in units of
@@ -269,14 +269,14 @@ function IC_emission_FCJ(
             f_avg = √(f1*f2) # = freq_min ⋅ (freq_max/freq_min)*[(2j-1)/2n_freq]
             exp_fac = exp(min(con_f2*f_avg, 200.0))
 
-            # Below is incoming photon energy density derived from CMB en. density
+            # Below is incoming photon energy density derived from CMB energy density
             photon_energy_density   = (f2 - f1) * con_f1 * f_avg^3 / (exp_fac - 1)
             ∑photon_energy_density += photon_energy_density
 
             photon_energy_erg      = h_cgs*f_avg      # incoming photon energy (erg)
             photon_energy_rm[j_in] = photon_energy_erg/E₀_electron
 
-            # Below is number density of incoming photons [/cm³] in freq. bin
+            # Below is number density of incoming photons [/cm³] in frequency bin
             xnum_photons_p_vol[j_in] = photon_energy_density/photon_energy_erg
             ∑xnum_photons   += xnum_photons_p_vol[j_in]
             ∑energy_photons += photon_energy_erg*xnum_photons_p_vol[j_in]
@@ -301,8 +301,8 @@ function IC_emission_FCJ(
         p1_cgs = √(p_pf_cgs_cr[i_el] * p_pf_cgs_cr[i_el+1])
         γ = p1_cgs/mc < energy_rel_pt ? 1.0 : hypot(p1_cgs/mc, 1)
 
-        # Loop over incoming photons, then over outoing photons, then over angle.
-        # Fill d²N_o_dtda as defined by equation (9) in the process.
+        # Loop over incoming photons, then over outgoing photons, then over angle.
+        # Fill d²N_o_dtdα as defined by equation (9) in the process.
         # Before collision, α₁ is incoming photon energy in units of the electron rest mass.
         # NOTE: right now, this loop is for a *single* electron. The normalization will be handled later.
         for j_in in 1:n_freq
@@ -313,7 +313,7 @@ function IC_emission_FCJ(
             α₁       = photon_energy_rm[j_in]
             norm_fac = xnum_photons_p_vol[j_in] * 2π* r_z^2 * c / (α₁ * γ^2)
 
-            # Loop over outgoing photons. After collision, "α_out" is α in eq. (9):
+            # Loop over outgoing photons. After collision, "α_out" is α in Eq. (9):
             # outgoing photon energy in units of electron rest mass
             for k in eachindex(α_out)
 
@@ -346,7 +346,7 @@ function IC_emission_FCJ(
     # Finished!
 
 
-    # Now have d²N/(dt da), but need to convert that into energy flux observed at Earth.
+    # Now have d²N/(dt dα), but need to convert that into energy flux observed at Earth.
     # Assume that the electrons are distributed homogeneously over the surface of the jet,
     # so that the photons are isotropic within that cone. NOTE: in the MC code, the electron
     # spectra passed to the emission subroutines contain the total number of particles in
@@ -354,12 +354,12 @@ function IC_emission_FCJ(
     # converting from photons released per second to observed flux. Therefore, the emission
     # returned by this subroutine has units of erg/s⋅cm²
     beam_area = 4π * dist_lum^2 * jet_sph_frac
-    # d²N/(dt da) comes out of Eq.(9) in Jones 1968. This is (number of photons emitted)/(s⋅dα),
+    # d²N/(dt dα) comes out of Eq.(9) in Jones 1968. This is (number of photons emitted)/(s⋅dα),
     # but needs to be converted to a flux so that it's actually (photons observed) / (s⋅dα⋅cm²).
     d²N_o_dtda ./= beam_area
 
     energy_γ_cgs = α_out * E₀_electron   # photon energy in ergs
-    # To get d²N/(dt dE) we multiply d²N/(dt da) by da/dE = 1 / mₑc²
+    # To get d²N/(dt dE) we multiply d²N/(dt dα) by dα/dE = 1 / mₑc²
     # photon_IC() expects energy production rate per logarithmic energy bin, dP/d(lnE).
     # Multiply d²N/(dt dE) by E once to make it dP/dE, then again to make it dP/d(lnE).
     ic_emis = @. d²N_o_dtda/E₀_electron * energy_γ_cgs^2  # erg/(s⋅cm²)

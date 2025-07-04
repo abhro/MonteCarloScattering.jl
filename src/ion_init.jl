@@ -7,7 +7,7 @@ function ion_init(i_iter, i_ion, species)
     # At the start of each ion, print a glyph to the screen
     @info("Starting species iteration", i_iter, i_ion)
 
-    pmax_cutoff = get_pmax_cutoff(Emax_keV, Emax_keV_per_aa, pmax_cgs)
+    pmax_cutoff = get_pmax_cutoff(Emax, Emax_per_aa, pmax_cgs)
 
     # Zero out the phase space distributions and set variables related to
     # tracking thermal particles
@@ -98,12 +98,12 @@ function assign_particle_properties_to_population!(n_pts_use, xn_per_fine, x_gri
     φ_rad_new[1:n_pts_use] .= 2π*Random.rand(n_pts_use)
 end
 
-function get_pmax_cutoff(Emax_keV, Emax_keV_per_aa, pmax_cgs)
-    if Emax_keV > 0keV
-        γ = 1 + Emax_keV/(aa*E₀_proton)
+function get_pmax_cutoff(Emax, Emax_per_aa, pmax_cgs)
+    if Emax > 0keV
+        γ = 1 + Emax/(aa*E₀_proton)
         pmax_cutoff = aa*mp * c * √(γ^2 - 1)
-    elseif Emax_keV_per_aa > 0keV
-        γ = 1 + Emax_keV_per_aa/E₀_proton
+    elseif Emax_per_aa > 0keV
+        γ = 1 + Emax_per_aa/E₀_proton
         pmax_cutoff = aa*mp * c * √(γ^2 - 1)
     elseif pmax_cgs > 0g*cm/s
         pmax_cutoff = pmax_cgs

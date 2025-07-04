@@ -1,6 +1,4 @@
 """
-    get_σ_π(Tₚ, i_data, s_ECM)
-
 Implementation of code from Kafexhiu et al. (2014)
 
 ### References
@@ -15,6 +13,8 @@ module KATV2014
 using ..constants: Tₜₕ
 
 """
+    get_σ_π(Tₚ, i_data, s_ECM)
+
 Calulates the total inclusive π-0 production cross section using method
 of Kafexhiu+ (2014) [PhRvD, V.90, 123014], section 4.
 """
@@ -214,8 +214,8 @@ Calculates Amax as defined in Equation (12) of Kafexhiu+ (2014) [PhRvD, V.90, 12
 
 ```math
 A_\max(Tₚ) = \begin{cases}
-b₀ ⋅ \frac{σ_π(Tₚ)}{E_π^\max}  & \text{ for } Tₚ^\mathrm{th} ≤ Tₚ < 1\,\mathrm{GeV} \\
-b₁ θₚ^{-b₂} \exp(b₃ \log^2 (θₚ)) ⋅ \frac{σ_π(Tₚ)}{mₚ} & \text{ for } Tₚ ≥ 1\,\mathrm{GeV}
+    b₀ ⋅ \frac{σ_π(Tₚ)}{E_π^\max}        & \text{ for } Tₚ^\mathrm{th} ≤ Tₚ < 1\,\mathrm{GeV} \\
+    b₁ θₚ^{-b₂} \exp(b₃ \log^2 (θₚ)) ⋅ \frac{σ_π(Tₚ)}{mₚ} & \text{ for } Tₚ ≥ 1\,\mathrm{GeV}
 \end{cases}
 ```
 """

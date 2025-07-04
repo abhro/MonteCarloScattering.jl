@@ -75,15 +75,15 @@ psd_θ_min  = psd_θ_fine / 10^psd_log_θ_decs
 
 if inp_distr == 1
     # Set minimum PSD energy using thermal distribution for upstream plasma
-    Emin_keV = uconvert(keV, minimum(temperature.(species)), Thermal())
+    Emin = uconvert(keV, minimum(temperature.(species)), Thermal())
 
     # Allow for a few extra zones below the thermal peak
-    Emin_keV *= emin_therm_fac
+    Emin *= emin_therm_fac
 
 elseif inp_distr == 2
     # Set minimum PSD energy using δ-function dist for UpS plasma;
     # allow for a few extra zones below the location of the distribution
-    Emin_keV = energy_inj/5
+    Emin = energy_inj/5
 end
 
 # Determine minimum momentum associated with the given energy, which will occur for
@@ -92,10 +92,10 @@ end
 psd_mom_min = let
     rest_mass_min = minimum(mass.(species))
     rest_energy_min = uconvert(erg, rest_mass_min, MassEnergy())
-    if Emin_keV < 1e-3*rest_energy_min
-        √(2 * rest_mass_min * Emin_keV)
+    if Emin < 1e-3*rest_energy_min
+        √(2 * rest_mass_min * Emin)
     else
-        γ = 1 + Emin_keV/rest_energy_min
+        γ = 1 + Emin/rest_energy_min
         rest_mass_min*c * √(γ^2 - 1)
     end
 end
@@ -106,11 +106,11 @@ end
 psd_mom_max = let
     rest_mass_max = maximum(mass.(species))
     rest_energy_max = uconvert(erg, rest_mass_max, MassEnergy())
-    if Emax_keV > 0keV
-        γ = 1 + Emax_keV/rest_energy_max
+    if Emax > 0keV
+        γ = 1 + Emax/rest_energy_max
         rest_mass_max*c * √(γ^2 - 1)
-    elseif Emax_keV_per_aa > 0keV
-        γ = 1 + Emax_keV_per_aa/E₀_proton
+    elseif Emax_per_aa > 0keV
+        γ = 1 + Emax_per_aa/E₀_proton
         rest_mass_max*c * √(γ^2 - 1)
     elseif pmax_cgs > 0g*cm/s
         pmax_cgs

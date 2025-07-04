@@ -66,7 +66,7 @@ function particle_finish!(
     if i_reason == 1     # Particle escape: downstream, with or without scattering enabled
         esc_psd_feb_DwS[ip, jθ] += weight * weight_factor
 
-    elseif i_reason == 2 # Particle escape: pmax, upstream FEB, transverse distance
+    elseif i_reason == 2 # Particle escape: p_max, upstream FEB, transverse distance
 
         esc_flux[i_ion] += weight
         esc_psd_feb_UpS[ip, jθ] += weight * weight_factor
