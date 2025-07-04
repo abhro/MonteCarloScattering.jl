@@ -290,83 +290,87 @@ function triangular_distribution!(dN_out) # TODO fix arguments
     return dN_out
 end
 
-#function track_pitch_angles() # TODO figure out arguments
-#    # Adjust cell_weight to remove the velocity-weighting applied in PSD
-#    if i == 0
-#        pt_sk_cgs = 0.0
-#        i_pt_sk  = i_ct_pt_sk_min
-#    else
-#        pt_sk_cgs = exp10(psd_mom_bounds[i] + psd_mom_bounds[i+1])
-#        pt_sk_cgs = √pt_sk_cgs * mp * utsk_cm
-#        i_pt_sk  = floor(Int, psd_mom_bounds[i])
-#    end
-#    γₚ_sk = hypot(1, pt_sk_cgs/(rest_mass*c))
-#
-#    cell_weight = cell_weight * pt_sk_cgs / (γₚ_sk * rest_mass) / proton_num_density_UpS
-#
-#    # Binning shock frame values very easy; just add directly to correct bin of histogram
-#    if m == 1
-#        cθ_sk_xw[j,i_pt_sk] += cell_weight
-#    end
-#
-#
-#    # Identify the min and max extent of the plasma frame cell,
-#    # as well as the correct decade of momentum for binning
-#    ct_cell_lo = min(pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct)
-#    ct_cell_hi = max(pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct)
-#    i_pt_pf = floor(Int, (pt_lo_pt + pt_hi_pt + ct_lo_pt + ct_hi_pt)/4)
-#
-#
-#    # Determine the spread in cos(θ)
-#    # Remember that ct_bounds counts DOWN from +1 to -1 !!!!
-#    l_hi = findfirst(<(ct_cell_hi), ct_bounds) - 1
-#    l_lo = findnext(≤(ct_cell_lo), ct_bounds, l_hi)
-#
-#
-#    # Distribute cell weight among all bins crossed by cell
-#    ct_length_tot = ct_cell_hi - ct_cell_lo
-#    ct_bottom     = ct_cell_lo
-#
-#    for l in l_lo:-1:l_hi
-#        # Cell fits entirely within bin of ct_bounds
-#        if ct_cell_hi < ct_bounds[l_lo-1]
-#            if m == 2
-#                cθ_pf_xw[l-1, i_pt_pf] += cell_weight
-#            elseif m == 3
-#                cθ_ef_xw[l-1, i_pt_pf] += cell_weight
-#            end
-#            break
-#        end
-#
-#        # Top of bin in ct_bounds less than ct_cell_hi
-#        if ct_bounds[l-1] < ct_cell_hi
-#            frac_ct_length = (ct_bounds[l-1] - ct_bottom) / ct_length_tot
-#
-#            if m == 2
-#                cθ_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
-#            elseif m == 3
-#                cθ_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
-#            end
-#
-#            # Adjust ct_bottom to mark counting of current bin
-#            ct_bottom = ct_bounds[l-1]
-#        end
-#
-#        # Top of bin in ct_bounds is ≥ ct_cell_hi
-#        if ct_bounds[l-1] ≥ ct_cell_hi
-#            frac_ct_length = (ct_cell_hi - ct_bounds[l]) / ct_length_tot
-#
-#            if m == 2
-#                cθ_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
-#            elseif m == 3
-#                cθ_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
-#            end
-#
-#            break
-#        end
-#    end # loop over bins of ct_bounds
-#    ------------------------------------------------------------------
-#end
+"""
+    track_pitch_angles(...)
+
+TODO
+"""
+function track_pitch_angles() # TODO figure out arguments
+    # Adjust cell_weight to remove the velocity-weighting applied in PSD
+    if i == 0
+        pt_sk_cgs = 0.0
+        i_pt_sk  = i_ct_pt_sk_min
+    else
+        pt_sk_cgs = exp10(psd_mom_bounds[i] + psd_mom_bounds[i+1])
+        pt_sk_cgs = √pt_sk_cgs * mp * utsk_cm
+        i_pt_sk  = floor(Int, psd_mom_bounds[i])
+    end
+    γₚ_sk = hypot(1, pt_sk_cgs/(rest_mass*c))
+
+    cell_weight = cell_weight * pt_sk_cgs / (γₚ_sk * rest_mass) / proton_num_density_UpS
+
+    # Binning shock frame values very easy; just add directly to correct bin of histogram
+    if m == 1
+        cθ_sk_xw[j,i_pt_sk] += cell_weight
+    end
+
+
+    # Identify the min and max extent of the plasma frame cell,
+    # as well as the correct decade of momentum for binning
+    ct_cell_lo = min(pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct)
+    ct_cell_hi = max(pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct)
+    i_pt_pf = floor(Int, (pt_lo_pt + pt_hi_pt + ct_lo_pt + ct_hi_pt)/4)
+
+
+    # Determine the spread in cos(θ)
+    # Remember that ct_bounds counts DOWN from +1 to -1 !!!!
+    l_hi = findfirst(<(ct_cell_hi), ct_bounds) - 1
+    l_lo = findnext(≤(ct_cell_lo), ct_bounds, l_hi)
+
+
+    # Distribute cell weight among all bins crossed by cell
+    ct_length_tot = ct_cell_hi - ct_cell_lo
+    ct_bottom     = ct_cell_lo
+
+    for l in l_lo:-1:l_hi
+        # Cell fits entirely within bin of ct_bounds
+        if ct_cell_hi < ct_bounds[l_lo-1]
+            if m == 2
+                cθ_pf_xw[l-1, i_pt_pf] += cell_weight
+            elseif m == 3
+                cθ_ef_xw[l-1, i_pt_pf] += cell_weight
+            end
+            break
+        end
+
+        # Top of bin in ct_bounds less than ct_cell_hi
+        if ct_bounds[l-1] < ct_cell_hi
+            frac_ct_length = (ct_bounds[l-1] - ct_bottom) / ct_length_tot
+
+            if m == 2
+                cθ_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+            elseif m == 3
+                cθ_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+            end
+
+            # Adjust ct_bottom to mark counting of current bin
+            ct_bottom = ct_bounds[l-1]
+        end
+
+        # Top of bin in ct_bounds is ≥ ct_cell_hi
+        if ct_bounds[l-1] ≥ ct_cell_hi
+            frac_ct_length = (ct_cell_hi - ct_bounds[l]) / ct_length_tot
+
+            if m == 2
+                cθ_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+            elseif m == 3
+                cθ_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+            end
+
+            break
+        end
+    end # loop over bins of ct_bounds
+end
 
 #----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
