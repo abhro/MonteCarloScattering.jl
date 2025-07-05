@@ -1,4 +1,5 @@
-name = "MonteCarloScattering.jl"
+name = "MonteCarloScattering"
+uuid = "a575b980-c6d2-47bc-bd50-9f2bfd7764b5"
 authors = ["Abhro R. and contributors"]
 version = "0.0.0-DEV"
 
