@@ -5,7 +5,7 @@ Functions that might be nice to have when the code base is refactored
 """
     adjacent_apply(f, x)
 
-Return f(x[i], x[i+1]) for each i in x's index, excluding the last i.
+Return `f(x[i], x[i+1])` for each `i` in `x`'s index, excluding the last `i`.
 """
 function adjacent_apply(f, x)
     y = Vector{eltype(x)}(undef, length(x) - 1)

@@ -3,26 +3,28 @@
 const sin_upper_limit = prevfloat(1.0)
 
 """
-This is a combination of two subroutines from the old code: prob_scat and scattering.
+    scattering(...)
+
+This is a combination of two subroutines from the old code: `prob_scat` and `scattering`.
 Randomly moves the particle's momentum vector along the surface of the unit sphere.
 
 ### Arguments
 
-- aa: particle atomic mass
-- gyro_denom: q*B, the denominator of gyroradius formula
-- ptot_pf: total plasma frame momentum
-- γₚ_pf: Lorentz factor associated with ptot_pf
-- xn_per: number of time steps a gyroperiod is divided into
+- `aa`: particle atomic mass
+- `gyro_denom`: q*B, the denominator of gyroradius formula
+- `ptot_pf`: total plasma frame momentum
+- `γₚ_pf`: Lorentz factor associated with `ptot_pf`
+- `xn_per`: number of time steps a gyroperiod is divided into
 
 ### Returns
 
-- gyro_period_sec
+- `gyro_period_sec`
 
 ### Modifies
 
-- pb_pf: component of ptot_pf parallel to magnetic field
-- p_perp_b_pf: component of ptot_pf perpendicular to magnetic field
-- φ_rad: phase angle of gyration
+- `pb_pf`: component of ptot_pf parallel to magnetic field
+- `p_perp_b_pf`: component of ptot_pf perpendicular to magnetic field
+- `φ_rad`: phase angle of gyration
 """
 function scattering(
         aa, gyro_denom, ptot_pf, γₚ_pf, xn_per,

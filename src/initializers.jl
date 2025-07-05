@@ -18,22 +18,22 @@ using ..CGSTypes
     calc_downstream(...)
 
 Uses the Rankine-Hugoniot jump conditions to calculate the downstream conditions for a test
-particle shock. Big difference between this subroutine and calc_rRH is that we already know
-what the downstream speed is, courtesy of r_comp in the input.
+particle shock. Big difference between this subroutine and `calc_rRH` is that we already know
+what the downstream speed is, courtesy of `r_comp` in the input.
 
 Shock must be parallel (not oblique).
 
 ### Arguments
 
-- `B₀`: far UpS magnetic field strength[Gauss]
+- `B₀`: far upstream magnetic field strength [Gauss]
 - `r_comp`: compression ratio of shock
-- `β₀`: UpS bulk fluid speed, over c
+- `β₀`: upstream bulk fluid speed, over c
 
 ### Returns
 
 - `β`: (total) bulk fluid speed downstream
-- `γ`: Lorentz factor associated with β₂
-- `B`: downstream magnetic field strength[Gauss]
+- `γ`: Lorentz factor associated with `β₂`
+- `B`: downstream magnetic field strength [Gauss]
 - `θ_B`: angle[deg] between downstream magnetic field and shock normal
 - `θᵤ`: angle[deg] between downstream fluid velocity and shock normal
 """
@@ -52,19 +52,16 @@ end
 Uses the Rankine-Hugoniot jump conditions to calculate the compression ratio for a shock
 assuming test-particle conditions. In other words, (1) sharp shock, (2) negligible/no DSA,
 and (3) no escaping flux. Additionally assumes that the inflowing plasma has
-non-relativistic thermal speeds to make UpS adiabatic index exactly 5/3.
+non-relativistic thermal speeds to make upstream adiabatic index exactly 5/3.
 
 ### Arguments
 - `β₀`, `γ₀`: shock speed and Lorentz factor
 - `n_ions`: number of different ion species
 - `m_ion`: array of particle species' mass
-- `n₀_ion`: array of far UpS densities for particle species
-- `T₀_ion`: array of particle species' far UpS temperatures
+- `n₀_ion`: array of far upstream densities for particle species
+- `T₀_ion`: array of particle species' far upstream temperatures
 
 Shock must be parallel (not oblique)
-
-Unused:
-- `oblique`: controls whether to use parallel or oblique formulations of R-H relations
 
 ### Returns
 - `r_RH`: Rankine-Hugoniot compression ratio
@@ -72,42 +69,17 @@ Unused:
 """
 function calc_rRH(u₀, β₀, γ₀, species)
 
-    #--------------------------------------------------------------------------
-    #  Two possibilities for R-H relations: nonrelativistic/relativistic
-    #  Determine which of the four to use. Cutoff for nonrelativistic/relativistic is set in module 'parameters'
-    #--------------------------------------------------------------------------
+    # Two possibilities for R-H relations: nonrelativistic/relativistic
+    # Cutoff for (non-)relativistic is set in module 'parameters'
     relativistic = (β₀ < β_rel_fl)
 
     # Calculate thermal pressure of far upstream gas
-    P₀ = dot(density.(species), temperature.(species)) * Unitful.k
+    P₀ = dot(density.(species), temperature.(species)) * kB
     ρ₀ = dot(density.(species), mass.(species))
 
-    #--------------------------------------------------------------------------
-    #  Possibility 1: Nonrelativistic, parallel
-    #  Solution comes from Ellison (1985) [1985JGR....90...29E].
-    #  Uses far UpS Mach number to calculate r_RH.
-    #--------------------------------------------------------------------------
-    if !relativistic
+    if !relativistic    #  Possibility 1: Nonrelativistic, parallel
         r_RH, Γ₂_RH = calc_rRH_nonrelativistic(P₀, ρ₀, β₀)
-
-    #--------------------------------------------------------------------------
-    #  Possibility 2: Relativistic, parallel
-    #  Solution comes from Ellison & Reynolds (1990) [1991ApJ...378..214E].
-    #  Uses relativistic Rankine-Hugoniot relations. See that paper for
-    #  details of equations and associated quantities. Briefly,
-    #      R-H1:  γ₁  n₁ b₁        =  γ₂  n₂ b₂
-    #      R-H2:  γ₁² w₁ b₁² + P₁  =  γ₂² w₂ b₂² + P₂
-    #      R-H3:  γ₁² w₁ b₁        =  γ₂² w₂ b₂
-    #  where
-    #      w    = E_rm + E_ke + P   ← enthalpy as total energy density + pressure
-    #      E_rm = n m c²            ← rest mass energy density
-    #      E_ke = n m c² (γ - 1)    ← kinetic energy density, with γ = √(1 + (p/mc)²)
-    #      P    = ⅓ n p v           ← pressure
-    #
-    #  Assumes that downstream particle distributions are δ-functions.
-    #  Solves for p2 using Newton's method, then works backwards to r_RH.
-    #-------------------------------------------------------------------------
-    else
+    else                #  Possibility 2: Relativistic, parallel
         r_RH, Γ₂_RH = calc_rRH_relativistic(species, ρ₀, P₀, β₀, n₀_ion)
     end
 
@@ -117,19 +89,22 @@ end
 """
     calc_rRH_nonrelativistic(P₀, ρ₀, β₀)
 
-TODO
+Nonrelativistic, parallel.
+
+Solution comes from Ellison (1985) [1985JGR....90...29E].
+Uses far upstream Mach number to calculate `r_RH`.
 """
 function calc_rRH_nonrelativistic(P₀, ρ₀, β₀)
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal
-    # gas, to calculate the far UpS sound speed and Mach number   #assumecold
+    # gas, to calculate the far upstream sound speed and Mach number   #assumecold
     Γ_sph = 5//3
     cₛ    = √(Γ_sph * P₀ / ρ₀)
     M_Z   = β₀ * Unitful.c / cₛ |> NoUnits
 
     # Finally, use Equation (11) from Ellison (1985) to calculate r_RH.
-    # Note that q = 0 here b/c we assume no escaping flux. This simplifies
-    # the denominator quite a bit from the equation.
+    # Note that q = 0 here because we assume no escaping flux. This
+    # simplifies the denominator quite a bit from the equation.
     r_RH = 8 / (2 + 6/M_Z^2)
 
     # In non-relativistic case, downstream adiabatic index is pegged to 5/3
@@ -140,7 +115,26 @@ end
 """
     calc_rRH_relativistic(species, ρ₀, P₀, β₀, n₀_ion)
 
-TODO
+Relativistic, parallel.
+
+Solution comes from Ellison & Reynolds (1990) [1991ApJ...378..214E].
+Uses relativistic Rankine-Hugoniot relations. See that paper for
+details of equations and associated quantities. Briefly,
+```math
+\\begin{align*}
+    γ_1   n_1 b_1          &=  γ_2  n_2 b_2           \\tag{R-H1} \\\\
+    γ_1^2 w_1 b_1^2 + P_1  &=  γ_2^2 w_2 b_2^2 + P_2  \\tag{R-H2} \\\\
+    γ_1^2 w_1 b_1          &=  γ_2^2 w_2 b_2          \\tag{R-H3}
+\\end{align*}
+```
+where
+- ``w   = e_0 + e_K + P``   is the enthalpy as total energy density + pressure
+- ``e_0 = n m c^2``         is the rest mass energy density
+- ``e_K = n m c^2 (γ - 1)`` is the kinetic energy density, with ``γ = \\sqrt{1 + (p/mc)^2}``
+- ``P   = \\frac{1}{3} n p v``  is the pressure
+
+Assumes that downstream particle distributions are δ-functions.
+Solves for `p₂` using Newton's method, then works backwards to `r_RH`.
 """
 function calc_rRH_relativistic(species, ρ₀, P₀, β₀, n₀_ion)
 
@@ -154,11 +148,11 @@ function calc_rRH_relativistic(species, ρ₀, P₀, β₀, n₀_ion)
         / first(density.(species))) # turn densities into density relative to protons
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal gas,
-    # to calculate the far UpS enthalpy      #assumecold
+    # to calculate the far upstream enthalpy      #assumecold
     Γ_sph = 5//3
     w₀ = ρ₀ * c^2 + Γ_sph/(Γ_sph-1) * P₀
 
-    # Calculate the far UpS momentum flux
+    # Calculate the far upstream momentum flux
     UpS_mom_flux = γ₀^2 * w₀ * β₀^2 + P₀
     UpS_num_flux = γ₀ * n₀_ion[1] * β₀ # Protons only here; not strictly correct but appropriate for later use
 
@@ -201,10 +195,10 @@ end
     set_psd_mom_bins(...)
 
 Sets the BOUNDARIES of the bins of the phase space distribution. The bins are numbered from
-0 to num_psd_mom_bins, each boundary denotes the lower edge of that # bin; the indices thus
-run from 0 to num_psd_mom_bins + 1.
+0 to `num_psd_mom_bins`, each boundary denotes the lower edge of that # bin; the indices thus
+run from 0 to `num_psd_mom_bins + 1`.
 
-Logarithmic spacing over all decades from Emin to Emax is used.
+Logarithmic spacing over all decades from `E_min` to `E_max` is used.
 Values less than the minimum are equivalent to 0.0.
 
 ### Arguments
@@ -237,8 +231,8 @@ end
     set_psd_angle_bins(...)
 
 Sets the BOUNDARIES of the bins of the phase space distribution. The bins are numbered from
-0 to num_psd_θ_bins, each boundary denotes the lower edge of that # bin; the indices thus
-run from 0 to num_psd_θ_bins + 1.
+0 to `num_psd_θ_bins`, each boundary denotes the lower edge of that # bin; the indices thus
+run from 0 to `num_psd_θ_bins + 1`.
 
 !!! warning
     the number stored in psd_θ_bounds increases at first (increasing θ),
@@ -282,15 +276,15 @@ end
 """
     set_photon_shells(...)
 
-If photon calculation is desired, photons will be collected into UpS and DwS shells for
+If photon calculation is desired, photons will be collected into upstream and downstream shells for
 easier viewing. This subroutine sets the endpoints of the shells, as well as their midpoints.
 
 Because the particle spectrum changes most rapidly near the shock, zones should be small
 near the shock and get larger as you move further away.
 
-First, divide the domain between the shock and the FEB (either UpS or DwS into n sections,
-where n is the respective number of shells to use. HOWEVER, do this by exponent, ranging
-from -1 to log10(|x_FEB|).
+First, divide the domain between the shock and the FEB (either upstream or downstream into
+n sections, where n is the respective number of shells to use. HOWEVER, do this by exponent,
+ranging from -1 to log10(|x_FEB|).
 
 Keep track of the boundaries of each shells, since we will need those for calculating the
 total number of particles emitting when we get to that point in photon production. The
@@ -329,7 +323,8 @@ function set_UpS_photon_shells!(
     )
     x_section_width = (log10(abs(feb_UpS/rg₀))+1) / num_UpS_shells
     for i in 1:num_UpS_shells
-        # Calculate UpS and DwS endpoints of each region, as well as midpoint in log space
+        # Calculate upstream and downstream endpoints of each region,
+        # as well as midpoint in log space
         if i == 1
             # Special case when i = 1, since our region starts at the shock.
             x_region_start = 0.0
@@ -339,13 +334,13 @@ function set_UpS_photon_shells!(
             # In the general case, note that x_region_start should be the same as
             # the previous region's x_region_end. This can be checked with print
             # or write statements at runtime.
-            x_region_start = exp10(-1 + x_section_width * (i-1) )
-            x_region_end   = exp10(-1 + x_section_width *  i    )
+            x_region_start = exp10(-1 + x_section_width * (i -   1) )
+            x_region_end   = exp10(-1 + x_section_width *  i        )
             x_region_mid   = exp10(-1 + x_section_width * (i - 1/2) )
         end
 
         # Update the arrays with this information, remembering that the eventual array will
-        # count downstream from the UpS FEB (so some array index juggling is necessary)
+        # count downstream from the upstream FEB (so some array index juggling is necessary)
         # Also, add in the factor of -1 here, since upstream coordinates should be negative
         # in the MC code.
         x_shell_midpoints[num_UpS_shells+1 - i]     = -x_region_mid
@@ -362,12 +357,12 @@ function set_DwS_photon_shells(
         x_shell_midpoints, x_shell_endpoints,
         num_UpS_shells, num_DwS_shells, use_prp, feb_DwS, rg₀, x_grid_stop_rg,
     )
-    # The DwS limit is set differently if using a PRP or a FEB
+    # The downstream limit is set differently if using a PRP or a FEB
     limitDwS = use_prp ? x_grid_stop_rg : feb_DwS/rg₀
     x_section_width = (log10(limitDwS)+1) / num_DwS_shells
 
     for i in 1:num_DwS_shells
-        # Calculate UpS and DwS endpoints of each region, as well as midpoint in log space
+        # Calculate upstream and downstream endpoints of each region, as well as midpoint in log space
         if i == 1
             # Special case when i = 1, since our region starts at the shock.
             x_region_start = 0.0
@@ -389,7 +384,7 @@ function set_DwS_photon_shells(
 end
 
 # Many grid zones are set manually; zones can easily be added/removed, but
-# make sure to change the number in the log-spaced regions UpS or DwS
+# make sure to change the number in the log-spaced regions upstream or downstream
 const FIRST_ZONE = SVector(-9.0, -8.0, -7.0, -6.0, -5.0, -4.5, -4.0, -3.5, -3.0,
                            -2.5, -2.0, -1.8, -1.6, -1.4, -1.2, -1.0,
                            -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2,
@@ -411,7 +406,7 @@ TODO
 """
 function setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_DwS, rg₀)
 
-    # Recall that rg₀ is the gyroradius of a proton with speed u₀ in magnetic field bmag₀.
+    # Recall that rg₀ is the gyroradius of a proton with speed u₀ in magnetic field B₀.
 
     # Set the start and stop positions in units of rg₀
     x_grid_start = x_grid_start_rg * rg₀
@@ -436,7 +431,7 @@ function setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_DwS, rg₀)
     append!(x_grid_rg, DOWNSTREAM_SPACING)
 
     # As seen above, the manually-set grid zones end at x = +1rg₀.
-    # DwS from there, more log-spaced zones.
+    # Downstream from there, more log-spaced zones.
     n_log_DwS = 16
     x_end_man = x_grid_rg[end]
     Δlog      = (log10(x_grid_stop_rg) - log10(x_end_man)) / n_log_DwS
@@ -460,10 +455,10 @@ Two different cases considered:
 
 Only oblique equations used because they reduce trivially to parallel cases when θ_B₀ = 0.
 
-HOWEVER, assumes that z-component of far UpS velocity is 0 in all cases; in practice oblique
-shocks would induce some z-velocity in the shock profile even though particles initially
-arrive with no bulk z component. Also assumes isotropic initial pressure, so no off-diagonal
-components in pressure tensor.
+HOWEVER, assumes that z-component of far upstream velocity is 0 in all cases; in practice
+oblique shocks would induce some z-velocity in the shock profile even though particles
+initially arrive with no bulk z component. Also assumes isotropic initial pressure, so
+no off-diagonal components in pressure tensor.
 
 Shock must be parallel (not oblique). Set `oblique` to `false`.
 
@@ -474,13 +469,13 @@ FIXME
 No inputs; pulls everything from module 'controls'
 
 ### Returns
-- flux_px_UpS: far UpS momentum flux, x component
-- flux_pz_UpS: far UpS momentum flux, z component
-- flux_energy_UpS: far UpS energy flux
+- `flux_px_UpS`: far upstream momentum flux, x component
+- `flux_pz_UpS`: far upstream momentum flux, z component
+- `flux_energy_UpS`: far upstream energy flux
 """
 function upstream_fluxes(n₀_ion, T₀_ion, m_ion, B₀, θ_B₀, u₀, β₀, γ₀)
 
-    # UpS internal energy density and pressure, assuming isotropic particle distribution.
+    # Upstream internal energy density and pressure, assuming isotropic particle distribution.
     # Note that this INCLUDES the mass-energy density, which is typically omitted in
     # nonrelativistic calculations
     P₀ = dot(n₀_ion, T₀_ion) * kB |> dyn/cm^2 # pressure
@@ -488,12 +483,12 @@ function upstream_fluxes(n₀_ion, T₀_ion, m_ion, B₀, θ_B₀, u₀, β₀, 
     @debug "calculated params" P₀ ρ₀
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal gas,
-    # to calculate the far UpS internal energy             #assumecold
+    # to calculate the far upstream internal energy             #assumecold
     Γ_sph = 5//3
     # internal energy density
     e₀ = ρ₀*c^2 + 1/(Γ_sph - 1) * P₀ |> erg/cm^3
 
-    # Quantities related to the UpS magnetic field. Note that B_z is the
+    # Quantities related to the upstream magnetic field. Note that B_z is the
     # z-component of the magnetic field, not B₀
     B_x = B₀ * cosd(θ_B₀)
     B_z = B₀ * sind(θ_B₀)
@@ -589,17 +584,16 @@ Calculates the sonic and Alfvén mach numbers for the shock.
 TODO
 
 ### Returns
-- mach_sonic: sonic Mach number of UpS flow
-- mach_alfven: Alfvénic Mach number of UpS flow
+- `mach_sonic`: sonic Mach number of upstream flow
+- `mach_alfven`: Alfvénic Mach number of upstream flow
 """
 function upstream_machs(β₀, species, B₀)
 
-    # Assume cold UpS plasma, so that the adiabatic index is 5/3 identically   #assumecold
+    # Assume cold upstream plasma, so that the adiabatic index is 5/3 identically   #assumecold
     Γ = 5//3
 
     P₀ = dot(number_density.(species), temperature.(species)) * kB  # pressure
     ρ₀ = dot(number_density.(species), mass.(species))              # mass density
-    @debug "Found parameters" P₀ ρ₀
 
     relativistic = (β₀ ≥ β_rel_fl)
 
@@ -652,7 +646,6 @@ function alfven_speed_relativistic(P, ρ, Γ, B)
     # equation of state is    e = ρc² + P/(Γ-1)
     #     v_A² = (B²/4π) / (ε + p + B²/4π)                  Gedalin Eq. 46
     enthalpy = Γ/(Γ-1) * P + ρ * c^2
-    # In principle 1 erg/cm³ == 1 G², but uconvert breaks when doing it
     v_A = c / √(1 + 4π * enthalpy / B^2)
     # more on equation of state
     #    e = ρc² + P/(Γ-1)
@@ -722,7 +715,7 @@ function setup_profile(
             γ_sf_grid[i] = γ₀
             β_ef_grid[i] = 0.0
             γ_ef_grid[i] = 1.0
-            btot_grid[i] = bmag₀
+            btot_grid[i] = B₀
         else
             u = u₀ / r_comp
             β = u / c |> NoUnits
@@ -736,7 +729,7 @@ function setup_profile(
             local comp_fac = 1 + (√((1 + 2*z_comp^2)/3) - 1) * bturb_comp_frac
             # Also include any additional amplification specified
             amp_fac        = 1 + (comp_fac - 1) * bfield_amp
-            btot_grid[i]   = bmag₀ * amp_fac
+            btot_grid[i]   = B₀ * amp_fac
         end
     end
 
@@ -749,7 +742,7 @@ function setup_profile(
     #-------------------------------------------------------------------------------
     if use_custom_εB
         set_custom_εB!(εB_grid, btot_grid, grid_axis,
-                       n_ions, species, bmag₀,
+                       n_ions, species, B₀,
                        flux_px_UpS, flux_energy_UpS, uₓ_sk_grid, x_grid_rg,
                        comp_fac,
                        γ₀, β₀, u₀)
@@ -759,10 +752,10 @@ function setup_profile(
     #-------------------------------------------------------------------------
     # Custom εB_grid defined if needed
 
-    bmag₂ = btot_grid[end]
+    B₂ = btot_grid[end]
 
     return (uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
-            β_ef_grid, γ_ef_grid, btot_grid, θ_grid, εB_grid, bmag₂)
+            β_ef_grid, γ_ef_grid, btot_grid, θ_grid, εB_grid, B₂)
 end
 
 """
@@ -773,23 +766,23 @@ TODO
 function set_custom_εB!(
         εB_grid, btot_grid,
         grid_axis,
-        n_ions, species, bmag₀,
+        n_ions, species, B₀,
         flux_px_UpS, flux_energy_UpS, uₓ_sk_grid, x_grid_rg,
         comp_fac,
         γ₀, β₀, u₀)
 
-    @debug("Input parameters", εB_grid, btot_grid, grid_axis, n_ions, species, bmag₀,
+    @debug("Input parameters", εB_grid, btot_grid, grid_axis, n_ions, species, B₀,
            flux_px_UpS, flux_energy_UpS, uₓ_sk_grid, x_grid_rg, comp_fac, γ₀, β₀, u₀)
 
-    # Calculate ε_B₀ which depends on far UpS magnetic field and mass density. If electrons
-    # aren't a separate species, they don't contribute enough mass to be important
+    # Calculate ε_B₀ which depends on far upstream magnetic field and mass density.
+    # If electrons aren't a separate species, they don't contribute enough mass to be important.
     n₀ = dot(density.(species), mass.(species))/mp # total number density
-    εB₀ = bmag₀^2 / (8π * n₀ * E₀_proton)
+    εB₀ = B₀^2 / (8π * n₀ * E₀_proton) |> NoUnits
 
-    # The Monte Carlo length is rg₀ = γ₀ ⋅ β₀ ⋅ E₀_proton / (e ⋅ Bmag₀). The plasma skin
+    # The Monte Carlo length is rg₀ = γ₀ ⋅ β₀ ⋅ E₀_proton / (e ⋅ B₀). The plasma skin
     # depth is λ_SD = γ₀ ⋅ E₀_proton / (4π ⋅ e² ⋅ den₀), where den₀ refers to the upstream
     # number density of electrons. With the definition
-    #     σ = 2εB₀/γ₀ = Bmag₀² / (4π ⋅ γ₀ ⋅ n₀ ⋅ E₀_proton),
+    #     σ = 2εB₀/γ₀ = B₀² / (4π ⋅ γ₀ ⋅ n₀ ⋅ E₀_proton),
     # where n₀ here refers to the number density of *protons*, one can show that in
     # the shock frame (where grid exists),
     #     λ_SD = β₀ / √(σ ⋅ density_p/density_e) ⋅ rg₀.
@@ -803,7 +796,7 @@ function set_custom_εB!(
     #     energy_density(x) = F_en₀/u(x) - F_px₀
     # assuming flux conservation everywhere.
     energy_density₂ = (flux_energy_UpS + γ₀*u₀*n₀*E₀_proton) / uₓ_sk_grid[end] - flux_px_UpS
-    εB₂ = (bmag₀*comp_fac)^2 / (8π * energy_density₂)
+    εB₂ = (B₀*comp_fac)^2 / (8π * energy_density₂) |> NoUnits
     # Use this value to compute the distance downstream at which the field will have decayed to it.
     # Per the Blandford-McKee solution, energy ∝ 1/χ ∝ 1/distance downstream. Since we do not actually
     # modify our pressures and densities according to the BM solution, instead modify εB
@@ -927,14 +920,14 @@ function init_pop(
     end
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal
-    # gas, to calculate the far UpS internal energy   #assumecold
+    # gas, to calculate the far upstream internal energy   #assumecold
     Γ_sph = 5//3
 
     temp_ratio = density_ratio^Γ_sph / density_ratio
 
     if (kB * T₀_ion[i_ion] * temp_ratio) > (4 * m*c^2 * energy_rel_pt)
         error("Fast push cannot work because highest energy thermal particles become mildly relativistic. ",
-              "Move fast push location UpS or disable entirely.")
+              "Move fast push location upstream or disable entirely.")
     end
     pxx_flux = zeros(MomentumDensityFluxCGS, n_grid)
     pxz_flux = zeros(MomentumDensityFluxCGS, n_grid)
@@ -1019,12 +1012,12 @@ function flux_update!(
     )
     # Update the flux arrays as if the particles had actually crossed them
     #-----------------------------------------------------------------------
-    # Obtain UpS pressure and density
+    # Obtain upstream pressure and density
     P₀ = dot(n₀_ion, T₀_ion) * kB
     ρ₀ = dot(n₀_ion, m_ion)
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal gas,
-    # to calculate the far UpS pressure and internal energy   #assumecold
+    # to calculate the far upstream pressure and internal energy   #assumecold
     Γ_sph = 5//3
 
     # Calculate fluxes and update arrays; note that if fast push isn't enabled
@@ -1090,7 +1083,7 @@ FIXME
 - `inp_distr`: thermal, δ-function, or some other distribution
 - `T_or_E`: if using thermal distribution, this is temperature[K]; if δ function, it's injection energy[keV]
 - `m`: mass for this particle species
-- `n₀`: far UpS number density for this species
+- `n₀`: far upstream number density for this species
 
 ### Returns
 - `ptot_out`: array holding plasma frame total momenta for all particles in the distribution
@@ -1287,7 +1280,6 @@ function set_inj_dist_bin_equal_weight!(
         jend   = jstart + (n_per_bin-1)
         ptot_out[jstart:jend] .= √(p1*p2)
         weight_out[jstart:jend] .= area_frac / n_per_bin * n₀
-
     end  # loop over i
 end
 end # module

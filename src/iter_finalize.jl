@@ -57,17 +57,17 @@ function iter_finalize()
     energy_esc_avg = mean(energy_esc_flux_UpS[1:n_avg])
 
     println(outfile, " Parallel shock q_esc from Double et al (2004) equations:")
-    println(outfile, "     Esc. energy flux/UpS    = ", q_esc_cal_energy_avg)
-    println(outfile, "     Esc. momentum flux/UpS  = ", q_esc_cal_pₓ_avg)
+    println(outfile, "     Esc. energy flux/upstream    = ", q_esc_cal_energy_avg)
+    println(outfile, "     Esc. momentum flux/upstream  = ", q_esc_cal_pₓ_avg)
     energy_esc_flux_UpS[i_iter] = max(energy_esc_flux_UpS[i_iter], 1e-99)
-    energy_esc_avg             = max(energy_esc_avg,             1e-99)
+    energy_esc_avg              = max(energy_esc_avg,              1e-99)
     pₓ_esc_flux_UpS[i_iter] = max(pₓ_esc_flux_UpS[i_iter], 1e-99)
-    pₓ_esc_avg             = max(pₓ_esc_avg,             1e-99)
+    pₓ_esc_avg              = max(pₓ_esc_avg,              1e-99)
     println(outfile,
-            " Esc. en flux FEB/UpS  for i_iter = ", i_iter, ":   en esc = ",
+            " Esc. en flux FEB/upstream  for i_iter = ", i_iter, ":   en esc = ",
             energy_esc_flux_UpS[i_iter], "   Avg. esc en  = ", energy_esc_avg)
     println(outfile,
-            " Esc. pxx flux FEB/UpS for i_iter = ", i_iter, ":  pxx esc = ",
+            " Esc. pxx flux FEB/upstream for i_iter = ", i_iter, ":  pxx esc = ",
             pₓ_esc_flux_UpS[i_iter], "   Avg. esc pxx = ", pₓ_esc_avg)
 
     if iszero(q_esc_cal_pₓ_avg)
@@ -90,9 +90,9 @@ function iter_finalize()
 
     println(outfile, " Iteration #", i_iter)
     println(outfile, "   r_comp = ", r_comp, "      r_RH = ", r_RH)
-    println(outfile, "   Adiab index for far UpS particles = ", Γ_UpS)
-    println(outfile, "   Adiab index for DwS PRP particles = ", Γ_DwS_esc)
-    println(outfile, "   Adiab index from R-H relations    = ", Γ₂_RH)
+    println(outfile, "   Adiab index for far upstream particles   = ", Γ_UpS)
+    println(outfile, "   Adiab index for downstream PRP particles = ", Γ_DwS_esc)
+    println(outfile, "   Adiab index from R-H relations           = ", Γ₂_RH)
     println(outfile)
 
 

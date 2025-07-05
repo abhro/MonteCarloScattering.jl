@@ -382,12 +382,12 @@ Takes particle's Plasma frame momentum components and transforms them to the sho
 Transformation formulas are correct for all obliquities.
 
 Notes from Glen Double (31 Oct 2002):
-Method: define flow velocity and particle momentum in component vectors with respect to the
-plasma xyz frame. Find p_para (with respect to u) component of particle momentum using
-scalar product of p and u. Then p_perp = p - p_para (using vectors). Next, make relativistic
-transformation on p_para while p_perp remains constant. Finally, recreate p_rel =
-p_rel_para + p_perp, and find p_rel components in the original xyz frame by taking scalar
-products along the xyz axes.
+Method: define flow velocity and particle momentum in component vectors with respect to
+the plasma xyz frame. Find p_para (with respect to u) component of particle momentum
+using scalar product of p and u. Then `p_perp = p - p_para` (using vectors).
+Next, make relativistic transformation on p_para while `p_perp` remains constant.
+Finally, recreate `p_rel = p_rel_para + p_perp`, and find `p_rel` components in the
+original xyz frame by taking scalar products along the xyz axes.
 
 ### Arguments
 
@@ -395,7 +395,7 @@ products along the xyz axes.
 - `pb_pf`: component of ptot_pf parallel to magnetic field
 - `p_perp_b_pf`: component of ptot_pf perpendicular to magnetic field
 - `γₚ_pf`: Lorentz factor associated with ptot_pf
-- `φ_rad`: phase angle of gyration; looking UpS, counts clockwise from +z axis
+- `φ_rad`: phase angle of gyration; looking upstream, counts clockwise from +z axis
 - `uₓ_sk`: bulk flow speed along x axis
 - `uz_sk`: bulk flow speed along z axis
 - `utot`: total bulk flow speed
@@ -464,10 +464,10 @@ Transformation formulas are correct for all obliquities.
 
 Notes from Glen Double (31 Oct 2002):
 Method: define flow velocity and particle momentum in component vectors with respect to the
-plasma xyz frame. Find p_para (with respect to u) component of particle momentum using
-scalar product of p and u. Then p_perp = p - p_para (using vectors). Next, make relativistic
-transformation on p_para while p_perp remains constant. Finally, recreate
-p_rel = p_rel_para + p_perp, and find p_rel components in the original xyz frame by taking
+plasma xyz frame. Find `p_para` (with respect to u) component of particle momentum using
+scalar product of p and u. Then `p_perp = p - p_para` (using vectors). Next, make relativistic
+transformation on `p_para` while `p_perp` remains constant. Finally, recreate
+`p_rel = p_rel_para + p_perp`, and find `p_rel` components in the original xyz frame by taking
 scalar products along the xyz axes.
 
 ### Arguments
@@ -494,7 +494,7 @@ scalar products along the xyz axes.
 - `pb_pf`: component of ptot_pf parallel to magnetic field
 - `p_perp_b_pf`: component of ptot_pf perpendicular to magnetic field
 - `γₚ_pf`: Lorentz factor associated with ptot_pf
-- `φ_rad`: phase angle of gyration; looking UpS, counts clockwise from +z axis
+- `φ_rad`: phase angle of gyration; looking upstream, counts clockwise from +z axis
 """
 function transform_p_PSP(
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,

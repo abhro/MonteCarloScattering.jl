@@ -40,11 +40,11 @@ function q_esc_calcs_nonrelativistic()
     P₀ = dot(n₀_ion, T₀_ion) * k    # pressure (thermal)
     ρ₀ = dot(n₀_ion, m_ion)         # mass density
 
-    # Calculate UpS incoming energy flux   #assumecold
+    # Calculate upstream incoming energy flux   #assumecold
     F_pₓ_UpS_fl     = ρ₀ * u₀^2 + P₀
     F_energy_UpS_fl = ρ₀ * u₀^3 / 2 + 5//2 * P₀ * u₀
 
-    # Calculate far DwS density (Eq 8) and pressure (Eq 9)
+    # Calculate far downstream density (Eq 8) and pressure (Eq 9)
     ρ₂ = ρ₀ * γ₀*β₀ / (γ₂*β₂)           # mass density
     P₂ = F_pₓ_UpS_fl - ρ₂*u₂^2          # pressure
 
@@ -73,7 +73,7 @@ where
 For closure, it is assumed that the two escaping fluxes are related by
     Q_en = √[(1+β₀)/2] * Q_px * c,
 i.e. the geometric mean of the arithmetic mean of u₀ and c. This allows the solution to
-smoothly join with the non-relativstic version. Use only fluid component of
+smoothly join with the non-relativistic version. Use only fluid component of
 fluxes, not fluid+EM, for now.
 """
 function q_esc_calcs_relativistic()
@@ -89,7 +89,7 @@ function q_esc_calcs_relativistic()
     F_energy_UpS_fl = γ₀^2 * u₀   * (ρ₀*c^2 + 5//2*P₀)
     term_aux = γ₂^2 * (q_fac * β₂^2 - u₂)
 
-    # Calculate far DwS density and pressure
+    # Calculate far downstream density and pressure
     ρ₂ = ρ₀ * γ₀*β₀ / (γ₂*β₂) # mass density
     P₂ = (q_fac * F_pₓ_UpS_fl - F_energy_UpS_fl - term_aux*ρ₂*c^2) / (q_fac + Γ_fac*term_aux)
 
@@ -97,7 +97,7 @@ function q_esc_calcs_relativistic()
     Q_px = F_pₓ_UpS_fl - (γ₂*β₂)^2 * (ρ₂ * c^2 + Γ_fac * P₂) - P₂
     Q_en = Q_px * q_fac
 
-    # Convert Q_en & Q_px into q_esc_cal_**, which involves dividing by the far UpS values.
+    # Convert Q_en & Q_px into q_esc_cal_**, which involves dividing by the far upstream values.
     # Subtract off mass-energy flux from F_energy_UpS_fl to bring results in line with
     # non-relativistic calculation.
     q_esc_cal_energy = Q_en / (F_energy_UpS_fl - γ₀ * u₀ * ρ₀*c^2)

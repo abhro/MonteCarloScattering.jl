@@ -12,38 +12,40 @@ const grid_smoothing_maxitrs = 10_000
 const grid_smoothing_target_err = 1e-6
 
 """
+    smooth_grid_par(...)
+
 Uses tracked fluxes of particles, and the Rankine-Hugoniot jump conditions, to determine the
 smoothed shock profile for the next iteration of the code. Only valid in parallel case,
 which makes subroutine, inputs and equations simpler than would be required for oblique case.
 
 ### Arguments
 FIXME
-- i_iter: current iteration number
-- n_grid: number of grid zones
-- x_grid_rg: locations[rg₀] of grid zone boundaries
-- uz_sk_grid: z-component of bulk fluid velocity, in shock frame. This is a parallel shock,
-  so uz_sk_grid = 0 identically; just used for output
-- θ_grid: angle[rad] between mean magnetic field and shock normal.
+- `i_iter`: current iteration number
+- `n_grid`: number of grid zones
+- `x_grid_rg`: locations[rg₀] of grid zone boundaries
+- `uz_sk_grid`: z-component of bulk fluid velocity, in shock frame. This is a parallel shock,
+  so `uz_sk_grid = 0` identically; just used for output
+- `θ_grid`: angle[rad] between mean magnetic field and shock normal.
   This is a parallel shock, so θ_grid = 0 identically; just used for output
-- pxx_flux: momentum flux of particles across grid zone boundaries
-- energy_flux: energy flux of particles across grid zone boundaries
-- Γ₂: DwS adiabatic index
-- flux_px_UpS: far UpS momentum flux, calculated in upstream_fluxes
-- flux_energy_UpS: far UpS energy flux, calculated in upstream_fluxes
+- `pxx_flux`: momentum flux of particles across grid zone boundaries
+- `energy_flux`: energy flux of particles across grid zone boundaries
+- `Γ₂`: downstream adiabatic index
+- `flux_px_UpS`: far upstream momentum flux, calculated in upstream_fluxes
+- `flux_energy_UpS`: far upstream energy flux, calculated in upstream_fluxes
 
 ### Returns
 
-- utot_grid: total bulk flow speed of fluid in shock frame (is a pure output because
-  uₓ_sk_grid is used in the calculations instead)
-- γ_ef_grid: Lorentz factor of flow relative to far UpS plasma (i.e. in the explosion frame)
-- β_ef_grid: bulk flow speed associated with γ_ef_grid
+- `utot_grid`: total bulk flow speed of fluid in shock frame (is a pure output
+  because `uₓ_sk_grid` is used in the calculations instead)
+- `γ_ef_grid`: Lorentz factor of flow relative to far upstream plasma (i.e. in the explosion frame)
+- `β_ef_grid`: bulk flow speed associated with `γ_ef_grid`
 
 ### Modifies
 
-- uₓ_sk_grid: x-component of bulk fluid velocity, in shock frame
-- γ_sf_grid: Lorentz factor associated with utot_grid, but since this is a parallel shock
-  it's the Lorentz factor associated with uₓ_sk_grid
-- btot_grid: magnetic field strength[G] in each grid zone, including any compression of
+- `uₓ_sk_grid`: x-component of bulk fluid velocity, in shock frame
+- `γ_sf_grid`: Lorentz factor associated with `utot_grid`, but since this is a parallel shock
+  it's the Lorentz factor associated with `uₓ_sk_grid`
+- `btot_grid`: magnetic field strength[G] in each grid zone, including any compression of
   turbulence or additional amplification
 """
 function smooth_grid_par(
@@ -77,9 +79,9 @@ function smooth_grid_par(
 
     #DEBUGLINE (for now)
     # Calculate the far upstream magnetization -- the ratio of the energy fluxes in EM fields
-    # and particles. This will be used to scale the DwS decay of magnetic field, linking rg₀
-    # to the ion skin depth used in PIC sims.
-    ##TODO: this uses γ₀ for the KE, rather than γ₀ - 1. Okay for ultra-relativistic
+    # and particles. This will be used to scale the downstream decay of magnetic field,
+    # linking rg₀ to the ion skin depth used in PIC sims.
+    ##TODO: this uses γ₀ for the kinetic energy, rather than γ₀ - 1. Okay for ultra-relativistic
     # shocks, but badly mistaken in trans-relativistic limit. Does this affect the results?
     #σ₀ = bmag₀^2 / (4π * γ₀ * n₀ * E₀_proton)
 
@@ -155,7 +157,7 @@ function smooth_grid_par(
         energy_EM  = γᵤ_sf^2 / 4π * β_uₓ * B_z^2 - (2γ_sq - γᵤ_sf) / 4π * β_uz * B_x * B_z
 
         # Total momentum/energy fluxes, including electrons (if needed) and EM.
-        # Also normalized against far UpS values and in log space for plotting.
+        # Also normalized against far upstream values and in log space for plotting.
         pxx_tot[i] = pxx_flux[i] + pxx_EM
         energy_tot[i] = energy_flux[i] + energy_EM + Γ_post/(Γ_post-1) * uₓ
 
@@ -184,7 +186,7 @@ function smooth_grid_par(
         # [2004ApJ...600..485D], Eqs (27) and (28) specifically. Combine the resultant
         # pressure using smooth_mom_energy_fac from input file. Note that flux_energy_UpS
         # has the rest mass-energy flux subtracted off, so add it back here
-        # Note, too, that q_esc_cal_** is already in units of far UpS flux
+        # Note, too, that q_esc_cal_** is already in units of far upstream flux
         # TODO: per original code, "there is an unresolved question as to whether or not to
         # use the escaping fluxes in these expressions". Using the escaping fluxes sounds
         # reasonable, esp. in the nonrelativistic case. Make sure it's actually reasonable
@@ -538,13 +540,15 @@ function nonrelativistic_velocity_profile()
 end
 
 """
+    smooth_profile!(y_prof, n_grid)
+
 Takes an input velocity profile and performs two tasks: enforces monotonicity by
 smoothing out dips/bumps, and averages nearby points to smooth sharp edges
 
 ### Arguments
 
-- y_prof: array holding velocity profile (modified in-place)
-- n_grid: number of grid zones in position and velocity arrays
+- `y_prof`: array holding velocity profile (modified in-place)
+- `n_grid`: number of grid zones in position and velocity arrays
 """
 function smooth_profile!(y_prof, n_grid)
     # Run from downstream to upstream and eliminate dips/bumps
