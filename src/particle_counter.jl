@@ -284,17 +284,15 @@ function get_dNdp_cr(
 
 
     # Finally, convert dNdp_cr into true dN/dp by dividing by dp for each cell
-    for m in 1:3, k in 1:n_grid
-        for l in 0:psd_max-1
+    for m in 1:3, k in 1:n_grid, l in 0:psd_max-1
 
-            # Skip empty cells in PSD
-            if dNdp_cr[l,k,m] < 1e-66
-                dNdp_cr[l,k,m] = 1e-99
-                continue
-            end
-
-            dNdp_cr[l, k, m] /= exp10(psd_mom_bounds[l+1]) - exp10(psd_mom_bounds[l])
+        # Skip empty cells in PSD
+        if dNdp_cr[l,k,m] < 1e-66
+            dNdp_cr[l,k,m] = 1e-99
+            continue
         end
+
+        dNdp_cr[l, k, m] /= exp10(psd_mom_bounds[l+1]) - exp10(psd_mom_bounds[l])
     end
 
     return dNdp_cr
