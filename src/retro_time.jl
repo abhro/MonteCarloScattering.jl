@@ -12,10 +12,10 @@ and also by Ellison, Jones, & Reynolds (1990) [1990ApJ...360..702E].
 
 Since we know the particle will return to the PRP, we run time "backwards" by
 placing the particle in a bulk flow opposite to its motion. Given a presumably
-infinite DwS region of propagation, the particle is guaranteed to return to the
+infinite downstream region of propagation, the particle is guaranteed to return to the
 PRP over long enough time scales, and we assume that the "true" history of the
-particle (its PRP1→DwS→PRP2 path) resembles on average its backwards history
-(PRP1←DwS←PRP2).
+particle (its PRP1→downstream→PRP2 path) resembles on average its backwards history
+(PRP1←downstream←PRP2).
 
 ### Arguments
 

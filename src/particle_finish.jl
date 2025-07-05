@@ -33,7 +33,7 @@ Nothing; modifies input argument arrays as needed.
 """
 function particle_finish!(
         pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
-        esc_flux, esc_psd_feb_DwS, esc_psd_feb_UpS,
+        esc_flux, esc_psd_feb_downstream, esc_psd_feb_upstream,
         i_reason, i_iter, i_ion,
         num_psd_θ_bins,
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
@@ -41,7 +41,7 @@ function particle_finish!(
     )
 
     #@debug("Input arguments:", aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
-    #       b_cosθ, b_sinθ, i_reason, weight, esc_psd_feb_DwS, esc_psd_feb_UpS, esc_flux,
+    #       b_cosθ, b_sinθ, i_reason, weight, esc_psd_feb_downstream, esc_psd_feb_upstream, esc_flux,
     #       pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
     #       i_iter, i_ion, mc)
 
@@ -64,12 +64,12 @@ function particle_finish!(
 
     # Now take additional action based on *how* the particle left the grid
     if i_reason == 1     # Particle escape: downstream, with or without scattering enabled
-        esc_psd_feb_DwS[ip, jθ] += weight * weight_factor
+        esc_psd_feb_downstream[ip, jθ] += weight * weight_factor
 
     elseif i_reason == 2 # Particle escape: p_max, upstream FEB, transverse distance
 
         esc_flux[i_ion] += weight
-        esc_psd_feb_UpS[ip, jθ] += weight * weight_factor
+        esc_psd_feb_upstream[ip, jθ] += weight * weight_factor
 
         if (γₚ_sk - 1) < (energy_rel_pt/(aa*E₀_proton))
             energy_flux_add = ptot_sk^2 / (2 * aa*mp) * weight

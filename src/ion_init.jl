@@ -12,7 +12,7 @@ function ion_init(i_iter, i_ion, species)
     # Zero out the phase space distributions and set variables related to
     # tracking thermal particles
     n_cr_count = clear_psd!(num_crossings, therm_grid, therm_pₓ_sk, therm_ptot_sk,
-                            therm_weight, psd, esc_psd_feb_UpS, esc_psd_feb_DwS)
+                            therm_weight, psd, esc_psd_feb_upstream, esc_psd_feb_downstream)
 
     # In addition to initializing the phase space distribution, open the scratch (i.e.
     # temporary) file to which we will write information about thermal particle grid crossings
@@ -68,7 +68,7 @@ function ion_init(i_iter, i_ion, species)
 end
 
 function clear_psd!(num_crossings, therm_grid, therm_pₓ_sk, therm_ptot_sk,
-                    therm_weight, psd, esc_psd_feb_UpS, esc_psd_feb_DwS)
+                    therm_weight, psd, esc_psd_feb_upstream, esc_psd_feb_downstream)
 
     for arr in (:num_crossings, :therm_grid, :therm_pₓ_sk, :therm_ptot_sk, :therm_weight)
         # zero out each array in a type stable manner
@@ -76,8 +76,8 @@ function clear_psd!(num_crossings, therm_grid, therm_pₓ_sk, therm_ptot_sk,
     end
 
     fill!(psd,             1e-99)
-    fill!(esc_psd_feb_UpS, 1e-99)
-    fill!(esc_psd_feb_DwS, 1e-99)
+    fill!(esc_psd_feb_upstream, 1e-99)
+    fill!(esc_psd_feb_downstream, 1e-99)
     n_cr_count = 0
     return n_cr_count
 end
@@ -88,7 +88,7 @@ function assign_particle_properties_to_population!(n_pts_use, xn_per_fine, x_gri
     x_PT_cm_new[1:n_pts_use] .= x_PT_cm_in[1:n_pts_use]
     grid_new[1:n_pts_use]    .= i_grid_in[1:n_pts_use]
 
-    DwS_new[1:n_pts_use]         .= false
+    downstream_new[1:n_pts_use]         .= false
     inj_new[1:n_pts_use]         .= false
     xn_per_new[1:n_pts_use]      .= xn_per_fine
     prp_x_cm_new[1:n_pts_use]    .= x_grid_stop

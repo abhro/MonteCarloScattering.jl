@@ -13,7 +13,7 @@ For pion decay and inverse Compton (if used), if more than one species of nucleu
 than one photon field was present, write the summed spectra (collected in pion_photon_sum
 and ic_photon_sum) to the file and use those spectra instead.
 
-It then combines all num_UpS_shells + num_DwS_shells spectra into a single energy spectrum
+It then combines all num_upstream_shells + num_downstream_shells spectra into a single energy spectrum
 spanning all processes, summing the various emission spectra into a unified profile.
 
 ### Arguments
