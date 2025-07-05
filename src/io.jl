@@ -12,11 +12,11 @@ If tcuts were tracked during the run, print out the particle counts and spectra 
 
 ### Arguments
 FIXME
-- weights_fileunit
-- spectra_fileunit
-- n_tcuts - Number of times to use in particle tracking
-- tcuts - Array to hold cutoff times for particle tracking
-- n_ions - Number of ion species
+- `weights_fileunit`
+- `spectra_fileunit`
+- `n_tcuts`: Number of times to use in particle tracking
+- `tcuts`: Array to hold cutoff times for particle tracking
+- `n_ions`: Number of ion species
 """
 function tcut_print(
         weights_fileunit, spectra_fileunit,
@@ -78,17 +78,17 @@ Prints a whole mess of information to the screen and to mc_out
 ### Arguments
 
 - `n_pts_inj`: target number of particles for injection distribution
-- `n_pts_pcut`: target number of particle for low-E pcuts
-- `n_pts_pcut_hi`: target number of particles for hi-E pcuts
+- `n_pts_pcut`: target number of particle for low-energy pcuts
+- `n_pts_pcut_hi`: target number of particles for hi-energy pcuts
 - `n_ions`: number of ion species run
 - `num_psd_mom_bins`: number of bins in momentum directions in psd
 - `num_psd_θ_bins`: number of bins in θ directions in psd
 - `n_xspec`: number of additional locations to track particle spectra
 - `n_pcuts`: number of pcuts
-- `n_grid`: number of grid zone BOUNDARIES, including x_grid_stop
+- `n_grid`: number of grid zone BOUNDARIES, including `x_grid_stop`
 - `r_RH`: Rankine-Hugoniot compression ratio for this shock
 - `r_comp`: the compression ratio being used
-- `u/β/γ ₀/₂`: total fluid velocity[cm/s, /c] and Lorentz factor for far UpS and DwS regions
+- `u/β/γ ₀/₂`: total fluid velocity[cm/s, /c] and Lorentz factor for far upstream and downstream regions
 
 ### Returns
 Nothing (it's all to the screen/file)
@@ -198,8 +198,8 @@ N_g(fine)   = %i
     # FEB info and max age
     feb_str = ("""
 
-UpS FEB = $(feb_UpS/rg₀) rg₀ = $(uconvert(pc, feb_UpS))
-DwS FEB = $(feb_DwS/rg₀) rg₀ = $(uconvert(pc, feb_DwS))
+upstream FEB   = $(feb_UpS/rg₀) rg₀ = $(uconvert(pc, feb_UpS))
+downstream FEB = $(feb_DwS/rg₀) rg₀ = $(uconvert(pc, feb_DwS))
 
 Max CR age[s] = $(age_max)
 
@@ -231,11 +231,14 @@ Max CR age[s] = $(age_max)
 end
 
 """
+    print_plot_vals(...)
+
 Prints the long list of floats at the end of each data set that are read in
 by the plotting program to display information about the run.
 
 ### Arguments
-- iunit: unit number to which the line will be written
+- `iunit`: unit number to which the line will be written
+- TODO
 """
 function print_plot_vals(
         iunit,

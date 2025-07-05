@@ -180,7 +180,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
             end
 
 
-            # Energy transfer from ions to electrons in the UpS region; only bother with this if
+            # Energy transfer from ions to electrons in the upstream region; only bother with this if
             #  1. Electrons are a separate species and energy transfer is enabled
             #  2. Particles are still on their first trip to the downstream region of the shock structure
             #  3. Particles have entered a new grid zone, and energy should be either subtracted or added
@@ -251,7 +251,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
                 pz_sk = p_sk.z
             end
             # check on grid zone
-            # end check on whether particles are thermal and UpS
+            # end check on whether particles are thermal and upstream
             # end check on energy_transfer_frac
 
 
@@ -265,7 +265,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
             end
 
 
-            # Particle escape: pmax (note that effects are same as for escape at UpS FEB)
+            # Particle escape: pmax (note that effects are same as for escape at upstream FEB)
             if ptot_pf > pmax_cutoff
                 # Transform plasma frame momentum into shock frame to test there also
                 ptot_sk, p_sk, γₚ_sk = transform_p_PS(aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
@@ -280,7 +280,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
                 end  # check on ptot_sk
             end  # check on ptot_pf
 
-            # Particle escape: UpS FEB (note that effects are same as for escape by pmax)
+            # Particle escape: upstream FEB (note that effects are same as for escape by pmax)
             if inj && r_PT_cm.x < feb_UpS
                 i_reason = 2
 
@@ -406,7 +406,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
         # DSA injection prevented if specified
 
 
-        # If particle crosses shock going UpS -> downstream
+        # If particle crosses shock going upstream -> downstream
         if r_PT_old.x < 0cm && r_PT_cm.x ≥ 0cm
             l_DwS = true
 
@@ -550,7 +550,7 @@ function no_DSA_loop(
       #Search original code for "out of ions"
 
       # Reflect particles under two conditions:
-      #  1. They've been downstream and are crossing back UpS
+      #  1. They've been downstream and are crossing back upstream
       #  2. Either DSA is disabled or they fail an injection check
       # continue again if particles get reflected
       if r_PT_cm.x ≤ 0cm && r_PT_old.x > 0cm && !inj && (dont_DSA || inj_fracs[i_ion] < 1)

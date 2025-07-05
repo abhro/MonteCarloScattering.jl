@@ -21,8 +21,8 @@ FIXME
 None, but does use PSD information from module psd_vars
 
 ### Returns
-- dNdp_cr: 3-D array, containing 1-D array for each grid zone, of dN/dp for particles
-  injected into acceleration process, for three different reference frames
+- `dNdp_cr`: 3-D array, containing 1-D array for each grid zone, of dN/dp for
+  particles injected into acceleration process, for three different reference frames
 """
 function get_dNdp_cr(
         m_ion, psd_lin_cos_bins, γ₀, num_psd_θ_bins, psd_θ_bounds,
@@ -45,8 +45,8 @@ function get_dNdp_cr(
     for l in 0:num_psd_θ_bins+1
         # Determine current cosine, remembering that psd_θ_bounds has both a linearly-spaced
         # region in cosine and logarithmically-spaced region in θ. Also need to remember
-        # that the most finely spaced bins should occur in the UpS-pointing direction, so
-        # need to negate psd_θ_bounds to get true cosine value.
+        # that the most finely spaced bins should occur in the upstream-pointing direction,
+        # so need to negate psd_θ_bounds to get true cosine value.
         if l > (num_psd_θ_bins - psd_lin_cos_bins)
             ct_bounds[l] = -psd_θ_bounds[l]
         else
@@ -304,6 +304,8 @@ end
 #-----------------------------------------------------------------------------
 
 """
+    get_dNdp_2D(...)
+
 Generates d²N/(dp dcos) (or something like it) for electrons in the explosion frame.
 
 First, use the scratch file and the phase space distribution to generate d²N/(dp dcos),
@@ -316,8 +318,8 @@ comparison against the results of the original dN/dp subroutines.
 
 !!! warning
 
-    d²N/(dp dcos) isn't technically accurate. To get number, just multiply by dp and sum
-    over the cos(θ) column.
+    d²N/(dp dcos) isn't technically accurate. To get number, just multiply by dp
+    and sum over the cos(θ) column.
 
 !!! note
 
@@ -326,12 +328,12 @@ comparison against the results of the original dN/dp subroutines.
 
 ### Arguments
 
-- nc_unit: unit number for the scratch file holding crossing data
-- zone_pop: (Lorentz-invariant) number of particles in each grid zone
+- `nc_unit`: unit number for the scratch file holding crossing data
+- `zone_pop`: (Lorentz-invariant) number of particles in each grid zone
 
 ### Returns
 
-- d²N_dpdcos_ef: explosion-frame array holding dN/dp spread out across angular dimension
+- `d²N_dpdcos_ef`: explosion-frame array holding dN/dp spread out across angular dimension
 """
 function get_dNdp_2D(
         nc_unit, zone_pop, m_ion, n_ions, n₀_ion,
@@ -524,7 +526,7 @@ function get_dNdp_2D(
             cos_lo = cos(psd_θ_bounds[jθ+1])
         end
 
-        # Minus sign needed because finest gradations actually point UpS
+        # Minus sign needed because finest gradations actually point upstream
         cos_center[jθ] = -(cos_lo + cos_hi)/2
     end
     ptot_cgs_center = zeros(0:num_psd_mom_bins+1)
@@ -615,6 +617,8 @@ end # get_dNdp_2D
 #-----------------------------------------------------------------------------
 
 """
+    get_normalized_dNdp(...)
+
 Computes the actual number of particles in each bin of dN/dp (which is divided by dp,
 remember). Computes total area under curve, normalizes it against number of particles
 upstream using plasma-frame density and volume, and then uses fractional area of each bin
@@ -630,9 +634,9 @@ The array that would be `dNdp_cr_pvals` is already set, as `psd_mom_bound`s
 ### Returns
 
 - `dNdp_therm`: 3-D array, containing 1-D array for each grid zone of dN/dp for the thermal particles
-- `dNdp_therm_pvals`: array of momentum bin boundaries for each row of dNdp_therm; each row
-  handled separately to maximize resolution of what may be an extremely narrow peak at
-  radically different energy from the upstream population
+- `dNdp_therm_pvals`: array of momentum bin boundaries for each row of `dNdp_therm`;
+  each row handled separately to maximize resolution of what may be an extremely
+  narrow peak at radically different energy from the upstream population
 - `dNdp_cr`: 3-D array, containing 1-D array for each grid zone of dN/dp for the population
   of accelerated particles
 - `zone_pop`: (Lorentz-invariant) number of particles in each grid zone
@@ -942,27 +946,29 @@ end # get_normalized_dNdp
 
 
 """
+    get_dNdp_therm(...)
+
 Calculate dN/dp (NOT normalized) for particles that haven't been injected
 into acceleration process.
 
 First create arrays to hold crossing information from this ion species, and fill
 them with data from the scratch file.
 Next, loop over grid locations, performing three main tasks:
-a. Transform shock frame values into plasma frame
-b. Seek out maximum and minimum momenta in plasma frame
-c. Bin crossings according to plasma frame total momentum
+1. Transform shock frame values into plasma frame
+2. Seek out maximum and minimum momenta in plasma frame
+3. Bin crossings according to plasma frame total momentum
 Also perform the above process for the ISM frame, and store shock frame
 values for comparison against earlier results.
 
 ### Arguments
 
-- num_hist_bins: number of bins to use in histograms
-- nc_unit: unit number of scratch file for crossing data
+- `num_hist_bins`: number of bins to use in histograms
+- `nc_unit`: unit number of scratch file for crossing data
 
 ### Returns
 
-- dNdp_therm: 3-D array, containing 1-D array for each grid zone of dN/dp for the thermal particles
-- dNdp_therm_pvals: array of momentum bin boundaries for each row of dNdp_therm;
+- `dNdp_therm`: 3-D array, containing 1-D array for each grid zone of dN/dp for the thermal particles
+- `dNdp_therm_pvals`: array of momentum bin boundaries for each row of `dNdp_therm`;
   each row handled separately to maximize resolution of what may be an extremely
   narrow peak at radically different energy from the upstream population
 """
@@ -1053,7 +1059,7 @@ function get_dNdp_therm(
             continue      # Ignore zones that no thermal particles crossed
         end
 
-        # (1) Transform crossing data from shock frame into plasma & ISM frames
+        # 1. Transform crossing data from shock frame into plasma & ISM frames
         #------------------------------------------------------------------------
         # Get current flow speed
         γᵤ = γ_sf_grid[i]
@@ -1114,7 +1120,7 @@ function get_dNdp_therm(
         # Plasma frame, ISM frame values determined; Shock frame extrema found.
 
 
-        # (2) Seek out maximum and minimum total momentum in plasma frame and ISM
+        # 2. Seek out maximum and minimum total momentum in plasma frame and ISM
         # frame. Create histogram bins in both momentum and angle as desired.
         #------------------------------------------------------------------------
         # Already have extrema for shock frame
@@ -1153,7 +1159,7 @@ function get_dNdp_therm(
         # Histogram bins set
 
 
-        # (3) Bin particles according to total momentum and cos(θ) in all three frames
+        # 3. Bin particles according to total momentum and cos(θ) in all three frames
         #
         # For plasma and ISM frames, divide therm_cwt and by γ of flow speed as
         # part of Lorentz transformation of phase-space density (Rybicki & Lightman, p.146)
@@ -1330,6 +1336,8 @@ function get_dNdp_therm(
 end # get_dNdp_therm
 
 """
+    rebin_dNdp_therm(num_hist_bins, dNdp_therm, dNdp_therm_pvals, num_psd_mom_bins, psd_mom_bounds)
+
 This subroutine takes the distribution of thermal particles and re-bins it in the bins used
 for the cosmic rays.
 Note that the thermal distribution is provided (and re-binned separately) in
