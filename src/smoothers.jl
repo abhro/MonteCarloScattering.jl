@@ -59,7 +59,7 @@ function smooth_grid_par(
         rg₀, do_prof_fac_damp, prof_weight_fac, γ₀, u₀, β₀,
         γ₂, β₂, u₂, do_smoothing, smooth_mom_energy_fac,
         # ω = smooth_pressure_flux_psd_fac
-        ω, bturb_comp_frac, bfield_amp, bmag₀,
+        ω, bturb_comp_frac, bfield_amp, B₀,
         x_art_start_rg, use_custom_εB)
 
     pxx_norm = zeros(n_grid)
@@ -83,7 +83,7 @@ function smooth_grid_par(
     # linking rg₀ to the ion skin depth used in PIC sims.
     ##TODO: this uses γ₀ for the kinetic energy, rather than γ₀ - 1. Okay for ultra-relativistic
     # shocks, but badly mistaken in trans-relativistic limit. Does this affect the results?
-    #σ₀ = bmag₀^2 / (4π * γ₀ * n₀ * E₀_proton)
+    #σ₀ = B₀^2 / (4π * γ₀ * n₀ * E₀_proton)
 
     # Determine weighting factor for profile averaging
     if do_prof_fac_damp && i_iter != 1
@@ -118,15 +118,15 @@ function smooth_grid_par(
         end
 
         # Pull from ***_grid arrays into easier-to-use variables
-        uₓ     = uₓ_sk_grid[i]
-        utot   = utot_grid[i]
-        β_uₓ   = uₓ            / c
-        β_uz   = uz_sk_grid[i] / c
+        uₓ    = uₓ_sk_grid[i]
+        utot  = utot_grid[i]
+        β_uₓ  = uₓ            / c
+        β_uz  = uz_sk_grid[i] / c
         γᵤ_sf = γ_sf_grid[i]
         γᵤ_ef = γ_ef_grid[i]
         βᵤ_ef = β_ef_grid[i]
-        θ_deg  = rad2deg(θ_grid[i])
-        bmag   = btot_grid[i]
+        θ_deg = rad2deg(θ_grid[i])
+        B     = btot_grid[i]
 
         # "Pre" and "Post" refer respectively to the adiabatic index calculated before the
         # particles have propagated through the profile for this iteration, and the
@@ -149,10 +149,10 @@ function smooth_grid_par(
         # Eqs. (27) & (28) of Double+ (2004) [2004ApJ...600..485D]
         #TODO: this assumes a mean field, not turbulence. How do the
         # equations change when there's turbulence?
-        B_x = bmag * cos(θ_grid[i])
-        B_z = bmag * sin(θ_grid[i])
+        B_x = B * cos(θ_grid[i])
+        B_z = B * sin(θ_grid[i])
 
-        pxx_EM = γβ^2 / 8π * bmag^2 + γ² / 8π * (B_z^2 - B_x^2) - (γ² - γᵤ_sf) / 2π * (β_uz/β_uₓ) * B_x * B_z
+        pxx_EM = γβ^2 / 8π * B^2 + γ² / 8π * (B_z^2 - B_x^2) - (γ² - γᵤ_sf) / 2π * (β_uz/β_uₓ) * B_x * B_z
 
         energy_EM  = γᵤ_sf^2 / 4π * β_uₓ * B_z^2 - (2γ_sq - γᵤ_sf) / 4π * β_uz * B_x * B_z
 
@@ -250,8 +250,8 @@ function smooth_grid_par(
                log10(uₓ_norm),                  # 12
                uz_norm,                         # 13
                log10(uz_norm),                  # 14
-               bmag,                            # 15
-               log10(bmag),                     # 16
+               B,                               # 15
+               log10(B),                        # 16
                θ_deg,                           # 17
                γᵤ_sf,                           # 18
                1/density_ratio,                 # 19
@@ -326,7 +326,7 @@ function smooth_grid_par(
         comp_fac     = 1 + (√(1/3 + 2/3 * z_comp^2) - 1) * bturb_comp_frac
         # Also include any additional amplification specified
         amp_fac      = 1 + (comp_fac - 1) * bfield_amp
-        btot_grid[i] = bmag₀ * amp_fac
+        btot_grid[i] = B₀ * amp_fac
 
         # If a custom ε_B is in place, use that to calculate the magnetic field, not the preceding code.
         # Note that the R-H relations can be rearranged to read
@@ -361,11 +361,11 @@ function relativistic_velocity_profile()
         # of Double+ (2004) [2004ApJ...600..485D], and # assume that uz = 0 (this *is* the
         # parallel smoothing subroutine) TODO: this assumes a mean field, not turbulence.
         # How do the equations change when there's turbulence?
-        bmag = btot_grid[i]
-        B_x = bmag * cos(θ_grid[i])
-        B_z = bmag * sin(θ_grid[i])
+        B   = btot_grid[i]
+        B_x = B * cos(θ_grid[i])
+        B_z = B * sin(θ_grid[i])
 
-        pxx_EM = γβ^2 / 8π * bmag^2 + γ² / 8π * (B_z^2 - B_x^2)
+        pxx_EM = γβ^2 / 8π * B^2 + γ² / 8π * (B_z^2 - B_x^2)
         energy_EM = γᵤ_sf^2 / 4π * β_uₓ * B_z^2
 
         # Calculate the pressure using the momentum equation only, since the energy equation
@@ -458,11 +458,11 @@ function nonrelativistic_velocity_profile()
         # Double+ (2004) [2004ApJ...600..485D], and assume that uz = 0 (this *is* the
         # parallel smoothing subroutine) TODO: this assumes a mean field, not turbulence.
         # How do the equations change when there's turbulence?
-        bmag   = btot_grid[i]
-        B_x    = bmag * cos(θ_grid[i])
-        B_z    = bmag * sin(θ_grid[i])
+        B   = btot_grid[i]
+        B_x = B * cos(θ_grid[i])
+        B_z = B * sin(θ_grid[i])
 
-        pxx_EM = γβ^2 * bmag^2 / 8π + γ² * (B_z^2 - B_x^2) / 8π
+        pxx_EM = γβ^2 * B^2 / 8π + γ² * (B_z^2 - B_x^2) / 8π
         energy_EM = γᵤ_sf^2 / 4π * β_uₓ * B_z^2
 
         # Calculate the pressure using the momentum equation only, since the

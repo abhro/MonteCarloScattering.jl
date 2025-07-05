@@ -355,7 +355,7 @@ function get_dNdp_2D(
 
 
     # Set constants to be used repeatedly
-    rest_mass_energy = m_ion[i_ion] * c^2 # Rest mass-energy of the current particle species
+    E₀ = m_ion[i_ion] * c^2 # Rest mass-energy of the current particle species
     Δp = zeros(0:num_psd_mom_bins)
     for k in eachindex(Δp)
         Δp[k] = exp10(psd_mom_bounds[k+1]) - exp10(psd_mom_bounds[k])
@@ -566,7 +566,7 @@ function get_dNdp_2D(
                 cos_θ_sf    = cos_center[jθ]
                 ptot_sf_cgs   = ptot_cgs_center[k]
                 pₓ_sf_cgs   = ptot_sf_cgs * cos_θ_sf
-                etot_sf_cgs = hypot(ptot_sf_cgs*c, rest_mass_energy)
+                etot_sf_cgs = hypot(ptot_sf_cgs*c, E₀)
 
                 # Get location of center in transformed d²N_dpdcos
                 pₓ_Xf = γᵤ * (pₓ_sf_cgs - βᵤ*etot_sf_cgs/c)
@@ -980,7 +980,7 @@ function get_dNdp_therm(
     )
 
     # Set a constant to be used repeatedly
-    rest_mass_energy = m_ion[i_ion] * c^2  # Rest mass-energy of the current particle species
+    E₀ = m_ion[i_ion] * c^2  # Rest mass-energy of the current particle species
 
     # Also "zero" out the two output arrays to prevent issues later
     dNdp_therm       = fill(1e-99, (0:psd_max,n_grid,3))
@@ -1096,7 +1096,7 @@ function get_dNdp_therm(
             cθ_sk_max = max(cθ_sk, cθ_sk_max)
             cθ_sk_min = min(cθ_sk, cθ_sk_min)
 
-            etot_sk_cgs = hypot(ptot_sk_cgs*c, rest_mass_energy)
+            etot_sk_cgs = hypot(ptot_sk_cgs*c, E₀)
 
             pₓ_pf_cgs = γᵤ * (pₓ_sk_cgs - βᵤ*etot_sk_cgs/c)
             ptot_pf_cgs = √(ptot_sk_cgs^2 - pₓ_sk_cgs^2 + pₓ_pf_cgs^2)
@@ -1301,7 +1301,7 @@ function get_dNdp_therm(
         #    ptot_pf_cgs = √(dNdp_therm_pvals[k-1,i,2] * dNdp_therm_pvals[k,i,2])
         #    Δptot_pf = dNdp_therm_pvals[k,i,2] - dNdp_therm_pvals[k-1,i,2]
         #
-        #    γₚ_pf = √(1 + (ptot_pf_cgs*c/rest_mass_energy)^2)
+        #    γₚ_pf = √(1 + (ptot_pf_cgs*c/E₀)^2)
         #    pressure += (ptot_pf_cgs * ptot_pf_cgs/(m_ion[i_ion]*γₚ_pf) *
         #                 dNdp_therm[k-1,i,2] * Δptot_pf/3)
         #
