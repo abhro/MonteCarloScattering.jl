@@ -1,4 +1,4 @@
-function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_esc_UpS, pcut_prev, i_fin, ∑P_DwS, ∑KEdensity_DwS)
+function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, pₓ_esc_upstream, pcut_prev, i_fin, ∑P_downstream, ∑KEdensity_downstream)
     # To maintain identical results between OpenMP and serial versions,
     # set RNG seed based on current iteration/ion/pcut/particle number
     iseed_mod =  (  (i_iter - 1)*n_ions*n_pcuts*n_pts_max
@@ -22,7 +22,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
     pb_pf       = pb_pf_new[i_prt]
     i_grid      = grid_new[i_prt]
     i_grid_old  = i_grid  # Needed for energy transfer
-    l_DwS       = DwS_new[i_prt]
+    l_downstream       = downstream_new[i_prt]
     inj         = inj_new[i_prt]
     xn_per      = xn_per_new[i_prt]
     prp_x_cm    = prp_x_cm_new[i_prt]
@@ -281,7 +281,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
             end  # check on ptot_pf
 
             # Particle escape: upstream FEB (note that effects are same as for escape by pmax)
-            if inj && r_PT_cm.x < feb_UpS
+            if inj && r_PT_cm.x < feb_upstream
                 i_reason = 2
 
                 keep_looping = false
@@ -347,7 +347,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
 
             # Update acceleration time in explosion frame, so convert t_step from plasma frame
             # Only start the clock once a particle has crossed the shock for the first time
-            if l_DwS
+            if l_downstream
                 acctime_sec += t_step*γᵤ_ef
 
                 if do_tcuts && acctime_sec ≥ tcuts[tcut_curr]
@@ -365,7 +365,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
                     pb_pf_sav[i_prt]        = pb_pf
                     x_PT_cm_sav[i_prt]      = r_PT_cm.x
                     grid_sav[i_prt]         = i_grid
-                    DwS_sav[i_prt]          = l_DwS
+                    downstream_sav[i_prt]          = l_downstream
                     inj_sav[i_prt]          = inj
                     xn_per_sav[i_prt]       = xn_per
                     prp_x_cm_sav[i_prt]     = r_PT_cm.x < prp_x_cm ? prp_x_cm : r_PT_cm.x * 1.1cm # Ensure particle is within PRP
@@ -408,7 +408,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
 
         # If particle crosses shock going upstream -> downstream
         if r_PT_old.x < 0cm && r_PT_cm.x ≥ 0cm
-            l_DwS = true
+            l_downstream = true
 
             # Ensure the downstream region is sufficiently long to allow particle to isotropize.
             # This simple equation is decidedly non-trivial, and comes from two assumptions:
@@ -427,20 +427,20 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
 
 
         # Test for injection into the acceleration process
-        if l_DwS && r_PT_cm.x < 0cm
+        if l_downstream && r_PT_cm.x < 0cm
             inj = true
         end
 
 
         # Calculate fluxes due to this motion; also locates new grid zone
-        (i_grid, i_grid_old, n_cr_count, pₓ_esc_UpS, energy_esc_UpS) = all_flux!(
+        (i_grid, i_grid_old, n_cr_count, pₓ_esc_upstream, energy_esc_upstream) = all_flux!(
             i_prt, aa, pb_pf, p_perp_b_pf, ptot_pf, γₚ_pf, φ_rad,
             weight, i_grid, uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
             r_PT_cm.x, r_PT_old.x, inj, nc_unit,
             i_grid_feb, pxx_flux, pxz_flux,
-            energy_flux, energy_esc_UpS, pₓ_esc_UpS, spectra_sf, spectra_pf,
+            energy_flux, energy_esc_upstream, pₓ_esc_upstream, spectra_sf, spectra_pf,
             n_cr_count, num_crossings, psd,
-            n_xspec, x_spec, feb_UpS, γ₀, u₀, mc,
+            n_xspec, x_spec, feb_upstream, γ₀, u₀, mc,
             n_grid, x_grid_cm,
             therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight,
         )
@@ -448,7 +448,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
 
         # Downstream escape/return test; assume we'll call subroutine
         # prob_return unless told otherwise by particle location/info
-        do_prob_ret, i_return = downstream_test(feb_DwS, prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, i_return)
+        do_prob_ret, i_return = downstream_test(feb_downstream, prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, i_return)
 
         if do_prob_ret
             (
@@ -471,8 +471,8 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
                 vel /= γₚ_pf
             end
 
-            ∑P_DwS += ptot_pf/3 * vel * weight * density(species[i_ion]) # downstream pressure
-            ∑KEdensity_DwS += (γₚ_pf - 1) * aa*E₀_proton * weight * density(species[i_ion])
+            ∑P_downstream += ptot_pf/3 * vel * weight * density(species[i_ion]) # downstream pressure
+            ∑KEdensity_downstream += (γₚ_pf - 1) * aa*E₀_proton * weight * density(species[i_ion])
 
             i_reason = 1
             if lose_pt
@@ -492,7 +492,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
 
     if !l_save[i_prt]
       particle_finish!(pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
-                       esc_flux, esc_psd_feb_DwS, esc_psd_feb_UpS,
+                       esc_flux, esc_psd_feb_downstream, esc_psd_feb_upstream,
                        i_reason, i_iter, i_ion,
                        num_psd_θ_bins,
                        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
@@ -510,7 +510,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_e
     #if i_fin % 16 == 0
     #    print_progress_bar(i_fin, n_pts_use)
     #end
-    return i_fin, ∑P_DwS, ∑KEdensity_DwS
+    return i_fin, ∑P_downstream, ∑KEdensity_downstream
 end
 
 function no_DSA_loop(
@@ -593,10 +593,10 @@ function electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, rad_loss_fac, p, Δt)
 end
 
 
-function downstream_test(feb_DwS, prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, i_return)
+function downstream_test(feb_downstream, prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, i_return)
     do_prob_ret = true
 
-    if feb_DwS > 0cm && r_PT_cm.x > feb_DwS
+    if feb_downstream > 0cm && r_PT_cm.x > feb_downstream
 
         # Particle flagged as escaping downstream
         i_return    = 0

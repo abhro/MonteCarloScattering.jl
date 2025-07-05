@@ -23,11 +23,11 @@ function pcut_finalize(i_iter, i_ion, i_cut, p_pcut_hi, n_pts_pcut, n_pts_pcut_h
     n_pts_target = pcuts_use[i_cut] < p_pcut_hi ? n_pts_pcut : n_pts_pcut_hi
 
     global (
-            grid_new, tcut_new, DwS_new, inj_new, weight_new, ptot_pf_new, pb_pf_new,
+            grid_new, tcut_new, downstream_new, inj_new, weight_new, ptot_pf_new, pb_pf_new,
             x_PT_cm_new, xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new,
             n_pts_use, weight_running
            ) = new_pcut(
-                        n_pts_target, n_saved, l_save, grid_sav, DwS_sav, inj_sav,
+                        n_pts_target, n_saved, l_save, grid_sav, downstream_sav, inj_sav,
                         weight_sav, ptot_pf_sav, pb_pf_sav, x_PT_cm_sav, xn_per_sav,
                         prp_x_cm_sav, acctime_sec_sav, φ_rad_sav, tcut_sav,
                           n_pts_use, weight_running)

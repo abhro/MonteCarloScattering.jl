@@ -61,7 +61,7 @@ outfile = open("mc_out.dat", "w")
 include("data_input.jl") # FIXME
 
 # Set up the computational grid
-x_grid_rg, x_grid_start, x_grid_stop = setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_DwS, rg₀)
+x_grid_rg, x_grid_start, x_grid_stop = setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_downstream, rg₀)
 const n_grid = length(x_grid_rg) - 2
 const grid_axis = axes(x_grid_rg, 1)
 x_grid_cm = x_grid_rg * rg₀ # Convert everything from rg₀ units to cgs units
@@ -138,8 +138,8 @@ psd_θ_axis = axes(psd_θ_bounds, 1)
 
 # Set the boundaries of the shells to use for photon calculation
 if do_photons
-    x_shell_midpoints, x_shell_endpoints = set_photon_shells(num_UpS_shells, num_DwS_shells, use_prp,
-                                                             feb_UpS, feb_DwS, rg₀, x_grid_stop_rg)
+    x_shell_midpoints, x_shell_endpoints = set_photon_shells(num_upstream_shells, num_downstream_shells, use_prp,
+                                                             feb_upstream, feb_downstream, rg₀, x_grid_stop_rg)
 end
 
 begin # "module" iteration_vars
@@ -182,7 +182,7 @@ end
 
 # Get grid zone numbers for the boundaries between photon shells, and for
 # the location of the upstream FEB. Add the photon shells to the output file
-n_shell_endpoints = zeros(Int, num_UpS_shells+num_DwS_shells+1)
+n_shell_endpoints = zeros(Int, num_upstream_shells+num_downstream_shells+1)
 if do_photons
     let i_tmp = 1
         for i in 1:n_grid
@@ -193,7 +193,7 @@ if do_photons
         end
     end
 
-    for i in 1:(num_UpS_shells+num_DwS_shells)
+    for i in 1:(num_upstream_shells+num_downstream_shells)
         println(outfile, "x boundaries[rg₀] for photon shell ", i, ":",
                 x_shell_endpoints[i]/rg₀, " -> ", x_shell_endpoints[i+1]/rg₀, "  (",
                 n_shell_endpoints[i], "->", n_shell_endpoints[i+1], ")")
@@ -202,7 +202,7 @@ if do_photons
     println(outfile)
 end
 
-i_grid_feb = findfirst(>(feb_UpS), x_grid_cm) - 1
+i_grid_feb = findfirst(>(feb_upstream), x_grid_cm) - 1
 
 # Because redshift will be needed to compute radiative losses (it affects both the energy
 # and density of CMB photons), calculate it here. If redshift was provided during
@@ -234,11 +234,11 @@ B_CMBz = B_CMB0 * (1 + redshift)^2
 
 
 # Zero out total escaping fluxes and calculate the far upstream fluxes
-#pₓ_esc_flux_UpS_tot = 0.0
-#energy_esc_flux_UpS_tot = 0.0
-pₓ_esc_flux_UpS     = zeros(n_itrs)
-energy_esc_flux_UpS = zeros(n_itrs)
-flux_px_UpS, flux_pz_UpS, flux_energy_UpS = upstream_fluxes(
+#pₓ_esc_flux_upstream_tot = 0.0
+#energy_esc_flux_upstream_tot = 0.0
+pₓ_esc_flux_upstream     = zeros(n_itrs)
+energy_esc_flux_upstream = zeros(n_itrs)
+flux_px_upstream, flux_pz_upstream, flux_energy_upstream = upstream_fluxes(
     number_density.(species), temperature.(species), mass.(species),
     bmag₀, θ_B₀, u₀, β₀, γ₀)
 
@@ -253,7 +253,7 @@ if ! do_old_prof
      β_ef_grid, γ_ef_grid, btot_grid, θ_grid, εB_grid, bmag₂,
     ) = setup_profile(
                       u₀, β₀, γ₀, bmag₀, θ_B₀, r_comp, bturb_comp_frac, bfield_amp, use_custom_εB,
-                      n_ions, species, flux_px_UpS, flux_energy_UpS, grid_axis,
+                      n_ions, species, flux_px_upstream, flux_energy_upstream, grid_axis,
                       x_grid_cm, x_grid_rg,
                      )
 else
@@ -261,7 +261,7 @@ else
     (
      x_grid_rg, x_grid_cm, uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid, β_ef_grid, γ_ef_grid,
      btot_grid, εB_grid, θ_grid, n_grid, u₀, γ₀, rg₀, r_comp, r_RH, β₀, bmag₀,
-     u₂, β₂, γ₂, θᵤ₂, bmag₂, θ_B₀, θ_B₂, flux_px_UpS, flux_pz_UpS, flux_energy_UpS
+     u₂, β₂, γ₂, θᵤ₂, bmag₂, θ_B₀, θ_B₂, flux_px_upstream, flux_pz_upstream, flux_energy_upstream
     ) = read_old_prof(n_old_skip, n_old_profs, n_old_per_prof)
 
     # Must set far upstream and downstream limits manually, since they won't be read in from the file
@@ -296,7 +296,7 @@ print_input(n_pts_inj, n_pts_pcut, n_pts_pcut_hi, n_ions,
             NaN, NaN, n_xspec, n_pcuts, n_grid, r_RH, r_comp,
             u₀, β₀, γ₀, u₂, β₂, γ₂, species, bmag₀, bmag₂, θ_B₀, θ_B₂, θᵤ₂,
             mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine,
-            feb_UpS, feb_DwS, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac,
+            feb_upstream, feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac,
             outfile)
 
 weights_file = jldopen("mc_coupled_weights.hdf5", "a+")
@@ -327,11 +327,11 @@ begin # "module" species_vars
     spectra_pf = zeros(0:psd_max, n_grid)
 
     # Escaping spectra upstream and downstream from shock; 2-D arrays store angular information
-    esc_spectra_feb_UpS = zeros(0:psd_max)
-    esc_spectra_feb_DwS = zeros(0:psd_max)
+    esc_spectra_feb_upstream = zeros(0:psd_max)
+    esc_spectra_feb_downstream = zeros(0:psd_max)
     # should these be inverse velocity?
-    esc_psd_feb_UpS = zeros(0:psd_max, 0:psd_max)
-    esc_psd_feb_DwS = zeros(0:psd_max, 0:psd_max)
+    esc_psd_feb_upstream = zeros(0:psd_max, 0:psd_max)
+    esc_psd_feb_downstream = zeros(0:psd_max, 0:psd_max)
 end # "module" species_vars
 
 begin # "module" photons
@@ -360,7 +360,7 @@ begin # "module" pcut_vars
     l_save = zeros(Bool, na_particles) # Whether or not to save particle for next pcut
     grid_sav        = zeros(Int, na_particles)
     tcut_sav        = zeros(Int, na_particles)
-    DwS_sav         = zeros(Bool, na_particles)
+    downstream_sav         = zeros(Bool, na_particles)
     inj_sav         = zeros(Bool, na_particles)
     weight_sav      = zeros(na_particles)
     ptot_pf_sav     = zeros(MomentumCGS, na_particles)
@@ -374,7 +374,7 @@ begin # "module" pcut_vars
 
     grid_new        = zeros(Int, na_particles)
     tcut_new        = zeros(Int, na_particles)
-    DwS_new         = zeros(Bool, na_particles)
+    downstream_new         = zeros(Bool, na_particles)
     inj_new         = zeros(Bool, na_particles)
     xn_per_new      = zeros(na_particles)
     #zz_new         = zeros(na_particles)
@@ -407,16 +407,16 @@ for i_iter in 1:n_itrs # loop_itr
     # XXX uses the type-pirated version of Base.fill!
     fill!((pxx_flux, pxz_flux), 1e-99erg/cm^3)
     fill!((energy_flux, pressure_psd_par, pressure_psd_perp, energy_density_psd), 1e-99)
-    fill!((esc_spectra_feb_UpS, esc_spectra_feb_DwS), 1e-99)
+    fill!((esc_spectra_feb_upstream, esc_spectra_feb_downstream), 1e-99)
     fill!(weight_coupled, 1e-99)
 
 
     # Additionally, set/reset scalar quantities that will change
-    ∑P_DwS  = 1e-99erg/cm^3         # total downstream pressure
-    ∑KEdensity_DwS = 1e-99erg/cm^3  # total downstream kinetic energy density
+    ∑P_downstream  = 1e-99erg/cm^3         # total downstream pressure
+    ∑KEdensity_downstream = 1e-99erg/cm^3  # total downstream kinetic energy density
 
-    energy_esc_UpS    = 1e-99
-    pₓ_esc_UpS        = 1e-99
+    energy_esc_upstream    = 1e-99
+    pₓ_esc_upstream        = 1e-99
 
 
     # To facilitate energy transfer from ions to electrons, calculate here the target energy
@@ -459,7 +459,7 @@ for i_iter in 1:n_itrs # loop_itr
             # Initialize all of the *_sav arrays to help prevent bleeding over between pcuts or ion species
             l_save .= false  # Whole array must be initialized in case number of particles changes from pcut to pcut
 
-            for arr in (:weight_sav, :ptot_pf_sav, :pb_pf_sav, :x_PT_cm_sav, :grid_sav, :DwS_sav,
+            for arr in (:weight_sav, :ptot_pf_sav, :pb_pf_sav, :x_PT_cm_sav, :grid_sav, :downstream_sav,
                         :inj_sav, :xn_per_sav, :prp_x_cm_sav, :acctime_sec_sav, :φ_rad_sav, :tcut_sav)
                 # zero out each array in a type stable manner
                 @eval fill!($arr, zero(eltype($arr)))
@@ -484,21 +484,21 @@ for i_iter in 1:n_itrs # loop_itr
             #         upstream orientation is parallel
             #  r_PT_cm: current particle position
             #  i_grid: current grid zone number
-            #  l_DwS: whether particle has been downstream
+            #  l_downstream: whether particle has been downstream
             #  inj: whether particle has been back upstream (i.e. is a CR)
             #  xn_per: time steps per gyro period, Δt = T_g/xn_per
-            #  prp_x_cm: DwS position of PRP; adjusted to allow all particles,
+            #  prp_x_cm: downstream position of PRP; adjusted to allow all particles,
             #            regardless of momentum, to isotropize before reaching
-            #  acctime_sec: time since crossing shock for first time; not started until l_DwS = true
+            #  acctime_sec: time since crossing shock for first time; not started until l_downstream = true
             #  φ_rad: phase angle of gyration relative to z axis
             #  tcut_curr: next time at which particle tracking takes place
             #--------------------------------------------------------------------
             #$omp parallel for default(none), schedule(dynamic,1), num_threads(6)
             for i_prt in 1:n_pts_use # loop_pt
 
-                (i_fin, ∑P_DwS, ∑KEdensity_DwS) = particle_loop(
-                    i_iter, i_ion, i_cut, i_prt, vals, energy_esc_UpS, pₓ_esc_UpS,
-                    pcut_prev, i_fin, ∑P_DwS, ∑KEdensity_DwS)
+                (i_fin, ∑P_downstream, ∑KEdensity_downstream) = particle_loop(
+                    i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, pₓ_esc_upstream,
+                    pcut_prev, i_fin, ∑P_downstream, ∑KEdensity_downstream)
 
             end # loop_pt
             #$omp end parallel do

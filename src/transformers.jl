@@ -307,7 +307,7 @@ function track_pitch_angles() # TODO figure out arguments
     end
     γₚ_sk = hypot(1, pt_sk_cgs/(rest_mass*c))
 
-    cell_weight = cell_weight * pt_sk_cgs / (γₚ_sk * rest_mass) / proton_num_density_UpS
+    cell_weight = cell_weight * pt_sk_cgs / (γₚ_sk * rest_mass) / proton_num_density_upstream
 
     # Binning shock frame values very easy; just add directly to correct bin of histogram
     if m == 1
@@ -605,7 +605,7 @@ function transform_psd_corners(
 
         # Determine current cosine, remembering that psd_θ_bounds has both a linearly-spaced
         # region in cosine and logarithmically-spaced region in θ. Also need to remember that
-        # the most finely spaced bins should occur in the UpS-pointing direction, so need to
+        # the most finely spaced bins should occur in the upstream-pointing direction, so need to
         # negate psd_θ_bounds to get true cosine value.
         if j > (num_psd_θ_bins - psd_lin_cos_bins)
             cosθ = -psd_θ_bounds[j]

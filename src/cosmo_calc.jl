@@ -19,7 +19,6 @@ const Ω_k   = 0.0             # Assume flat Universe, i.e. Ω_k = 1 - ∑(Ω_*)
 const c     = 2.99792458e5    # Speed of light, km/s
 const d_H   = c / H0          # Hubble distance, Mpc
 const t_H   = 9.778e11 / H0   # Hubble time, years (9.778e11 = 1 s⋅Mpc/yr⋅km)
-const num_steps = 1000        # Number of steps to use in integration
 
 const cosmo = cosmology(h = h, OmegaK = Ω_k, OmegaR = Ω_r, OmegaM = Ω_m)
 
@@ -53,9 +52,7 @@ calling subroutine.
 - Redshift
 """
 function get_redshift(d_CM)
-
     d_CM ≤ 0 && throw(DomainError(d_CM, "d_CM must be positive"))
-
 
     # Step through integral in z (Equation (15) in Hogg 1999) until next step exceeds d_CM
     if d_CM < 0.443
