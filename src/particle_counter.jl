@@ -7,7 +7,7 @@ using ..constants: E₀_proton
 using ..parameters: psd_max, na_cr, num_therm_bins
 using ..transformers: get_transform_dN, transform_psd_corners
 using ..debug: zone_vol, therm_energy_density, energy_density
-using ..io: print_plot_vals
+import ..print_plot_vals
 
 """
     get_dNdp_cr(...)

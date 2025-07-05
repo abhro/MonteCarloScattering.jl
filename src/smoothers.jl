@@ -4,7 +4,7 @@ using Roots
 
 using ..constants: kB, E₀_proton
 using ..parameters: β_rel_fl
-using ..io: print_plot_vals
+import ..print_plot_vals
 
 export smooth_grid_part, smooth_profile!
 

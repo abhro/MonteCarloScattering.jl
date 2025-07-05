@@ -66,6 +66,9 @@ const grid_axis = axes(x_grid_rg, 1)
 x_grid_cm = x_grid_rg * rg₀ # Convert everything from rg₀ units to cgs units
 Γ_grid = zeros(n_grid, 2)
 
+include("debug.jl")
+include("particle_counter.jl")
+include("smoothers.jl")
 # Set quantities related to the phase space distribution, including the bins
 psd_cos_fine = 1 - 2 / (psd_lin_cos_bins+1)
 psd_θ_fine = acos(psd_cos_fine)
