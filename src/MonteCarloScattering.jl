@@ -1,3 +1,4 @@
+module MonteCarloScattering
 import Random
 using Dates
 using JLD2
@@ -69,6 +70,8 @@ x_grid_cm = x_grid_rg * rg₀ # Convert everything from rg₀ units to cgs units
 include("debug.jl")
 include("particle_counter.jl")
 include("smoothers.jl")
+
+function (@main)(args)
 # Set quantities related to the phase space distribution, including the bins
 psd_cos_fine = 1 - 2 / (psd_lin_cos_bins+1)
 psd_θ_fine = acos(psd_cos_fine)
@@ -550,5 +553,6 @@ println()
 println(outfile)
 println(outfile, " Finished. Run time = ", run_time, ", ", round(run_time, Minute))
 println(outfile)
-
+end # main
+end # module
 # vim: set textwidth=92:shiftwidth=4:
