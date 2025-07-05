@@ -135,13 +135,13 @@ function all_flux!(
     end
 
 
-    # Main loop for all_flux: depending on motion of particle, travel UpS or DwS and update
-    # fluxes across all zone boundaries the particle crossed. WARNING: the particle quantity
-    # "weight" is the fraction of the far UpS density each particle represents. However, the
-    # actual flux is
+    # Main loop for all_flux: depending on motion of particle, travel upstream
+    # or downstream and update fluxes across all zone boundaries the particle
+    # crossed. WARNING: the particle quantity "weight" is the fraction of the
+    # far upstream density each particle represents. However, the actual flux is
     #     γ₀ * u₀ * n₀,
-    # which means that the flux contribution of each particle must be increased by a factor
-    # of γ₀⋅u₀.
+    # which means that the flux contribution of each particle must be increased
+    # by a factor of γ₀⋅u₀.
     #--------------------------------------------------------------------------
     # Downstream first
     if x_PT_cm > x_PT_old
@@ -196,8 +196,8 @@ function flux_stream!(
     # Loop over grid zones boundaries that the particle has crossed
     for i in i_range
 
-        # Is particle UpS of free escape boundary after crossing DwS?
-        # Then don't count flux contributions to grid zones UpS from FEB
+        # Is particle upstream of free escape boundary after crossing downstream?
+        # Then don't count flux contributions to grid zones upstream from FEB
         inj_check && inj && i ≤ i_grid_feb && continue
 
         # Update fluxes; note the minus signs in sign_fac force pxx_flux to increase

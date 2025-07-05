@@ -4,7 +4,7 @@
 Given parallel component and total of a particle's momentum in the shock frame,
 determine which bin of psd particle will fall into.
 
-Binning is done by the value of ptot_sk in code units. All binning is logarithmic.
+Binning is done by the value of `ptot_sk` in code units. All binning is logarithmic.
 
 ### Arguments
 - `pₓ_sk`: component of momentum parallel to shock normal (to B-field?), in code units
@@ -45,15 +45,15 @@ determine which bin of psd particle will fall into.
 Binning is done by the value of ptot_sk in code units.
 Angular binning is done with cos(θ) for large angles or θ for small angles.
 
-The value of θ_fine marks the division between linear bin spacing (above θ_fine)
-and logarithmic spacing (from θ_fine down to θ_min). In both logarithmic regions
-the parameter bins_per_decade_*** determines the fineness of the bins.
+The value of `θ_fine` marks the division between linear bin spacing (above `θ_fine`)
+and logarithmic spacing (from `θ_fine` down to `θ_min`). In both logarithmic regions
+the parameter `bins_per_decade_***` determines the fineness of the bins.
 
 
 !!! warning
-    binning in angle is actually done with the *NEGATIVE* of the particle's
-    cosine. This lets the most finely spaced bins correspond to UpS-pointing
-    particles rather than DwS-pointing ones. This also has the effect that
+    binning in angle is actually done with the **NEGATIVE** of the particle's
+    cosine. This lets the most finely spaced bins correspond to upstream-pointing
+    particles rather than downstream-pointing ones. This also has the effect that
     angles are essentially measured from the -x axis rather than the +x axis.
 
 ### Arguments
@@ -66,7 +66,7 @@ Bin in angle into which particle falls
 """
 function get_psd_bin_angle(pₓ_sk, ptot_sk, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
     # Bin in angle (bin); note that we negate the pitch angle to provide the
-    # finest resolution (i.e. the logarithimcally-spaced angle bins rather than
+    # finest resolution (i.e. the logarithmically-spaced angle bins rather than
     # the linearly-spaced cosine bins) for particles that are directed upstream
     p_cos = -pₓ_sk / ptot_sk
 

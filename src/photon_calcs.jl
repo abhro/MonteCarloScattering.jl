@@ -107,7 +107,7 @@ function photon_calcs(
                 # Determine current cosine, remembering that psd_θ_bounds has both a
                 # linearly-spaced region in cosine and a logarithmically-spaced region in θ.
                 # Also need to remember that the most finely spaced bins should occur in the
-                # UpS-pointing direction, so need to negate psd_θ_bounds to get true cosine value.
+                # upstream-pointing direction, so need to negate psd_θ_bounds to get true cosine value.
                 if j > (num_psd_θ_bins - psd_lin_cos_bins)
                     cos_bounds[j] = -psd_θ_bounds[j]
                 else

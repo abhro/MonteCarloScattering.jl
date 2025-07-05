@@ -13,9 +13,9 @@ using UnitfulGaussian: Fr, G
 
 # Physical or arithmetic constants
 
-"Proton rest mass energy"
+"Proton rest energy"
 const E₀_proton   = mp * c^2 |> erg
-"Electron rest mass energy"
+"Electron rest energy"
 const E₀_electron = me * c^2 |> erg
 
 "Equivalent B field to CMB energy density at a redshift of 0"

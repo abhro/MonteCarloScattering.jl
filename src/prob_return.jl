@@ -6,33 +6,33 @@ of tests to determine whether it will be culled from the simulation.
 
 ### Arguments
 
-- rad_loss_fac: constant related to radiative losses; only used to pass to retro_time when needed
-- B_CMBz: effective magnetic field due to CMB at redshift of source; only used to pass to
+- `rad_loss_fac`: constant related to radiative losses; only used to pass to `retro_time` when needed
+- `B_CMBz`: effective magnetic field due to CMB at redshift of source; only used to pass to
   function retro_time when needed
-- x_PT_old: particle position before most recent move
-- aa: atomic mass number of ion species
-- gyro_denom: denominator of gyroradius fraction, zz*qcgs*bmag
-- helix_count: counter for number of times through main propagation loop for current particle
-- i_cut: current pcut; needed when electrons are undergoing radiative losses
-- pcut_prev: momentum of previous pcut; needed when electrons are undergoing radiative losses
-- weight: current particle weight; passed to retro_time if called
+- `x_PT_old`: particle position before most recent move
+- `aa`: atomic mass number of ion species
+- `gyro_denom`: denominator of gyroradius fraction, q⋅B
+- `helix_count`: counter for number of times through main propagation loop for current particle
+- `i_cut`: current pcut; needed when electrons are undergoing radiative losses
+- `pcut_prev`: momentum of previous pcut; needed when electrons are undergoing radiative losses
+- `weight`: current particle weight; passed to retro_time if called
 
 ### Returns
 
-- i_return: flag for fate of particle; see top of loop_helix
-- lose_pt: true if particle hit zero energy due to radiative losses while in DwS region
+- `i_return`: flag for fate of particle; see top of `loop_helix`
+- `lose_pt`: true if particle hit zero energy due to radiative losses while in downstream region
 
 ### Modifies
 
-- x_PT_cm: position of particle after recent motion & DwS adjustment
-- prp_x_cm: location of probability-of-return plane
-- ptot_pf: total plasma frame momentum of particle
-- γₚ_pf: Lorentz factor associated with ptot_pf
-- gyro_denom: denominator of gyroradius fraction, zz*qcgs*bmag
-- pb_pf/p_perp_b_pf: components of ptot_pf parallel/perpendicular to B field
-- acctime_sec: total accumulated acceleration time
-- φ_rad: phase angle of particle's gyration
-- tcut_curr: current tcut for particle tracking; passed to retro_time if called
+- `x_PT_cm`: position of particle after recent motion & downstream adjustment
+- `prp_x_cm`: location of probability-of-return plane
+- `ptot_pf`: total plasma frame momentum of particle
+- `γ`ₚ_pf: Lorentz factor associated with ptot_pf
+- `gyro_denom`: denominator of gyroradius fraction, q⋅B
+- `pb_pf`/`p_perp_b_pf`: components of `ptot_pf` parallel/perpendicular to B field
+- `acctime_sec`: total accumulated acceleration time
+- `φ_rad`: phase angle of particle's gyration
+- `tcut_curr`: current tcut for particle tracking; passed to `retro_time` if called
 """
 function prob_return(
         i_ion, rad_loss_fac, B_CMBz, x_PT_old, aa, zz, gyro_denom,
@@ -45,8 +45,8 @@ function prob_return(
 
     lose_pt = false
 
-    # Test whether particle is still UpS from PRP position; don't bother with
-    # return calculations if so
+    # Test whether particle is still upstream from PRP position;
+    # don't bother with return calculations if so
     if x_PT_cm < x_grid_stop
 
         # Do nothing
@@ -59,11 +59,11 @@ function prob_return(
         # 1. The particle's diffusion coefficient D may be described by D = ⅓⋅η_mfp⋅r_g⋅v_pt
         #    (by default; a different f(r_g) may be specified as desired in place of η⋅r_g)
         # 2. The relation between the diffusion coefficient D and the diffusion length L is:
-        #    L = D/<u>, where <u> is the average speed of diffusion. Assuming isotropic
-        #    particles in the DwS frame, <u> = u₂ since the average thermal *velocity* of
-        #    the population is 0.
-        # The calculation of gyro_tmp ensures that even particles that started UpS of shock
-        # still use the DwS magnetic field for their diffusion length
+        #    L = D/⟨u⟩, where ⟨u⟩ is the average speed of diffusion. Assuming
+        #    isotropic particles in the downstream frame, ⟨u⟩ = u₂ since the
+        #    average thermal *velocity* of the population is 0.
+        # The calculation of gyro_tmp ensures that even particles that started upstream
+        # of shock still use the downstream magnetic field for their diffusion length
         #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
         # Square root corresponds to Blandford-McKee solution, where e ∝ 1/χ ∝ 1/r
         if use_custom_εB && x_PT_cm > x_grid_stop
@@ -132,16 +132,17 @@ function prob_return(
 
     else
 
-        # Particle is DwS from grid end, but didn't cross it this time step. Also, it is UpS
-        # from the PRP. However, electrons experiencing radiative losses may have a smaller
-        # L_diff during their propagation, so a shorter PRP can be used. Test for that here.
-        # Two methods for doing that:
-        # 1. If L_diff has dropped sufficiently, move the PRP far UpS from the particle's
+        # Particle is downstream from grid end, but didn't cross it this time step.
+        # Also, it is upstream from the PRP. However, electrons experiencing
+        # radiative losses may have a smaller L_diff during their propagation,
+        # so a shorter PRP can be used. Test for that here. Two methods for doing that:
+        # 1. If L_diff has dropped sufficiently, move the PRP far upstream from the particle's
         #    current position. The particle will be culled at the next time step
         # 2. Otherwise, calculate a new PRP location based on ratio of current momentum to
-        #    minimum mometum for this pcut. The strong dependence on momentum (p⁵) is so
-        #    that these electrons have time to isotropize DwS, even though the bulk of their
-        #    motion occurred at a much higher energy and therefore mean free path
+        #    minimum momentum for this pcut. The strong dependence on momentum (p⁵) is so
+        #    that these electrons have time to isotropize downstream, even though
+        #    the bulk of their motion occurred at a much higher energy and
+        #    therefore mean free path
         if aa < 1 && ptot_pf < pcut_prev && helix_count % 1000 == 0
             gyro_rad_tot_cm = ptot_pf * c * gyro_denom
             L_diff          = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp*γₚ_pf * u₂)

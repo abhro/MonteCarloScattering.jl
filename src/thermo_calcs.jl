@@ -59,7 +59,7 @@ function thermo_calcs(
             cos_lo = cos(psd_θ_bounds[jθ + 1])
         end
 
-        # Minus sign needed because finest gradations must point UpS
+        # Minus sign needed because finest gradations must point upstream
         cos_center[jθ] = - (cos_lo + cos_hi) / 2
     end
 
@@ -141,7 +141,7 @@ function thermo_calcs(
 
             pₓ_Xf   = γᵤ * (pₓ_sk - βᵤ*etot_sk/c)
             pt_Xf   = √((ptot_sk^2 - pₓ_sk^2) + pₓ_Xf^2)
-            # In rare cases, floating point roundoff can cause pt_Xf to be smaller than abs(pₓ_Xf)
+            # In rare cases, floating point round-off can cause pt_Xf to be smaller than abs(pₓ_Xf)
             if abs(pₓ_Xf) > pt_Xf
                 pₓ_Xf = copysign(pt_Xf, pₓ_Xf)
             end
@@ -164,12 +164,12 @@ function thermo_calcs(
 
 
     # Now, get the CRs into d²N_pf. Do this by transforming the bin *centers* of PSD into
-    # each frame, using just the center location to rebin.
+    # each frame, using just the center location to re-bin.
     # TODO: consider doing an exact calculation of bin overlaps rather than just the
-    # center-point rebinning that currently happens
+    # center-point re-binning that currently happens
     #----------------------------------------------------------------------------
     d²N_pop = zeros(n_grid)
-    # Loop over grid locations, rebinning all cells with particles
+    # Loop over grid locations, re-binning all cells with particles
     for i in 1:n_grid
 
         # Get Lorentz factor and speed relating the shock and current frames
@@ -251,7 +251,7 @@ function thermo_calcs(
             # Case (1): No particles of any kind detected at this grid location.
             # Thermal particles must have passed through, so find their density
             # and analytically determine components of pressure
-            # #assumecold: using Γ = 5/3 in the pressure calc
+            # #assumecold: using Γ = 5/3 in the pressure calculation
             pressure_loc = density_loc^(5//3) * kB*T₀_ion[i_ion]
 
             if aa_ion[i_ion] ≥ 1
@@ -274,8 +274,8 @@ function thermo_calcs(
         elseif num_crossings[i] == 0
 
             # Case (2): no thermal particles, but some CRs detected.
-            # Find pressure due to un-tracked thermal particles
-            # #assumecold: using Γ = 5/3 in the pressure calc
+            # Find pressure due to untracked thermal particles
+            # #assumecold: using Γ = 5/3 in the pressure calculation
             pressure_loc = density_loc^(5//3) * kB*T₀_ion[i_ion]
 
             if aa_ion[i_ion] > 1
@@ -301,9 +301,9 @@ function thermo_calcs(
         else
 
             # Case (3): thermal particles detected. If no CRs are present that just means
-            # they didn't propagate UpS to this zone. Whether CRs are present or not, d²N_pf
-            # represents a true count of the total population of this grid zone. Set
-            # normalization factor accordingly
+            # they didn't propagate upstream to this zone. Whether CRs are present or not,
+            # d²N_pf represents a true count of the total population of this grid zone.
+            # Set normalization factor accordingly
             norm_fac = density_loc / zone_pop[i]
 
         end
