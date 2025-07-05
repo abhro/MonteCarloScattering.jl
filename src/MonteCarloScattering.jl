@@ -80,7 +80,7 @@ if inp_distr == 1
     Emin *= emin_therm_fac
 
 elseif inp_distr == 2
-    # Set minimum PSD energy using δ-function dist for UpS plasma;
+    # Set minimum PSD energy using δ-function dist for upstream plasma;
     # allow for a few extra zones below the location of the distribution
     Emin = energy_inj/5
 end
@@ -175,7 +175,7 @@ end
 
 
 # Get grid zone numbers for the boundaries between photon shells, and for
-# the location of the UpS FEB. Add the photon shells to the output file
+# the location of the upstream FEB. Add the photon shells to the output file
 n_shell_endpoints = zeros(Int, num_UpS_shells+num_DwS_shells+1)
 if do_photons
     let i_tmp = 1
@@ -227,7 +227,7 @@ B_CMBz = B_CMB0 * (1 + redshift)^2
 @debug "Calculated radiation loss constants" B_CMBz
 
 
-# Zero out total escaping fluxes and calculate the far UpS fluxes
+# Zero out total escaping fluxes and calculate the far upstream fluxes
 #pₓ_esc_flux_UpS_tot = 0.0
 #energy_esc_flux_UpS_tot = 0.0
 pₓ_esc_flux_UpS     = zeros(n_itrs)
@@ -258,7 +258,7 @@ else
      u₂, β₂, γ₂, θᵤ₂, bmag₂, θ_B₀, θ_B₂, flux_px_UpS, flux_pz_UpS, flux_energy_UpS
     ) = read_old_prof(n_old_skip, n_old_profs, n_old_per_prof)
 
-    # Must set far UpS and DwS limits manually, since they won't be read in from the file
+    # Must set far upstream and downstream limits manually, since they won't be read in from the file
     x_grid_rg[begin] = -1e30
     x_grid_rg[end]   =  1e30
     x_grid_cm[begin] = -1e30 * rg₀
@@ -320,7 +320,7 @@ begin # "module" species_vars
     spectra_sf = zeros(0:psd_max, n_grid)
     spectra_pf = zeros(0:psd_max, n_grid)
 
-    # Escaping spectra UpS and DwS from shock; 2-D arrays store angular information
+    # Escaping spectra upstream and downstream from shock; 2-D arrays store angular information
     esc_spectra_feb_UpS = zeros(0:psd_max)
     esc_spectra_feb_DwS = zeros(0:psd_max)
     # should these be inverse velocity?
