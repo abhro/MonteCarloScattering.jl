@@ -5,7 +5,6 @@ using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
 using Unitful: g, K, cm, s, dyn, erg, keV, GeV
 using Unitful: mp, me, c, q, k as kB, h, ħ    # physical constants
 using UnitfulGaussian: Fr, G, qcgs
-using PhysicalConstants.CODATA2018: σ_e as σ_T
 using Cosmology
 using Statistics: mean
 using StaticArrays
@@ -224,9 +223,8 @@ end
 # Note the extra factor of c in the denominator, because code tracks dp/dt, not dE/dt as
 # given in Sturner+ (1997).
 # unit shenanigans because of overflow
-rad_loss_fac = 4//3 * c * σ_T / (c^3 * me^2 * 8π) |> u"s^2/g^2"
 B_CMBz = B_CMB0 * (1 + redshift)^2
-@debug "Calculated radiation loss constants" rad_loss_fac B_CMBz
+@debug "Calculated radiation loss constants" B_CMBz
 
 
 # Zero out total escaping fluxes and calculate the far UpS fluxes
