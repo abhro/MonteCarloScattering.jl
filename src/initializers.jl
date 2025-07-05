@@ -788,7 +788,7 @@ function set_custom_εB!(
     #     λ_SD = β₀ / √(σ ⋅ density_p/density_e) ⋅ rg₀.
     n₀_electron = density(species[end]) # electron number density
     σ = 2εB₀ / γ₀
-    rg2sd = β₀ / √(σ*n₀/n₀_electron)
+    rg2sd = β₀ / √(σ*n₀/n₀_electron) |> NoUnits
 
     # Also need the final value of ε_B downstream, in case our DwS region is long enough
     # that the magnetic field can decay to this value. Note that the R-H relations can be
@@ -800,7 +800,7 @@ function set_custom_εB!(
     # Use this value to compute the distance downstream at which the field will have decayed to it.
     # Per the Blandford-McKee solution, energy ∝ 1/χ ∝ 1/distance downstream. Since we do not actually
     # modify our pressures and densities according to the BM solution, instead modify εB
-    end_decay_rg = (5e-3 / εB₂) / rg2sd
+    end_decay_rg = (5e-3 / εB₂) / rg2sd |> NoUnits
 
     @debug("Setting custom εB", n₀, εB₀, n₀_electron, σ, rg2sd, energy_density₂, εB₂, end_decay_rg)
 
@@ -1258,18 +1258,16 @@ end
 
 TODO
 """
-function set_inj_dist_bin_equal_weight!(
-        ptot_out, weight_out,
-        p_range, E_range, area_tot, Δp, n₀)
-    for (i, p1) in enumerate(p_range[begin:end-1])
+function set_inj_dist_bin_equal_weight!(ptot_out, weight_out, p_range, E_range, area_tot, Δp, n₀)
+    for (i, p1) in enumerate(@view p_range[begin:end-1])
         p2 = p_range[i+1]
 
         energy_o_kT1 = E_range[i]
         energy_o_kT2 = E_range[i+1]
 
         # Work in log space because of potentially huge exponents
-        f1 = exp(2log(p1) - energy_o_kT1)
-        f2 = exp(2log(p2) - energy_o_kT2)
+        f1 = exp(2log(p1/(g*cm/s)) - energy_o_kT1)
+        f2 = exp(2log(p2/(g*cm/s)) - energy_o_kT2)
 
         bin_area = Δp * (f1 + f2)/2 # Calculate bin area using trapezoid rule
 
