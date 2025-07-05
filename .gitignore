@@ -1,5 +1,6 @@
 JuliaManifest.toml
 Manifest.toml
+build/
 
 # data files
 *.dat
