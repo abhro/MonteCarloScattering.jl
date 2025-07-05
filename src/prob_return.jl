@@ -87,12 +87,12 @@ function prob_return(
 
         # If the particle's plasma frame velocity is less than u₂, or if the probability
         # of return calculation (see Jones & Ellison 1991 [1991SSRv...58..259J]) fails,
-        # the particle will not return from the DwS region.
+        # the particle will not return from the downstream region.
         if vt_pf < u₂ || Random.rand() > prob_ret
 
             i_return = 0
 
-        # Particle will return from DwS region. Either analytically determine its properties
+        # Particle will return from downstream region. Either analytically determine its properties
         # upon return or use retro-time calculation
         else
 

@@ -19,7 +19,7 @@ function ion_finalize()
     #TODO: spectrum_plot
 
     # Print out escaping particle population for this species
-    print_dNdp_esc(esc_psd_feb_UpS, esc_psd_feb_DwS)
+    print_dNdp_esc(esc_psd_feb_upstream, esc_psd_feb_downstream)
 
     # Handle photon calculations
     if do_photons

@@ -153,15 +153,15 @@ function calc_rRH_relativistic(species, ρ₀, P₀, β₀, n₀_ion)
     w₀ = ρ₀ * c^2 + Γ_sph/(Γ_sph-1) * P₀
 
     # Calculate the far upstream momentum flux
-    UpS_mom_flux = γ₀^2 * w₀ * β₀^2 + P₀
-    UpS_num_flux = γ₀ * n₀_ion[1] * β₀ # Protons only here; not strictly correct but appropriate for later use
+    upstream_mom_flux = γ₀^2 * w₀ * β₀^2 + P₀
+    upstream_num_flux = γ₀ * n₀_ion[1] * β₀ # Protons only here; not strictly correct but appropriate for later use
 
     function F(p)
         γβ = p / (mp*c) # since p is relativistic, p/mc = γmv/mc = γ⋅β
         γ = √(1 + γβ^2)
         P = relative_ion_energy/3 * γβ^2/γ # pressure
         w = relative_ion_energy*(γ + γβ^2/3γ)
-        return UpS_num_flux/γ * (w*γ^2 + P) - UpS_mom_flux
+        return upstream_num_flux/γ * (w*γ^2 + P) - upstream_mom_flux
     end
 
     # Now use Newton's method to determine the downstream momentum that satisfies the
@@ -292,20 +292,20 @@ midpoints are less useful, since photons are calculated on a zone-by-zone basis 
 just at select points in the shock profile. Keep them anyway, since the memory overhead is low.
 """
 function set_photon_shells(
-        num_UpS_shells, num_DwS_shells,
-        use_prp, feb_UpS, feb_DwS, rg₀, x_grid_stop_rg,
+        num_upstream_shells, num_downstream_shells,
+        use_prp, feb_upstream, feb_downstream, rg₀, x_grid_stop_rg,
     )
 
-    total_shells = num_UpS_shells+num_DwS_shells
+    total_shells = num_upstream_shells+num_downstream_shells
     x_shell_midpoints = zeros(total_shells)
     x_shell_endpoints = zeros(total_shells+1) # fencepost problem
 
-    # Handle UpS shells first
-    set_UpS_photon_shells!(x_shell_midpoints, x_shell_endpoints, num_UpS_shells, feb_UpS, rg₀)
+    # Handle upstream shells first
+    set_upstream_photon_shells!(x_shell_midpoints, x_shell_endpoints, num_upstream_shells, feb_upstream, rg₀)
 
     # And repeat the process for the downstream shells.
-    set_DwS_photon_shells!(x_shell_midpoints, x_shell_endpoints, num_UpS_shells, num_DwS_shells,
-                           use_prp, feb_DwS, rg₀, x_grid_stop_rg)
+    set_downstream_photon_shells!(x_shell_midpoints, x_shell_endpoints, num_upstream_shells, num_downstream_shells,
+                           use_prp, feb_downstream, rg₀, x_grid_stop_rg)
 
     # Convert from units of rg₀ to cm
     @. x_shell_endpoints *= rg₀
@@ -313,16 +313,16 @@ function set_photon_shells(
 end
 
 """
-    set_UpS_photon_shells!(...)
+    set_upstream_photon_shells!(...)
 
 TODO
 """
-function set_UpS_photon_shells!(
+function set_upstream_photon_shells!(
         x_shell_midpoints, x_shell_endpoints,
-        num_UpS_shells, feb_UpS, rg₀,
+        num_upstream_shells, feb_upstream, rg₀,
     )
-    x_section_width = (log10(abs(feb_UpS/rg₀))+1) / num_UpS_shells
-    for i in 1:num_UpS_shells
+    x_section_width = (log10(abs(feb_upstream/rg₀))+1) / num_upstream_shells
+    for i in 1:num_upstream_shells
         # Calculate upstream and downstream endpoints of each region,
         # as well as midpoint in log space
         if i == 1
@@ -343,25 +343,25 @@ function set_UpS_photon_shells!(
         # count downstream from the upstream FEB (so some array index juggling is necessary)
         # Also, add in the factor of -1 here, since upstream coordinates should be negative
         # in the MC code.
-        x_shell_midpoints[num_UpS_shells+1 - i]     = -x_region_mid
-        x_shell_endpoints[num_UpS_shells+1 - i]     = -x_region_end
-        x_shell_endpoints[num_UpS_shells+1 - i + 1] = -x_region_start
+        x_shell_midpoints[num_upstream_shells+1 - i]     = -x_region_mid
+        x_shell_endpoints[num_upstream_shells+1 - i]     = -x_region_end
+        x_shell_endpoints[num_upstream_shells+1 - i + 1] = -x_region_start
     end
 end
 """
-    set_DwS_photon_shells(...)
+    set_downstream_photon_shells(...)
 
 TODO
 """
-function set_DwS_photon_shells(
+function set_downstream_photon_shells(
         x_shell_midpoints, x_shell_endpoints,
-        num_UpS_shells, num_DwS_shells, use_prp, feb_DwS, rg₀, x_grid_stop_rg,
+        num_upstream_shells, num_downstream_shells, use_prp, feb_downstream, rg₀, x_grid_stop_rg,
     )
     # The downstream limit is set differently if using a PRP or a FEB
-    limitDwS = use_prp ? x_grid_stop_rg : feb_DwS/rg₀
-    x_section_width = (log10(limitDwS)+1) / num_DwS_shells
+    limitdownstream = use_prp ? x_grid_stop_rg : feb_downstream/rg₀
+    x_section_width = (log10(limitdownstream)+1) / num_downstream_shells
 
-    for i in 1:num_DwS_shells
+    for i in 1:num_downstream_shells
         # Calculate upstream and downstream endpoints of each region, as well as midpoint in log space
         if i == 1
             # Special case when i = 1, since our region starts at the shock.
@@ -377,9 +377,9 @@ function set_DwS_photon_shells(
         end
 
         # Update the arrays with the information. Less index juggling here
-        x_shell_endpoints[num_UpS_shells + i]     = x_region_start
-        x_shell_midpoints[num_UpS_shells + i]     = x_region_mid
-        x_shell_endpoints[num_UpS_shells + i + 1] = x_region_end
+        x_shell_endpoints[num_upstream_shells + i]     = x_region_start
+        x_shell_midpoints[num_upstream_shells + i]     = x_region_mid
+        x_shell_endpoints[num_upstream_shells + i + 1] = x_region_end
     end
 end
 
@@ -404,39 +404,39 @@ const DOWNSTREAM_SPACING = SVector(1e-3, 1e-2, 2e-2, 3e-2, 5e-2, 7e-2, 0.10,
 
 TODO
 """
-function setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_DwS, rg₀)
+function setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_downstream, rg₀)
 
     # Recall that rg₀ is the gyroradius of a proton with speed u₀ in magnetic field B₀.
 
     # Set the start and stop positions in units of rg₀
     x_grid_start = x_grid_start_rg * rg₀
     if !use_prp
-        x_grid_stop_rg = feb_DwS / rg₀
-        @info("DwS FEB set at x = $x_grid_stop_rg rg₀. Overwriting entered value for 'XGDDW'.")
+        x_grid_stop_rg = feb_downstream / rg₀
+        @info("downstream FEB set at x = $x_grid_stop_rg rg₀. Overwriting entered value for 'XGDDW'.")
     end
     x_grid_stop = x_grid_stop_rg * rg₀
 
     # Logarithmically-spaced grid zones run from x_grid_start_rg to -10rg₀. Set them here.
-    n_log_UpS = 27
-    Δlog = (log10(-x_grid_start_rg) - 1) / n_log_UpS-1
+    n_log_upstream = 27
+    Δlog = (log10(-x_grid_start_rg) - 1) / n_log_upstream-1
 
     # we build this chunk-by-chunk, which is inefficient
     x_grid_rg = Origin(0)(Float64[])
 
     push!(x_grid_rg, -1e30) # set left boundary of grid
 
-    append!(x_grid_rg, -exp10.(range(start=log10(-x_grid_start_rg), step=-Δlog, length=n_log_UpS)))
+    append!(x_grid_rg, -exp10.(range(start=log10(-x_grid_start_rg), step=-Δlog, length=n_log_upstream)))
     append!(x_grid_rg, FIRST_ZONE)
     append!(x_grid_rg, EXTREMELY_FINE_SPACING)
     append!(x_grid_rg, DOWNSTREAM_SPACING)
 
     # As seen above, the manually-set grid zones end at x = +1rg₀.
     # Downstream from there, more log-spaced zones.
-    n_log_DwS = 16
+    n_log_downstream = 16
     x_end_man = x_grid_rg[end]
-    Δlog      = (log10(x_grid_stop_rg) - log10(x_end_man)) / n_log_DwS
+    Δlog      = (log10(x_grid_stop_rg) - log10(x_end_man)) / n_log_downstream
 
-    append!(x_grid_rg, exp10.(range(start=log10(x_end_man), step=Δlog, length=n_log_DwS)))
+    append!(x_grid_rg, exp10.(range(start=log10(x_end_man), step=Δlog, length=n_log_downstream)))
 
     push!(x_grid_rg, 1e30)  # set right boundary of the grid
 
@@ -469,9 +469,9 @@ FIXME
 No inputs; pulls everything from module 'controls'
 
 ### Returns
-- `flux_px_UpS`: far upstream momentum flux, x component
-- `flux_pz_UpS`: far upstream momentum flux, z component
-- `flux_energy_UpS`: far upstream energy flux
+- `flux_px_upstream`: far upstream momentum flux, x component
+- `flux_pz_upstream`: far upstream momentum flux, z component
+- `flux_energy_upstream`: far upstream energy flux
 """
 function upstream_fluxes(n₀_ion, T₀_ion, m_ion, B₀, θ_B₀, u₀, β₀, γ₀)
 
@@ -496,17 +496,17 @@ function upstream_fluxes(n₀_ion, T₀_ion, m_ion, B₀, θ_B₀, u₀, β₀, 
     relativistic = β₀ ≥ β_rel_fl
 
     if relativistic
-        flux_px_UpS, flux_pz_UpS = upstream_momentum_flux_relativistic(β₀, γ₀, e₀, P₀, B₀, B_x, B_z)
-        flux_energy_UpS = upstream_energy_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_z)
+        flux_px_upstream, flux_pz_upstream = upstream_momentum_flux_relativistic(β₀, γ₀, e₀, P₀, B₀, B_x, B_z)
+        flux_energy_upstream = upstream_energy_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_z)
     else
         # Non-relativistic version. Note that it's missing the ρc² flux present in the
         # relativistic forms above. It is also expanded to second order in β₀ (only in the
         # hydro terms, for now) to allow for more precise matching with the relativistic version
-        flux_px_UpS, flux_pz_UpS = upstream_momentum_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_x, B_z)
-        flux_energy_UpS = upstream_energy_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀)
+        flux_px_upstream, flux_pz_upstream = upstream_momentum_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_x, B_z)
+        flux_energy_upstream = upstream_energy_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀)
     end
 
-    return (flux_px_UpS, flux_pz_UpS, flux_energy_UpS)
+    return (flux_px_upstream, flux_pz_upstream, flux_energy_upstream)
 end
 
 """
@@ -522,13 +522,13 @@ function upstream_momentum_flux_relativistic(β₀, γ₀, e₀, P₀, B₀, B_x
     # EM part (Double+ Eq 25)
     F_pₓ_EM = γ₀^2 * ((β₀*B₀)^2 + B_z^2 - B_x^2) / 8π |> g/(cm*s^2)
     @debug "Found partial fluxes" F_pₓ_fl F_pₓ_EM
-    flux_px_UpS = F_pₓ_fl + F_pₓ_EM                         # Total
+    flux_px_upstream = F_pₓ_fl + F_pₓ_EM                         # Total
 
     # Momentum flux, z-component (Fluid Part = 0, from Double+ Eq 24)
     # Total = EM part (Double+ Eq 26)
-    flux_pz_UpS = -γ₀/4π * B_x * B_z
+    flux_pz_upstream = -γ₀/4π * B_x * B_z
 
-    return flux_px_UpS, flux_pz_UpS
+    return flux_px_upstream, flux_pz_upstream
 end
 
 """
@@ -537,11 +537,11 @@ end
 TODO
 """
 function upstream_momentum_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_x, B_z)
-    flux_px_UpS = ρ₀ * u₀^2 * (1 + β₀^2) +
+    flux_px_upstream = ρ₀ * u₀^2 * (1 + β₀^2) +
                   P₀ * (1 + Γ_sph/(Γ_sph-1)*β₀^2) +
                   B_z^2/8π
-    flux_pz_UpS = - B_x * B_z / 4π
-    return flux_px_UpS, flux_pz_UpS
+    flux_pz_upstream = - B_x * B_z / 4π
+    return flux_px_upstream, flux_pz_upstream
 end
 
 """
@@ -562,13 +562,13 @@ function upstream_energy_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀
     F_energy_fl = γ₀^2 * β₀ * (e₀ + P₀) # Fluid part (Double+ Eq 20)
     F_energy_EM = γ₀^2 * β₀ * B_z^2/4π  # EM part (Double+ Eq 21)
     # Total -- convert to cgs units!
-    flux_energy_UpS = c * (F_energy_fl + F_energy_EM)
+    flux_energy_upstream = c * (F_energy_fl + F_energy_EM)
 
     # And subtract off the mass-energy flux to bring it in line with nonrelativistic
     # calculations and what the MC code actually tracks
-    flux_energy_UpS -= γ₀ * u₀ * ρ₀*c^2
+    flux_energy_upstream -= γ₀ * u₀ * ρ₀*c^2
 
-    return flux_energy_UpS
+    return flux_energy_upstream
 end
 
 """
@@ -671,8 +671,8 @@ Sets the initial values of the shock profile
 - `use_custom_εB,`
 - `n_ions`
 - `species`
-- `flux_px_UpS`
-- `flux_energy_UpS`
+- `flux_px_upstream`
+- `flux_energy_upstream`
 - `grid_axis`
 - `x_grid_cm`
 - `x_grid_rg`
@@ -688,13 +688,13 @@ Sets the initial values of the shock profile
 - `θ_grid`: angle of magnetic field[radians] relative to shock normal (i.e., to x axis)
 - `εB_grid`: user-defined function for fraction of energy density in magnetic field.
   Sets value of btot_grid
-- `B₂`: field strength in DwS region. Initially set in calc_downstream, it may be reset here
+- `B₂`: field strength in downstream region. Initially set in calc_downstream, it may be reset here
   depending on values of bturb_comp_frac & bfield_amp
 """
 function setup_profile(
         u₀, β₀, γ₀, B₀, θ_B₀,
         r_comp, bturb_comp_frac, bfield_amp, use_custom_εB,
-        n_ions, species, flux_px_UpS, flux_energy_UpS,
+        n_ions, species, flux_px_upstream, flux_energy_upstream,
         grid_axis, x_grid_cm, x_grid_rg,
     )
 
@@ -741,7 +741,7 @@ function setup_profile(
     if use_custom_εB
         set_custom_εB!(εB_grid, btot_grid, grid_axis,
                        n_ions, species, B₀,
-                       flux_px_UpS, flux_energy_UpS, uₓ_sk_grid, x_grid_rg,
+                       flux_px_upstream, flux_energy_upstream, uₓ_sk_grid, x_grid_rg,
                        comp_fac,
                        γ₀, β₀, u₀)
     else
@@ -765,12 +765,12 @@ function set_custom_εB!(
         εB_grid, btot_grid,
         grid_axis,
         n_ions, species, B₀,
-        flux_px_UpS, flux_energy_UpS, uₓ_sk_grid, x_grid_rg,
+        flux_px_upstream, flux_energy_upstream, uₓ_sk_grid, x_grid_rg,
         comp_fac,
         γ₀, β₀, u₀)
 
     @debug("Input parameters", εB_grid, btot_grid, grid_axis, n_ions, species, B₀,
-           flux_px_UpS, flux_energy_UpS, uₓ_sk_grid, x_grid_rg, comp_fac, γ₀, β₀, u₀)
+           flux_px_upstream, flux_energy_upstream, uₓ_sk_grid, x_grid_rg, comp_fac, γ₀, β₀, u₀)
 
     # Calculate ε_B₀ which depends on far upstream magnetic field and mass density.
     # If electrons aren't a separate species, they don't contribute enough mass to be important.
@@ -788,12 +788,12 @@ function set_custom_εB!(
     σ = 2εB₀ / γ₀
     rg2sd = β₀ / √(σ*n₀/n₀_electron) |> NoUnits
 
-    # Also need the final value of ε_B downstream, in case our DwS region is long enough
+    # Also need the final value of ε_B downstream, in case our downstream region is long enough
     # that the magnetic field can decay to this value. Note that the R-H relations can be
     # rearranged to read
     #     energy_density(x) = F_en₀/u(x) - F_px₀
     # assuming flux conservation everywhere.
-    energy_density₂ = (flux_energy_UpS + γ₀*u₀*n₀*E₀_proton) / uₓ_sk_grid[end] - flux_px_UpS
+    energy_density₂ = (flux_energy_upstream + γ₀*u₀*n₀*E₀_proton) / uₓ_sk_grid[end] - flux_px_upstream
     εB₂ = (B₀*comp_fac)^2 / (8π * energy_density₂) |> NoUnits
     # Use this value to compute the distance downstream at which the field will have decayed to it.
     # Per the Blandford-McKee solution, energy ∝ 1/χ ∝ 1/distance downstream. Since we do not actually
@@ -816,7 +816,7 @@ function set_custom_εB!(
         else
             εB_grid[i] = εB₂
         end
-        energy_density = (flux_energy_UpS + γ₀*u₀*n₀*E₀_proton) / uₓ_sk_grid[i] - flux_px_UpS
+        energy_density = (flux_energy_upstream + γ₀*u₀*n₀*E₀_proton) / uₓ_sk_grid[i] - flux_px_upstream
         #@debug("Setting εB_grid array elements", i, εB_grid[i], energy_density)
         # FIXME this tries to be a square root of a negative number sometimes
         #btot_grid[i] = √(8π * εB_grid[i] * energy_density)

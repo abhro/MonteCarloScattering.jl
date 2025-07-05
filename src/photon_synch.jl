@@ -54,7 +54,7 @@ function photon_synch(
         n_grid, num_hist_bins, p_pf_cgs_therm, dN_therm,
         num_psd_mom_bins, p_pf_cgs_cr, dN_cr, n_photon_synch,
         photon_synch_min_MeV, bins_per_dec_photon,
-        n_ions, aa_ion, n₀_ion, γ₀, u₀, flux_px_UpS, flux_energy_UpS, u₂,
+        n_ions, aa_ion, n₀_ion, γ₀, u₀, flux_px_upstream, flux_energy_upstream, u₂,
         n_grid, btot_grid,
         i_ion, mc)
 

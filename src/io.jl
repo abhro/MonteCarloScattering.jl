@@ -98,8 +98,8 @@ function print_input(
         num_psd_mom_bins, num_psd_θ_bins, n_xspec, n_pcuts, n_grid, r_RH,
         r_comp, u₀, β₀, γ₀, u₂, β₂, γ₂, species, bmag₀,
         bmag₂, θ_B₀, θ_B₂, θ_u₂,
-        mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine, feb_UpS,
-        feb_DwS, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac,
+        mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine, feb_upstream,
+        feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac,
         outfileunit)
 
 
@@ -198,8 +198,8 @@ N_g(fine)   = %i
     # FEB info and max age
     feb_str = ("""
 
-upstream FEB   = $(feb_UpS/rg₀) rg₀ = $(uconvert(pc, feb_UpS))
-downstream FEB = $(feb_DwS/rg₀) rg₀ = $(uconvert(pc, feb_DwS))
+upstream FEB   = $(feb_upstream/rg₀) rg₀ = $(uconvert(pc, feb_upstream))
+downstream FEB = $(feb_downstream/rg₀) rg₀ = $(uconvert(pc, feb_downstream))
 
 Max CR age[s] = $(age_max)
 
@@ -244,10 +244,10 @@ function print_plot_vals(
         iunit,
         n_pts_inj, n_pts_pcut, do_fast_push, inp_distr,
         dont_DSA, u₀, γ₀, r_comp, r_RH, θ_B₀, θ_B₂, θ_u₂,
-        bmag₀, feb_UpS, rg₀, Emax, Emax_per_aa, pmax_cgs,
+        bmag₀, feb_upstream, rg₀, Emax, Emax_per_aa, pmax_cgs,
         xn_per_coarse, xn_per_fine, mach_sonic, mach_alfven, x_grid_start_rg,
         x_grid_stop_rg, x_fast_stop_rg, η_mfp, x_art_start_rg, x_art_scale,
-        feb_DwS, jet_rad_pc, jet_sph_frac, jet_dist_kpc, n_ions, aa_ion,
+        feb_downstream, jet_rad_pc, jet_sph_frac, jet_dist_kpc, n_ions, aa_ion,
         zz_ion, n₀_ion, T₀_ion, smooth_mom_energy_fac, energy_inj,
         smooth_pressure_flux_psd_fac, energy_transfer_frac, iseed_in
     )
@@ -277,7 +277,7 @@ function print_plot_vals(
            θ_B₂,                            # 6
            θ_u₂,                            # 7
            bmag₀,                           # 8
-           feb_UpS/rg₀,                     # 9
+           feb_upstream/rg₀,                     # 9
            Emax,                            # 10
            Emax_per_aa,                     # 11
            pmax_cgs/(mp*c),                 # 12
@@ -295,7 +295,7 @@ function print_plot_vals(
            η_mfp,                           # 24
            x_art_start_rg,                  # 25
            x_art_scale,                     # 26
-           feb_DwS/rg₀,                     # 27
+           feb_downstream/rg₀,                     # 27
            jet_rad_pc,                      # 28
            jet_sph_frac,                    # 29
            jet_dist_kpc,                    # 30

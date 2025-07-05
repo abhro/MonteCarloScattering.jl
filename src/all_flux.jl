@@ -33,8 +33,8 @@ Tracks particle flux due to motion on the grid. Also finds number of new grid zo
 - `i_grid_old`
 - `n_cr_count`
 - `num_crossings` (array modified in-place)
-- `pₓ_esc_UpS`
-- `energy_esc_UpS`
+- `pₓ_esc_upstream`
+- `energy_esc_upstream`
 - `pxx_flux` (array modified in-place)
 - `pxz_flux` (array modified in-place)
 - `energy_flux` (array modified in-place)
@@ -46,10 +46,10 @@ function all_flux!(
         i_prt, aa, pb_pf, p_perp_b_pf, ptot_pf, γₚ_pf, φ_rad,
         weight, i_grid, uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
         x_PT_cm, x_PT_old, inj, nc_unit,
-        i_grid_feb, pxx_flux, pxz_flux, energy_flux, energy_esc_UpS, pₓ_esc_UpS,
+        i_grid_feb, pxx_flux, pxz_flux, energy_flux, energy_esc_upstream, pₓ_esc_upstream,
         spectra_sf, spectra_pf, n_cr_count, num_crossings, psd,
         # from controls
-        n_xspec, x_spec, feb_UpS, γ₀, u₀, mc,
+        n_xspec, x_spec, feb_upstream, γ₀, u₀, mc,
         # from grid_vars
         n_grid, x_grid_cm,
 
@@ -79,7 +79,7 @@ function all_flux!(
     ##TODO: remove extra return statement, folding rest of computation into
     # "else" block of if-then
     if i_grid == i_grid_old && i_grid > i_grid_feb && iszero(n_xspec)
-        return (i_grid, i_grid_old, n_cr_count, pₓ_esc_UpS, energy_esc_UpS)
+        return (i_grid, i_grid_old, n_cr_count, pₓ_esc_upstream, energy_esc_upstream)
     end
 
     # Convert plasma frame momentum to shock frame; determine a few values
@@ -165,13 +165,13 @@ function all_flux!(
     # One final task: update tracker for escaping flux at FEB if needed;
     # don't forget that flux must be rescaled
     #$omp critical
-    if inj && x_PT_cm < feb_UpS && x_PT_old ≥ feb_UpS
-        energy_esc_UpS += energy_flux_add * γ₀*u₀
-        pₓ_esc_UpS     -= p_sk.x * weight * γ₀*u₀
+    if inj && x_PT_cm < feb_upstream && x_PT_old ≥ feb_upstream
+        energy_esc_upstream += energy_flux_add * γ₀*u₀
+        pₓ_esc_upstream     -= p_sk.x * weight * γ₀*u₀
     end
     #$omp end critical
 
-    return (i_grid, i_grid_old, n_cr_count, pₓ_esc_UpS, energy_esc_UpS)
+    return (i_grid, i_grid_old, n_cr_count, pₓ_esc_upstream, energy_esc_upstream)
 end
 
 """

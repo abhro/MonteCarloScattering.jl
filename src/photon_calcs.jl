@@ -27,7 +27,7 @@ function photon_calcs(
         dNdp_therm_pvals, dNdp_therm, dNdp_cr, aa,
         n_shell_endpoints, d²N_dpdcos_ef,
         jet_dist_kpc, redshift, psd_lin_cos_bins, n_ions,
-        num_UpS_shells, num_DwS_shells,
+        num_upstream_shells, num_downstream_shells,
         psd_mom_bounds, psd_θ_bounds, num_psd_mom_bins, num_psd_θ_bins,
         i_ion,
     )
@@ -46,7 +46,7 @@ function photon_calcs(
     n_photon_synch = trunc(Int, (log10(photon_synch_max_MeV) - log10(photon_synch_min_MeV)) * bins_per_dec_photon)
     n_photon_IC    = trunc(Int, (log10(photon_ic_max_MeV)    - log10(photon_ic_min_MeV)   ) * bins_per_dec_photon)
 
-    n_shells = num_UpS_shells + num_DwS_shells
+    n_shells = num_upstream_shells + num_downstream_shells
 
     num_hist_bins = psd_max
     p_pf_cgs_therm = zeros(0:num_hist_bins)

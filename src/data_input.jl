@@ -106,40 +106,40 @@ begin
     x_grid_stop_rg  ≤ 0 && error("XGDDW: x_grid_stop must be positive.")
 end
 
-const feb_UpS = let
+const feb_upstream = let
     febup = get(cfg_toml, "FEBUP", nothing)
     if isnothing(febup)
-        feb_UpS = x_grid_start_rg * rg₀ # default value
+        feb_upstream = x_grid_start_rg * rg₀ # default value
         return
     end
     if febup[1] < 0
-        feb_UpS = febup[1] * rg₀
+        feb_upstream = febup[1] * rg₀
     elseif febup[2] < 0
-        feb_UpS = uconvert(cm, febup[2] * pc)
+        feb_upstream = uconvert(cm, febup[2] * pc)
     else
         error("FEBUP: at least one choice must be negative.")
     end
-    ((feb_UpS/rg₀) < x_grid_start_rg) && error("FEBUP: UpS FEB must be within x_grid_start")
+    ((feb_upstream/rg₀) < x_grid_start_rg) && error("FEBUP: upstream FEB must be within x_grid_start")
 
-    feb_UpS
+    feb_upstream
 end
 
-const feb_DwS, use_prp = let
+const feb_downstream, use_prp = let
     febdw = get(cfg_toml, "FEBDW", nothing)
     use_prp = false
     if isnothing(febdw)
-        feb_DwS = -1 # default value
+        feb_downstream = -1 # default value
         return
     end
     if febdw[1] > 0
-        feb_DwS = febdw[1] * rg₀
+        feb_downstream = febdw[1] * rg₀
     elseif febdw[2] > 0
-        feb_DwS = uconvert(cm, febdw[2] * pc)
+        feb_downstream = uconvert(cm, febdw[2] * pc)
     else
-        feb_DwS = 0.0cm
+        feb_downstream = 0.0cm
         use_prp = true
     end
-    (feb_DwS, use_prp)
+    (feb_downstream, use_prp)
 end
 
 begin
@@ -344,7 +344,7 @@ begin
     end
 end
 
-const num_UpS_shells, num_DwS_shells = cfg_toml["NSHLS"]
+const num_upstream_shells, num_downstream_shells = cfg_toml["NSHLS"]
 
 begin
     const bturb_comp_frac = get(cfg_toml, "BTRBF", 0.0)
