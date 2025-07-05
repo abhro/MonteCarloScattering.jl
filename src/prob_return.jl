@@ -38,7 +38,7 @@ function prob_return(
         i_ion, rad_loss_fac, B_CMBz, x_PT_old, aa, zz, gyro_denom,
         x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf, pb_pf, p_perp_b_pf,
         acctime_sec, φ_rad, helix_count::Integer, pcut_prev, weight, tcut_curr,
-        x_grid_stop, u₂, use_custom_εB, η_mfp, do_retro, bmag₂, mc)
+        x_grid_stop, u₂, use_custom_εB, η_mfp, do_retro, B₂, mc)
 
     # Presume particle didn't enter probability of return calculation; change later as needed
     i_return = 2
@@ -71,7 +71,7 @@ function prob_return(
         else
             gyro_tmp = 1.0
         end
-        gyro_rad_tot_cm = ptot_pf * c * gyro_tmp / (qcgs * bmag₂)
+        gyro_rad_tot_cm = ptot_pf * c * gyro_tmp / (qcgs * B₂)
         L_diff          = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp*γₚ_pf * u₂)
 
         # Make absolutely sure particles will have enough distance to isotropize before
