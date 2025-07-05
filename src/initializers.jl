@@ -634,8 +634,6 @@ function sound_speed_relativistic(P, ρ, Γ)
     # Compute the speed of sound using Fujimura & Kennel
     #     cₛ²/c² = ΓR/(aR + 1)                              FK1979 Eq. 13
     a = Γ / (Γ - 1)     # defined near FK1979 Equation (6)
-    @debug "Called with" P ρ Γ
-    @debug "Calculated params" R a
     return c * √(Γ * R / (a*R + 1))
 end
 
