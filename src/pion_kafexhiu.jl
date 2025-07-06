@@ -1,6 +1,6 @@
 using Unitful, UnitfulAstro
 using UnitfulAstro: GeV, erg
-using .constants: E₀_proton, T_th
+using .constants: E₀ₚ, T_th
 using .KATV2014: get_σ_π, get_Ffunc, get_Amax
 
 """
@@ -90,7 +90,7 @@ function pion_kafexhiu(
 
         p_pf_sq = p_pf_cgs_therm[i_fp] * p_pf_cgs_therm[i_fp+1] # Geometric mean
         γ = √(p_pf_sq/mc^2 + 1)
-        Tₚ = (γ - 1) * aa*ustrip(GeV, E₀_proton*erg) # particle kinetic energy in GeV
+        Tₚ = (γ - 1) * aa*ustrip(GeV, E₀ₚ*erg) # particle kinetic energy in GeV
         Tₚ /= aa  # kinetic energy per nucleon
         vel = √p_pf_sq / (γ*aa*mp)
 
@@ -158,7 +158,7 @@ function pion_kafexhiu(
 
         p_pf_sq = p_pf_cgs_cr[i_fp] * p_pf_cgs_cr[i_fp+1] # Geometric mean
         γ = √(p_pf_sq/mc^2 + 1)
-        Tₚ = (γ - 1) * aa*ustrip(GeV, E₀_proton*erg) # particle K.E. in GeV
+        Tₚ = (γ - 1) * aa*ustrip(GeV, E₀ₚ*erg) # particle K.E. in GeV
         Tₚ /= aa  # kinetic energy per nucleon
         vel = √(p_pf_sq)/(γ*aa*mp)
 

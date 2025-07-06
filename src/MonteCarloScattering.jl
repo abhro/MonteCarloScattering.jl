@@ -115,7 +115,7 @@ psd_mom_max = let
         γ = 1 + Emax/rest_energy_max
         rest_mass_max*c * √(γ^2 - 1)
     elseif Emax_per_aa > 0keV
-        γ = 1 + Emax_per_aa/E₀_proton
+        γ = 1 + Emax_per_aa/E₀ₚ
         rest_mass_max*c * √(γ^2 - 1)
     elseif pmax_cgs > 0g*cm/s
         pmax_cgs
@@ -221,8 +221,8 @@ end
 
 
 # Set a handful of constants related to radiative losses. electron_rm will not be the same
-# as E₀_electron in module "constants" unless (a) there are electrons in the run, and
-# (b) they are true electrons, with aa = mₑ/mₚ. (electron_rm may in fact = E₀_proton,
+# as E₀ₑ in module "constants" unless (a) there are electrons in the run, and
+# (b) they are true electrons, with aa = mₑ/mₚ. (electron_rm may in fact = E₀ₚ,
 # but in that case it won't be used because radiative losses will never be calculated.)
 # To convert rad_loss_fac to dp/dt, multiply by p²B², both in cgs. Prefactor of rad_loss_fac
 # comes from average over pitch and is Eq (16) of Sturner+ (1997) [1997ApJ...490..619S].

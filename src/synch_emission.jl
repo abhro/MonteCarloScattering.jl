@@ -1,5 +1,5 @@
 using SpecialFunctions: besselk
-using .constants: E₀_proton, ħ_cgs, c
+using .constants: E₀ₚ, ħ_cgs, c
 
 """
     synch_emission(...)
@@ -46,14 +46,14 @@ function synch_emission(
         bmag_curr = btot_grid[i_grid]
     else
         n₀ = dot(n₀_ion, aa_ion)
-        energy_density = (flux_energy_upstream + γ₀*u₀*n₀*E₀_proton) / u₂ - flux_px_upstream
+        energy_density = (flux_energy_upstream + γ₀*u₀*n₀*E₀ₚ) / u₂ - flux_px_upstream
         bmag_curr = √(8π * 1e-3 * energy_density)
     end
 
     # Rybicki & Lightman eq. 6.18 without F factor.
     # units are power per unit frequency per electron (cgs)
     # Above: Note there is no sin(α) factor
-    p_fac = √3/2π * (qcgs^3 * bmag_curr/E₀_electron)
+    p_fac = √3/2π * (qcgs^3 * bmag_curr/E₀ₑ)
 
 
     # Initialize emission array and set energy of output photons
