@@ -2,7 +2,7 @@ module smoothers
 
 using Roots
 
-using ..constants: kB, E₀_proton
+using ..constants: kB, E₀ₚ
 using ..parameters: β_rel_fl
 import ..print_plot_vals
 
@@ -83,7 +83,7 @@ function smooth_grid_par(
     # linking rg₀ to the ion skin depth used in PIC sims.
     ##TODO: this uses γ₀ for the kinetic energy, rather than γ₀ - 1. Okay for ultra-relativistic
     # shocks, but badly mistaken in trans-relativistic limit. Does this affect the results?
-    #σ₀ = B₀^2 / (4π * γ₀ * n₀ * E₀_proton)
+    #σ₀ = B₀^2 / (4π * γ₀ * n₀ * E₀ₚ)
 
     # Determine weighting factor for profile averaging
     if do_prof_fac_damp && i_iter != 1
@@ -190,13 +190,13 @@ function smooth_grid_par(
         # TODO: per original code, "there is an unresolved question as to whether or not to
         # use the escaping fluxes in these expressions". Using the escaping fluxes sounds
         # reasonable, esp. in the nonrelativistic case. Make sure it's actually reasonable
-        pₓ_numer = flux_px_upstream * (1.0 - q_esc_cal_pₓ) - γβ^2 * density_ratio * n₀*E₀_proton
+        pₓ_numer = flux_px_upstream * (1.0 - q_esc_cal_pₓ) - γβ^2 * density_ratio * n₀*E₀ₚ
         pₓ_denom = 1 + γβ^2 * Γ_pre / (Γ_pre - 1)
         pressure_pₓ  = pₓ_numer / pₓ_denom
 
         energy_term_1 = flux_energy_upstream * (1 - q_esc_cal_energy)
-        energy_term_2 = γ₀*β₀*c * n₀*E₀_proton
-        energy_term_3 = γ² * uₓ * density_ratio * n₀*E₀_proton
+        energy_term_2 = γ₀*β₀*c * n₀*E₀ₚ
+        energy_term_3 = γ² * uₓ * density_ratio * n₀*E₀ₚ
         pressure_energy = (energy_term_1 + energy_term_2 - energy_term_3) / (γ² * uₓ * Γ_pre/(Γ_pre-1))
 
         # These pressures can become negative if a sharp shock with high compression ratio
@@ -216,11 +216,11 @@ function smooth_grid_par(
         # particle limit. No escaping flux to worry about here, but still need to add in the
         # rest mass-energy flux
         if i == 1
-            pₓ_numer = flux_px_upstream - γ₂*β₂ * γ₀*Β₀ * n₀*E₀_proton
+            pₓ_numer = flux_px_upstream - γ₂*β₂ * γ₀*Β₀ * n₀*E₀ₚ
             pₓ_denom = 1 + (γ₂*β₂)^2 * Γ₂/(Γ₂ - 1)
             pressure_pₓ_tp = pₓ_numer / pₓ_denom
 
-            energy_numer = flux_energy_upstream + γ₀*u₀ * n₀*E₀_proton - γ₂ * c * γ₀*β₀ * n₀*E₀_proton
+            energy_numer = flux_energy_upstream + γ₀*u₀ * n₀*E₀ₚ - γ₂ * c * γ₀*β₀ * n₀*E₀ₚ
             energy_denom = γ₂^2 * u₂ * Γ₂/(Γ₂ - 1)
             pressure_energy_tp  = energy_numer / energy_denom
         end
@@ -333,7 +333,7 @@ function smooth_grid_par(
         #     energy_density(x)  =  F_en₀/u(x) - F_px₀
         # assuming flux conservation everywhere.
         if use_custom_εB
-            energy_density = (flux_energy_upstream + γ₀*u₀*n₀*E₀_proton) / uₓ_sk_grid[i] - flux_px_upstream
+            energy_density = (flux_energy_upstream + γ₀*u₀*n₀*E₀ₚ) / uₓ_sk_grid[i] - flux_px_upstream
             btot_grid[i] = √(8π * εB_grid[i] * energy_density)
         end
     end
@@ -372,7 +372,7 @@ function relativistic_velocity_profile()
         # can give negative fluxes if fast push is used. Do not include EM flux here, since
         # pxx_flux tracked only particle contributions to F_pₓ. Also do not include escaping
         # flux, since we only care about the particles that remain
-        pressure_pₓ  = (pxx_flux[i] - γβ^2 * density_loc*E₀_proton) / (1 + γβ^2 * Γ_post/(Γ_post - 1))
+        pressure_pₓ  = (pxx_flux[i] - γβ^2 * density_loc*E₀ₚ) / (1 + γβ^2 * Γ_post/(Γ_post - 1))
 
         # Combine flux-based pressure and PSD-based pressure as directed by user input
         pressure_loc = (1-ω)*pressure_pₓ + ω*pressure_tot_MC[i]
@@ -385,7 +385,7 @@ function relativistic_velocity_profile()
         # relativistic speeds
         #------------------------------------------------------------------------
         function p(γβ) # momentum
-            pₓ_term = γ₀*β₀ * n₀/density_loc * γβ * (density_loc*E₀_proton + pressure_loc * Γ_post/(Γ_post - 1))
+            pₓ_term = γ₀*β₀ * n₀/density_loc * γβ * (density_loc*E₀ₚ + pressure_loc * Γ_post/(Γ_post - 1))
             return flux_px_upstream - Qpₓ - pxx_EM - pₓ_term - pressure_loc
         end
         γβ_found = Roots.find_zero(p, γ₀*β₀*1e-4, Roots.Newton())
@@ -396,7 +396,7 @@ function relativistic_velocity_profile()
         #-------------------------------------------------------------------
         function E(γβ)
             γ = √(1 + γβ^2)
-            energy_term = γβ * γ * c * (density_loc*E₀_proton + Γ_post / (Γ_post - 1) * pressure_loc)
+            energy_term = γβ * γ * c * (density_loc*E₀ₚ + Γ_post / (Γ_post - 1) * pressure_loc)
             return flux_energy_upstream - Qen - energy_EM - energy_term
         end
         γβ_found = Roots.find_zero(E, γ₀*β₀*1e-4, Roots.Newton())

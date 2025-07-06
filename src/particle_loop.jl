@@ -202,7 +202,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, p
                     # this scattering step; the donated energy is weighted by weight.
                     n_split = count(ε_target[i_start+1:i_stop] .> 0)
                     #$omp critical
-                    energy_increment = (γ_pf_i - γ_pf_f) * aa * E₀_proton * weight / n_split
+                    energy_increment = (γ_pf_i - γ_pf_f) * aa * E₀ₚ * weight / n_split
                     for i in i_start+1:i_stop
                         if ε_target[i] > 0
                             energy_transfer_pool[i] += energy_increment
@@ -228,7 +228,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, p
                     energy_to_transfer = sum(@view(energy_recv_pool[i_start+1:i_stop])) * electron_weight_fac
 
                     γ_pf_i = hypot(1, ptot_pf/mc)
-                    γ_pf_f = γ_pf_i + energy_to_transfer/(aa*E₀_proton)
+                    γ_pf_f = γ_pf_i + energy_to_transfer/(aa*E₀ₚ)
 
                     # Calculate the new momentum based on the new energy, and
                     # rescale components accordingly
@@ -472,7 +472,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, p
             end
 
             ∑P_downstream += ptot_pf/3 * vel * weight * density(species[i_ion]) # downstream pressure
-            ∑KEdensity_downstream += (γₚ_pf - 1) * aa*E₀_proton * weight * density(species[i_ion])
+            ∑KEdensity_downstream += (γₚ_pf - 1) * aa*E₀ₚ * weight * density(species[i_ion])
 
             i_reason = 1
             if lose_pt

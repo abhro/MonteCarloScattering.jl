@@ -1,5 +1,5 @@
 # using Unitful, UnitfulAstro
-using .constants: E₀_proton, E₀_electron, T_CMB0, kB
+using .constants: E₀ₚ, E₀ₑ, T_CMB0, kB
 using .parameters: na_photons, energy_rel_pt
 using .io: print_plot_vals
 
@@ -196,7 +196,7 @@ function IC_emission_FCJ(
     #----------------------------------------------------------------------------
     photon_out_erg_min = ustrip(erg, photon_ic_min_MeV*MeV) # Minimum photon energy in erg
 
-    photon_out_min_rm  = photon_out_erg_min/E₀_electron  # minimum en/(mₑc²)
+    photon_out_min_rm  = photon_out_erg_min/E₀ₑ  # minimum en/(mₑc²)
     photon_out_min_log = log10(photon_out_min_rm)
     Δphoton_out        = 1 / bins_per_dec_photon
 
@@ -211,7 +211,7 @@ function IC_emission_FCJ(
     jθ_max = findfirst(>(2jet_sph_frac - 1), cos_bounds)
 
     # for Eq.(9), Frank Jones, PhysRev. 1968, V.167, p.1159
-    r_z = qcgs^2/E₀_electron
+    r_z = qcgs^2/E₀ₑ
     #-------------------------------------------------------------------------
     # End constants section
 
@@ -250,7 +250,7 @@ function IC_emission_FCJ(
         #    # read in the variables photon_seed_energy and photon_seed_density from file,
         #    # and then use those to set the five variables below
         #
-        #    photon_energy_rm[i] = photon_seed_energy[i]*eV/E₀_electron
+        #    photon_energy_rm[i] = photon_seed_energy[i]*eV/E₀ₑ
         #    xnum_photons_p_vol[i] = photon_seed_density[i]/photon_seed_energy[i]
         #
         #    ∑energy_photons += photon_seed_density[i]*eV # erg/cm³
@@ -274,7 +274,7 @@ function IC_emission_FCJ(
             ∑photon_energy_density += photon_energy_density
 
             photon_energy_erg      = h_cgs*f_avg      # incoming photon energy (erg)
-            photon_energy_rm[j_in] = photon_energy_erg/E₀_electron
+            photon_energy_rm[j_in] = photon_energy_erg/E₀ₑ
 
             # Below is number density of incoming photons [/cm³] in frequency bin
             xnum_photons_p_vol[j_in] = photon_energy_density/photon_energy_erg
@@ -358,11 +358,11 @@ function IC_emission_FCJ(
     # but needs to be converted to a flux so that it's actually (photons observed) / (s⋅dα⋅cm²).
     d²N_o_dtda ./= beam_area
 
-    energy_γ_cgs = α_out * E₀_electron   # photon energy in ergs
+    energy_γ_cgs = α_out * E₀ₑ   # photon energy in ergs
     # To get d²N/(dt dE) we multiply d²N/(dt dα) by dα/dE = 1 / mₑc²
     # photon_IC() expects energy production rate per logarithmic energy bin, dP/d(lnE).
     # Multiply d²N/(dt dE) by E once to make it dP/dE, then again to make it dP/d(lnE).
-    ic_emis = @. d²N_o_dtda/E₀_electron * energy_γ_cgs^2  # erg/(s⋅cm²)
+    ic_emis = @. d²N_o_dtda/E₀ₑ * energy_γ_cgs^2  # erg/(s⋅cm²)
     for k in eachindex(ic_emis)
         if ic_emis[k] ≤ 1e-55
             ic_emis[k] = 1e-99

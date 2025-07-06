@@ -7,7 +7,7 @@ using TOML
 
 cfg_toml = TOML.parsefile("mc_in.toml")
 
-const u₀, β₀, γ₀ = let
+const (u₀, β₀, γ₀) = let
 
     skspd = cfg_toml["SKSPD"]
     skspd > 0 || error("Shock speed must be positive")
@@ -87,7 +87,7 @@ const η_mfp = get(cfg_toml, "GYFAC", 1)
 const bmag₀ = cfg_toml["BMAGZ"]*G
 # rg₀ below is the gyroradius of a proton whose speed is u₀ that is gyrating in a field
 # of strength bmag₀. Note that this formula is relativistically correct
-const rg₀ = (γ₀ * E₀_proton * β₀) / (qcgs * bmag₀) |> cm
+const rg₀ = (γ₀ * E₀ₚ * β₀) / (qcgs * bmag₀) |> cm
 
 
 begin
@@ -170,7 +170,7 @@ begin
 
     if Emax > 0keV
         # Convert from momentum[mₚc/aa] to energy[keV]
-        Emax_eff = 56 * pcuts_in[n_pcuts-1] * ustrip(keV, E₀_proton*erg)
+        Emax_eff = 56 * pcuts_in[n_pcuts-1] * ustrip(keV, E₀ₚ*erg)
 
         if Emax > Emax_eff
             error("PCUTS: max energy exceeds highest pcut. Add more pcuts or lower Emax. ",
@@ -178,7 +178,7 @@ begin
         end
     elseif Emax_per_aa > 0keV   # Limit was on energy per nucleon
         # Convert from momentum[mₚc/aa] to energy[keV/aa]
-        Emax_eff = pcuts_in[n_pcuts-1] * ustrip(keV, E₀_proton*erg)
+        Emax_eff = pcuts_in[n_pcuts-1] * ustrip(keV, E₀ₚ*erg)
 
         if Emax_per_aa > Emax_eff
             error("PCUTS: max energy per aa exceeds highest pcut. Add more pcuts or lower Emax_per_aa. ",
@@ -281,7 +281,7 @@ const pₑ_crit, γₑ_crit = let
     energyₑ_crit = get(cfg_toml, "EMNFP", nothing) * keV
     # If needed, convert input energy to momentum and Lorentz factor
     if !isnothing(energyₑ_crit) && energyₑ_crit > 0keV
-        energyₑ_crit_rm = energyₑ_crit / E₀_electron
+        energyₑ_crit_rm = energyₑ_crit / E₀ₑ
 
         # Different forms for nonrelativistic and relativstic momenta
         if energyₑ_crit_rm < 1e-2
@@ -401,7 +401,7 @@ const do_tcuts, tcuts, n_tcuts = let
 end
 
 begin
-    const inj_fracs = get(cfg_toml,"INJFR", fill(1.0, n_ions))
+    const inj_fracs = get(cfg_toml, "INJFR", fill(1.0, n_ions))
     length(inj_fracs) == n_ions || error("Number of injection probabilities must match NIONS")
 end
 
