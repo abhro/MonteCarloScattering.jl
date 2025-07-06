@@ -26,8 +26,8 @@ function get_σ_π(Tₚ, i_data, s_ECM)
 
         eq4_γ = M_res * hypot(M_res, Γ_res)
         eq4_K = √8 * M_res * Γ_res * eq4_γ / (π * √(M_res^2 + eq4_γ))
-        f_BW  = rmp * eq4_K / (((√s_ECM - rmp)^2 - M_res^2)^2 + M_res^2 * Γ_res^2)
-        eq3_η = √((s_ECM - E₀_π⁰^2 - 4*rmp^2)^2 - (4*E₀_π⁰*rmp)^2) / (2E₀_π⁰ * √s_ECM)
+        f_BW  = mp * eq4_K / (((√s_ECM - mp)^2 - M_res^2)^2 + M_res^2 * Γ_res^2)
+        eq3_η = √((s_ECM - E₀_π⁰^2 - 4*mp^2)^2 - (4*E₀_π⁰*mp)^2) / (2E₀_π⁰ * √s_ECM)
 
         # Equation (2)
         σ_1π = 7.66e-3 * eq3_η^1.95 * (1 + eq3_η + eq3_η^5) * f_BW^1.86
@@ -44,7 +44,7 @@ function get_σ_π(Tₚ, i_data, s_ECM)
     #-------------------------------------------------------------------------
     if Tₚ < 5
 
-        eq6_Q = (Tₚ - Tₜₕ) / rmp
+        eq6_Q = (Tₚ - Tₜₕ) / mp
         n_π0 = -6e-3 + 0.237*eq6_Q - 0.023*eq6_Q^2  # Neutral pion multiplicity
         eq1_ratio = Tₚ / Tₜₕ
         log_ratio = log(eq1_ratio)
@@ -89,7 +89,7 @@ function get_σ_π(Tₚ, i_data, s_ECM)
         a₅ = 0.117
     end  # check on i_data and Tₚ
 
-    ξ = (Tₚ - 3) / rmp
+    ξ = (Tₚ - 3) / mp
     # Neutral pion multiplicity
     n_π0 = a₁ * ξ^a₄ * (1 + exp(-a₂ * ξ^a₅)) * (1 - exp(-a₃ * ξ^0.25))
 
@@ -116,24 +116,22 @@ X_γ        = \frac{Y_γ - m_π}{Y_γ^{\max} - m_π}
 Equation 11:
 
 ```math
-F(Tₚ, E_γ) = \frac{
-    ( 1 - X_γ^{α(Tₚ)} )^{β(Tₚ)}
-}{
-    ( 1 + X_γ / C )^{γ(Tₚ)}
-}
+F(Tₚ, E_γ) = \frac{ ( 1 - X_γ^{α(Tₚ)} )^{β(Tₚ)} }{ ( 1 + X_γ / C )^{γ(Tₚ)} }
 ```
 
 Also uses equation 14:
 
 ```math
-b₀ = 5.9, \;
-κ(Tₚ) = 3.29 - \frac{1}{5} θₚ^{-3/2}
+\begin{align*}
+b₀ &= 5.9, &
+κ(Tₚ) &= 3.29 - \frac{1}{5} θₚ^{-3/2}
+\end{align}
 ```
 
 and equation 15:
 
 ```math
-μ(Tₚ) = \frac{5}{4} q^{5/4} \exp(- \frac{5}{4} q)
+μ(Tₚ) = \frac{5}{4} q^{5/4} \exp\left(- \frac{5}{4} q\right)
 ```
 """
 function get_Ffunc(Tₚ, Eᵧ, i_data, Eᵧ_max)
@@ -150,7 +148,7 @@ function get_Ffunc(Tₚ, Eᵧ, i_data, Eᵧ_max)
     end
     if Tₚ < 1
         # Use parametrization based on experimental data (Eq 14)
-        θ = Tₚ / rmp
+        θ = Tₚ / mp
         κ = 3.29 - 0.2 * θ^(-1.5)
         β = κ
         return (1 - Xᵧ)^β
@@ -158,7 +156,7 @@ function get_Ffunc(Tₚ, Eᵧ, i_data, Eᵧ_max)
 
     if Tₚ < 4
         # Use parametrization based on low energy GEANT 4 fit (equation 15)
-        q = (Tₚ - 1) / rmp
+        q = (Tₚ - 1) / mp
         μ = 1.25 * q^1.25 * exp(-1.25 * q)
         λ = 3.0
         α = 1.0
@@ -166,7 +164,7 @@ function get_Ffunc(Tₚ, Eᵧ, i_data, Eᵧ_max)
         γ = μ + 1.45
     elseif Tₚ < 20
         # Use parametrization based on medium energy GEANT 4 fit (equation 15)
-        q = (Tₚ - 1) / rmp
+        q = (Tₚ - 1) / mp
         μ = 1.25 * q^1.25 * exp(-1.25 * q)
         λ = 3.0
         α = 1.0
@@ -225,9 +223,9 @@ function get_Amax(Tₚ, i_data, s_ECM, σ_π)
     # where the target nucleon is at rest) allowed by kinematics
     #----------------------------------------------------------------------
     # Maximum π-0 energy in center-of-mass frame
-    E_π_CM = (s_ECM - 4rmp^2 + E₀_π⁰^2) / (2 * √s_ECM)
+    E_π_CM = (s_ECM - 4mp^2 + E₀_π⁰^2) / (2 * √s_ECM)
     # Lorentz factor of proton in center-of-mass frame; associated β
-    γ_CM  = (Tₚ + 2rmp) / √s_ECM
+    γ_CM  = (Tₚ + 2mp) / √s_ECM
     β_CM = √(1 - 1 / γ_CM^2)
     # Maximum π-0 momentum in center-of-mass frame. Note the unusual units
     # of GeV, which will allow easier calculation of Emax_π_LAB
@@ -284,8 +282,8 @@ function get_Amax(Tₚ, i_data, s_ECM, σ_π)
             b₂ = 0.35
             b₃ = 0.0097
         end
-        θ = Tₚ / rmp
-        Amax = b₁ * θ^(-b₂) * σ_π / rmp * exp(b₃ * log(θ)^2)
+        θ = Tₚ / mp
+        Amax = b₁ * θ^(-b₂) * σ_π / mp * exp(b₃ * log(θ)^2)
     end
 
     #-------------------------------------------------------------------------

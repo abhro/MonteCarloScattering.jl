@@ -1,27 +1,28 @@
-#using .constants: h_cgs, ħ_cgs
 using .parameters: psd_max, na_photons
 using .io: print_plot_vals
 
 """
+    photon_synch(...)
+
 Calculates photon production by an electron distribution due to synchtrotron emission.
 
 ### Arguments
-- n_grid: current grid zone. Used to get plasma-frame density and for tracking emission output
-- num_hist_bins: number of momentum bins in the distribution of thermal particles
-- p_pf_cgs_therm: momentum boundary values, cgs units, of thermal distribution histogram
-- dNdp_pf_therm: thermal particle distribution. Calculated at end of each ion species, it is
+- `n_grid`: current grid zone. Used to get plasma-frame density and for tracking emission output
+- `num_hist_bins`: number of momentum bins in the distribution of thermal particles
+- `p_pf_cgs_therm`: momentum boundary values, cgs units, of thermal distribution histogram
+- `dNdp_pf_therm`: thermal particle distribution. Calculated at end of each ion species, it is
   number of particles per dp (NOT #/cm³/dp)
-- num_psd_mom_bins: number of momentum bins in the distribution of accelerated particles
-- p_pf_cgs_cr: momentum boundary values, cgs units, of cosmic ray distribution histogram
-- dNdp_pf_cr: cosmic ray distribution. Calculated at end of each ion species, it is number
+- `num_psd_mom_bins`: number of momentum bins in the distribution of accelerated particles
+- `p_pf_cgs_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
+- `dNdp_pf_cr`: cosmic ray distribution. Calculated at end of each ion species, it is number
   of particles per dp (NOT #/cm³/dp)
-- n_photon_synch: number of energy bins to use for photon production
-- photon_synch_min_MeV: minimum photon energy, in MeV, to use for synchrotron spectrum.
+- `n_photon_synch`: number of energy bins to use for photon production
+- `photon_synch_min_MeV`: minimum photon energy, in MeV, to use for synchrotron spectrum.
   Passed to function synch_emission.
-- bins_per_dec_photon: number of energy bins per decade of photon spectrum. Passed to
+- `bins_per_dec_photo`n: number of energy bins per decade of photon spectrum. Passed to
   function synch_emission.
-- dist_lum: luminosity distance (i.e. including redshift correction) to source
-- redshift: redshift of source, used to adjust photon energies
+- `dist_lum`: luminosity distance (i.e. including redshift correction) to source
+- `redshift`: redshift of source, used to adjust photon energies
 """
 function photon_synch(
         n_grid, num_hist_bins, p_pf_cgs_therm,
@@ -93,8 +94,8 @@ function photon_synch(
                 emis_γ_keV = emis_γ_MeV * 1e3 # keV/(cm²⋅s) at earth
             end
 
-            #ν_γ = energy_γ_cgs[i]/h_cgs # frequency (ν)
-            #ω_γ = energy_γ_cgs[i]/ħ_cgs # ω
+            #ν_γ = energy_γ_cgs[i]/h # frequency (ν)
+            #ω_γ = energy_γ_cgs[i]/ħ # ω
 
             #f_jansky = max(ustrip(Jy, emis_γ[i]/ν_γ * erg/cm^2), 1e-99)
 

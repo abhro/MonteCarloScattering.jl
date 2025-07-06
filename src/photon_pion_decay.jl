@@ -2,6 +2,8 @@ using Unitful, UnitfulAstro
 using .constants: h_cgs#, ħ_cgs
 
 """
+    photon_pion_decay(...)
+
 Calculates photon production by the particle distribution due to pion decay emission process.
 
 TODO: Incorporate possibility that target particles aren't at rest
