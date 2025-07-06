@@ -9,7 +9,7 @@ using Unitful, UnitfulAstro
 using Unitful: g, cm, s, dyn, erg, keV
 using Unitful: mp, c, k as kB
 using Distributions: Uniform
-using ..constants: E₀_proton
+using ..constants: E₀ₚ
 using ..parameters
 import ..density, ..temperature, ..mass, ..number_density
 using ..CGSTypes
@@ -775,12 +775,12 @@ function set_custom_εB!(
     # Calculate ε_B₀ which depends on far upstream magnetic field and mass density.
     # If electrons aren't a separate species, they don't contribute enough mass to be important.
     n₀ = dot(density.(species), mass.(species))/mp # total number density
-    εB₀ = B₀^2 / (8π * n₀ * E₀_proton) |> NoUnits
+    εB₀ = B₀^2 / (8π * n₀ * E₀ₚ) |> NoUnits
 
-    # The Monte Carlo length is rg₀ = γ₀ ⋅ β₀ ⋅ E₀_proton / (e ⋅ B₀). The plasma skin
-    # depth is λ_SD = γ₀ ⋅ E₀_proton / (4π ⋅ e² ⋅ den₀), where den₀ refers to the upstream
+    # The Monte Carlo length is rg₀ = γ₀ ⋅ β₀ ⋅ E₀ₚ / (e ⋅ B₀). The plasma skin
+    # depth is λ_SD = γ₀ ⋅ E₀ₚ / (4π ⋅ e² ⋅ den₀), where den₀ refers to the upstream
     # number density of electrons. With the definition
-    #     σ = 2εB₀/γ₀ = B₀² / (4π ⋅ γ₀ ⋅ n₀ ⋅ E₀_proton),
+    #     σ = 2εB₀/γ₀ = B₀² / (4π ⋅ γ₀ ⋅ n₀ ⋅ E₀ₚ),
     # where n₀ here refers to the number density of *protons*, one can show that in
     # the shock frame (where grid exists),
     #     λ_SD = β₀ / √(σ ⋅ density_p/density_e) ⋅ rg₀.
@@ -793,7 +793,7 @@ function set_custom_εB!(
     # rearranged to read
     #     energy_density(x) = F_en₀/u(x) - F_px₀
     # assuming flux conservation everywhere.
-    energy_density₂ = (flux_energy_upstream + γ₀*u₀*n₀*E₀_proton) / uₓ_sk_grid[end] - flux_px_upstream
+    energy_density₂ = (flux_energy_upstream + γ₀*u₀*n₀*E₀ₚ) / uₓ_sk_grid[end] - flux_px_upstream
     εB₂ = (B₀*comp_fac)^2 / (8π * energy_density₂) |> NoUnits
     # Use this value to compute the distance downstream at which the field will have decayed to it.
     # Per the Blandford-McKee solution, energy ∝ 1/χ ∝ 1/distance downstream. Since we do not actually
@@ -816,7 +816,7 @@ function set_custom_εB!(
         else
             εB_grid[i] = εB₂
         end
-        energy_density = (flux_energy_upstream + γ₀*u₀*n₀*E₀_proton) / uₓ_sk_grid[i] - flux_px_upstream
+        energy_density = (flux_energy_upstream + γ₀*u₀*n₀*E₀ₚ) / uₓ_sk_grid[i] - flux_px_upstream
         #@debug("Setting εB_grid array elements", i, εB_grid[i], energy_density)
         # FIXME this tries to be a square root of a negative number sometimes
         #btot_grid[i] = √(8π * εB_grid[i] * energy_density)

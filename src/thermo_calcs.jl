@@ -42,7 +42,7 @@ function thermo_calcs(
     # total count of particles, not a true dN/dp
     # Set constants to be used repeatedly, including calculating the center
     # points of all bins to save time later
-    rest_mass_energy = aa_ion[i_ion] * E₀_proton  # Rest mass-energy of the current particle species
+    rest_mass_energy = aa_ion[i_ion] * E₀ₚ  # Rest mass-energy of the current particle species
 
     cos_center = zeros(0:num_psd_θ_bins)
     for jθ in eachindex(cos_center)

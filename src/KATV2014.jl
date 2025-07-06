@@ -27,7 +27,7 @@ function get_σ_π(Tₚ, i_data, s_ECM)
         eq4_γ = M_res * hypot(M_res, Γ_res)
         eq4_K = √8 * M_res * Γ_res * eq4_γ / (π * √(M_res^2 + eq4_γ))
         f_BW  = rmp * eq4_K / (((√s_ECM - rmp)^2 - M_res^2)^2 + M_res^2 * Γ_res^2)
-        eq3_η = √((s_ECM - rmpi^2 - 4*rmp^2)^2 - (4*rmpi*rmp)^2) / (2rmpi * √s_ECM)
+        eq3_η = √((s_ECM - E₀_π⁰^2 - 4*rmp^2)^2 - (4*E₀_π⁰*rmp)^2) / (2E₀_π⁰ * √s_ECM)
 
         # Equation (2)
         σ_1π = 7.66e-3 * eq3_η^1.95 * (1 + eq3_η + eq3_η^5) * f_BW^1.86
@@ -139,9 +139,9 @@ and equation 15:
 function get_Ffunc(Tₚ, Eᵧ, i_data, Eᵧ_max)
 
     # Compute Xᵧ (independent variable to be used in Equation (11)) using Equation (9)
-    Yᵧ = Eᵧ + rmpi^2 / Eᵧ
-    Y_max = Eᵧ_max + rmpi^2 / Eᵧ_max
-    Xᵧ = (Yᵧ - rmpi) / (Y_max - rmpi)
+    Yᵧ = Eᵧ + E₀_π⁰^2 / Eᵧ
+    Y_max = Eᵧ_max + E₀_π⁰^2 / Eᵧ_max
+    Xᵧ = (Yᵧ - E₀_π⁰) / (Y_max - E₀_π⁰)
 
     # Now use Xᵧ, Tₚ, and i_data to calculate F(Tₚ, Eᵧ)
     #-------------------------------------------------------------------------
@@ -205,7 +205,7 @@ function get_Ffunc(Tₚ, Eᵧ, i_data, Eᵧ_max)
         γ = 1.0
     end
 
-    C = λ * rmpi / Y_max
+    C = λ * E₀_π⁰ / Y_max
     return (1 - Xᵧ^α)^β / (1 + Xᵧ / C)^γ
 end
 
@@ -225,13 +225,13 @@ function get_Amax(Tₚ, i_data, s_ECM, σ_π)
     # where the target nucleon is at rest) allowed by kinematics
     #----------------------------------------------------------------------
     # Maximum π-0 energy in center-of-mass frame
-    E_π_CM = (s_ECM - 4rmp^2 + rmpi^2) / (2 * √s_ECM)
+    E_π_CM = (s_ECM - 4rmp^2 + E₀_π⁰^2) / (2 * √s_ECM)
     # Lorentz factor of proton in center-of-mass frame; associated β
     γ_CM  = (Tₚ + 2rmp) / √s_ECM
     β_CM = √(1 - 1 / γ_CM^2)
     # Maximum π-0 momentum in center-of-mass frame. Note the unusual units
     # of GeV, which will allow easier calculation of Emax_π_LAB
-    P_π_CM = √(E_π_CM^2 - rmpi^2)
+    P_π_CM = √(E_π_CM^2 - E₀_π⁰^2)
 
     Emax_π_LAB = γ_CM * (E_π_CM + P_π_CM*β_CM)
     #-------------------------------------------------------------------------
@@ -241,10 +241,10 @@ function get_Amax(Tₚ, i_data, s_ECM, σ_π)
     # Use Emax_π_LAB to calculate maximum photon energy in the laboratory frame, Eᵧ_max
     #-------------------------------------------------------------------------
     # Maximum π-0 Lorentz factor in laboratory frame; associated β
-    γ_LAB = Emax_π_LAB / rmpi
+    γ_LAB = Emax_π_LAB / E₀_π⁰
     β_LAB = √(1 - 1/γ_LAB^2)
 
-    Eᵧ_max = rmpi/2 * γ_LAB * (1 + β_LAB)
+    Eᵧ_max = E₀_π⁰/2 * γ_LAB * (1 + β_LAB)
     #-------------------------------------------------------------------------
     # Eᵧ_max found
 

@@ -5,7 +5,7 @@ using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
 using Unitful: mp, c    # physical constants
 
 using ..parameters: psd_max
-using ..constants: E₀_proton
+using ..constants: E₀ₚ
 
 export transform_p_PS, transform_p_PSP, transform_psd_corners, get_transform_dN
 
@@ -595,7 +595,7 @@ function transform_psd_corners(
         num_psd_mom_bins, psd_mom_bounds, i_ion)
 
     # Administrative constants
-    rest_mass_energy = aa_ion[i_ion] * E₀_proton
+    rest_mass_energy = aa_ion[i_ion] * E₀ₚ
     βᵤ = γ_in ≥ 1.000001 ? √(1 - 1/γ_in^2) : 0.0 # Prevent floating point issues
 
     # Fill transform_corner_** arrays, looping over angle outermost
