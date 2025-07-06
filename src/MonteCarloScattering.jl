@@ -71,7 +71,7 @@ include("debug.jl")
 include("particle_counter.jl")
 include("smoothers.jl")
 
-function (@main)(args)
+function (@main)()
 # Set quantities related to the phase space distribution, including the bins
 psd_cos_fine = 1 - 2 / (psd_lin_cos_bins+1)
 psd_θ_fine = acos(psd_cos_fine)
