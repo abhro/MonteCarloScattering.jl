@@ -34,6 +34,8 @@ D_C′(z) = d_H / E(z)
 #using PolynomialRoots: roots
 
 """
+    get_redshift(d_CM)
+
 Calculator to get redshift from comoving distance.
 Subroutine adapted from Hogg (1999). For more detail see Hogg (1999)
 [DOI 10.48550/arXiv.astro-ph/9905116]
