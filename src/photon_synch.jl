@@ -9,11 +9,11 @@ Calculates photon production by an electron distribution due to synchtrotron emi
 ### Arguments
 - `n_grid`: current grid zone. Used to get plasma-frame density and for tracking emission output
 - `num_hist_bins`: number of momentum bins in the distribution of thermal particles
-- `p_pf_cgs_therm`: momentum boundary values, cgs units, of thermal distribution histogram
+- `p_pf_therm`: momentum boundary values, cgs units, of thermal distribution histogram
 - `dNdp_pf_therm`: thermal particle distribution. Calculated at end of each ion species, it is
   number of particles per dp (NOT #/cm³/dp)
 - `num_psd_mom_bins`: number of momentum bins in the distribution of accelerated particles
-- `p_pf_cgs_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
+- `p_pf_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
 - `dNdp_pf_cr`: cosmic ray distribution. Calculated at end of each ion species, it is number
   of particles per dp (NOT #/cm³/dp)
 - `n_photon_synch`: number of energy bins to use for photon production
@@ -25,8 +25,8 @@ Calculates photon production by an electron distribution due to synchtrotron emi
 - `redshift`: redshift of source, used to adjust photon energies
 """
 function photon_synch(
-        n_grid, num_hist_bins, p_pf_cgs_therm,
-        dNdp_pf_therm, num_psd_mom_bins, p_pf_cgs_cr, dNdp_pf_cr, n_photon_synch,
+        n_grid, num_hist_bins, p_pf_therm,
+        dNdp_pf_therm, num_psd_mom_bins, p_pf_cr, dNdp_pf_cr, n_photon_synch,
         photon_synch_min_MeV, bins_per_dec_photon, dist_lum, redshift)
 
     # Our distribution function has already been normalized to the total number of emitting
@@ -37,7 +37,7 @@ function photon_synch(
         if dNdp_pf_therm[i] ≤ 1e-99
             dN_therm[i] = 1e-99
         else
-            dN_therm[i] = dNdp_pf_therm[i] * (p_pf_cgs_therm[i+1] - p_pf_cgs_therm[i])
+            dN_therm[i] = dNdp_pf_therm[i] * (p_pf_therm[i+1] - p_pf_therm[i])
         end
     end
     dN_cr = OffsetVector{Float64}(undef, 0:psd_max)
@@ -45,24 +45,24 @@ function photon_synch(
         if dNdp_pf_cr[i] ≤ 1e-99
             dN_cr[i] = 1e-99
         else
-            dN_cr[i] = dNdp_pf_cr[i] * (p_pf_cgs_cr[i+1] - p_pf_cgs_cr[i])
+            dN_cr[i] = dNdp_pf_cr[i] * (p_pf_cr[i+1] - p_pf_cr[i])
         end
     end
 
 
     # Generate both the energy bins for synchtrotron emission and the amount of emission
-    energy_γ_cgs, synch_emis = synch_emission(
-        n_grid, num_hist_bins, p_pf_cgs_therm, dN_therm,
-        num_psd_mom_bins, p_pf_cgs_cr, dN_cr, n_photon_synch,
+    energy_γ, synch_emis = synch_emission(
+        n_grid, num_hist_bins, p_pf_therm, dN_therm,
+        num_psd_mom_bins, p_pf_cr, dN_cr, n_photon_synch,
         photon_synch_min_MeV, bins_per_dec_photon,
         n_ions, aa_ion, n₀_ion, γ₀, u₀, flux_px_upstream, flux_energy_upstream, u₂,
         n_grid, btot_grid,
         i_ion, mc)
 
-    # Convert units of energy_γ_cgs and synch_emis
+    # Convert units of energy_γ and synch_emis
     # Note that synch_emis is energy radiated per second per logarithmic energy bin, i.e.,
     # dP/d(lnE). Its units are [erg/sec].
-    energy_γ_MeV = ustrip(MeV, energy_γ_cgs*erg)
+    energy_γ_MeV = ustrip(MeV, energy_γ*erg)
     emis_γ       = max.(synch_emis / (4π*dist_lum^2), 1e-99)
 
     # Don't write out anything if emis_γ is empty; different structure compared to pion
@@ -94,8 +94,8 @@ function photon_synch(
                 emis_γ_keV = emis_γ_MeV * 1e3 # keV/(cm²⋅s) at earth
             end
 
-            #ν_γ = energy_γ_cgs[i]/h # frequency (ν)
-            #ω_γ = energy_γ_cgs[i]/ħ # ω
+            #ν_γ = energy_γ[i]/h # frequency (ν)
+            #ω_γ = energy_γ[i]/ħ # ω
 
             #f_jansky = max(ustrip(Jy, emis_γ[i]/ν_γ * erg/cm^2), 1e-99)
 

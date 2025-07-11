@@ -63,10 +63,10 @@ function thermo_calcs(
         cos_center[jθ] = - (cos_lo + cos_hi) / 2
     end
 
-    pt_cgs_center = similar(psd_mom_bounds)
+    pt_center = similar(psd_mom_bounds)
     for k in eachindex(psd_mom_bounds[begin:end-1])
         # Convert from log to linear space
-        pt_cgs_center[k] = exp10((psd_mom_bounds[k] + psd_mom_bounds[k+1]) / 2)
+        pt_center[k] = exp10((psd_mom_bounds[k] + psd_mom_bounds[k+1]) / 2)
     end
 
 
@@ -185,7 +185,7 @@ function thermo_calcs(
 
             # Transform the center of the zone into the new frame
             cos_θ_sk = cos_center[jθ]
-            ptot_sk  = pt_cgs_center[k]
+            ptot_sk  = pt_center[k]
             pₓ_sk    = ptot_sk * cos_θ_sk
             etot_sk  = hypot(ptot_sk*c, rest_mass_energy)
 
@@ -228,7 +228,7 @@ function thermo_calcs(
     # With angular information we can get both parallel and perpendicular components
     #----------------------------------------------------------------------------
     # Find the velocity associated with each momentum bin
-    vel_ptot = @. pt_cgs_center * c / (mc * hypot(1, pt_cgs_center/mc))
+    vel_ptot = @. pt_center * c / (mc * hypot(1, pt_center/mc))
 
 
     # Output arguments
@@ -315,8 +315,8 @@ function thermo_calcs(
         for k in 0:num_psd_mom_bins
 
             # These factors are the same in all cells of this ptot column
-            pressure_fac = 1//3 * pt_cgs_center[k] * vel_ptot[k] * norm_fac
-            γ_tmp        = hypot(1, pt_cgs_center[k]/mc)
+            pressure_fac = 1//3 * pt_center[k] * vel_ptot[k] * norm_fac
+            γ_tmp        = hypot(1, pt_center[k]/mc)
             energy_density_fac = (γ_tmp - 1) * rest_mass_energy
 
             for jθ in 0:num_psd_θ_bins

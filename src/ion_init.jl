@@ -7,7 +7,7 @@ function ion_init(i_iter, i_ion, species)
     # At the start of each ion, print a glyph to the screen
     @info("Starting species iteration", i_iter, i_ion)
 
-    pmax_cutoff = get_pmax_cutoff(Emax, Emax_per_aa, pmax_cgs)
+    pmax_cutoff = get_pmax_cutoff(Emax, Emax_per_aa, pmax)
 
     # Zero out the phase space distributions and set variables related to
     # tracking thermal particles
@@ -88,7 +88,7 @@ function assign_particle_properties_to_population!(n_pts_use, xn_per_fine, x_gri
     x_PT_cm_new[1:n_pts_use] .= x_PT_cm_in[1:n_pts_use]
     grid_new[1:n_pts_use]    .= i_grid_in[1:n_pts_use]
 
-    downstream_new[1:n_pts_use]         .= false
+    downstream_new[1:n_pts_use]  .= false
     inj_new[1:n_pts_use]         .= false
     xn_per_new[1:n_pts_use]      .= xn_per_fine
     prp_x_cm_new[1:n_pts_use]    .= x_grid_stop
@@ -98,15 +98,15 @@ function assign_particle_properties_to_population!(n_pts_use, xn_per_fine, x_gri
     φ_rad_new[1:n_pts_use] .= 2π*Random.rand(n_pts_use)
 end
 
-function get_pmax_cutoff(Emax, Emax_per_aa, pmax_cgs)
+function get_pmax_cutoff(Emax, Emax_per_aa, pmax)
     if Emax > 0keV
         γ = 1 + Emax/(aa*E₀ₚ)
         pmax_cutoff = aa*mp * c * √(γ^2 - 1)
     elseif Emax_per_aa > 0keV
         γ = 1 + Emax_per_aa/E₀ₚ
         pmax_cutoff = aa*mp * c * √(γ^2 - 1)
-    elseif pmax_cgs > 0g*cm/s
-        pmax_cutoff = pmax_cgs
+    elseif pmax > 0g*cm/s
+        pmax_cutoff = pmax
     else
         # Something has gone very wrong.
         error("Max CR energy not set in data_input, so can't set pmax_cutoff.")

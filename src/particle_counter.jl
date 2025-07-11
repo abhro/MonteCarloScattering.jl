@@ -527,10 +527,10 @@ function get_dNdp_2D(
         # Minus sign needed because finest gradations actually point upstream
         cos_center[jθ] = -(cos_lo + cos_hi)/2
     end
-    ptot_cgs_center = zeros(0:num_psd_mom_bins+1)
+    ptot_center = zeros(0:num_psd_mom_bins+1)
     for k in 0:num_psd_mom_bins
         # Convert from log to linear space
-        ptot_cgs_center[k] = exp10((psd_mom_bounds[k] + psd_mom_bounds[k+1])/2)
+        ptot_center[k] = exp10((psd_mom_bounds[k] + psd_mom_bounds[k+1])/2)
     end
 
     # Loop extents reflect desired frames:
@@ -562,13 +562,13 @@ function get_dNdp_2D(
 
                 # Transform the center of the zone into the new frame
                 cos_θ_sf    = cos_center[jθ]
-                ptot_sf_cgs   = ptot_cgs_center[k]
-                pₓ_sf_cgs   = ptot_sf_cgs * cos_θ_sf
-                etot_sf_cgs = hypot(ptot_sf_cgs*c, E₀)
+                ptot_sf   = ptot_center[k]
+                pₓ_sf   = ptot_sf * cos_θ_sf
+                etot_sf = hypot(ptot_sf*c, E₀)
 
                 # Get location of center in transformed d²N_dpdcos
-                pₓ_Xf = γᵤ * (pₓ_sf_cgs - βᵤ*etot_sf_cgs/c)
-                ptot_Xf = √(ptot_sf_cgs^2 - pₓ_sf_cgs^2 + pₓ_Xf^2)
+                pₓ_Xf = γᵤ * (pₓ_sf - βᵤ*etot_sf/c)
+                ptot_Xf = √(ptot_sf^2 - pₓ_sf^2 + pₓ_Xf^2)
                 k_Xf = get_psd_bin_momentum(ptot_Xf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
                 jθ_Xf = get_psd_bin_angle(pₓ_Xf, ptot_Xf, psd_bins_per_dec_θ,
                                           num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
@@ -1085,28 +1085,28 @@ function get_dNdp_therm(
         # isotropic in the other frames. So convert ptot_sk & pₓ_sk into ptot_pf/cθ_pf and
         # ptot_ef/cθ_ef. Also, find minimum and maximum values of ptot_sk and cθ_sk.
         for j in 1:num_crossings[i]
-            pₓ_sk_cgs = therm_pₓ[j, i]
-            ptot_sk_cgs = therm_pt[j, i]
-            ptot_sk_max = max(ptot_sk_cgs, ptot_sk_max)
-            ptot_sk_min = min(ptot_sk_cgs, ptot_sk_min)
+            pₓ_sk = therm_pₓ[j, i]
+            ptot_sk = therm_pt[j, i]
+            ptot_sk_max = max(ptot_sk, ptot_sk_max)
+            ptot_sk_min = min(ptot_sk, ptot_sk_min)
 
-            cθ_sk = pₓ_sk_cgs / ptot_sk_cgs
+            cθ_sk = pₓ_sk / ptot_sk
             cθ_sk_max = max(cθ_sk, cθ_sk_max)
             cθ_sk_min = min(cθ_sk, cθ_sk_min)
 
-            etot_sk_cgs = hypot(ptot_sk_cgs*c, E₀)
+            etot_sk = hypot(ptot_sk*c, E₀)
 
-            pₓ_pf_cgs = γᵤ * (pₓ_sk_cgs - βᵤ*etot_sk_cgs/c)
-            ptot_pf_cgs = √(ptot_sk_cgs^2 - pₓ_sk_cgs^2 + pₓ_pf_cgs^2)
+            pₓ_pf = γᵤ * (pₓ_sk - βᵤ*etot_sk/c)
+            ptot_pf = √(ptot_sk^2 - pₓ_sk^2 + pₓ_pf^2)
 
-            pₓ_ef_cgs = γ₀ * (pₓ_sk_cgs - β₀*etot_sk_cgs/c)
-            ptot_ef_cgs = √(ptot_sk_cgs^2 - pₓ_sk_cgs^2 + pₓ_ef_cgs^2)
+            pₓ_ef = γ₀ * (pₓ_sk - β₀*etot_sk/c)
+            ptot_ef = √(ptot_sk^2 - pₓ_sk^2 + pₓ_ef^2)
 
-            ptot_pf[j] = ptot_pf_cgs
-            cθ_pf[j] = pₓ_pf_cgs / ptot_pf_cgs
+            ptot_pf[j] = ptot_pf
+            cθ_pf[j] = pₓ_pf / ptot_pf
 
-            ptot_ef[j] = ptot_ef_cgs
-            cθ_ef[j] = pₓ_ef_cgs / ptot_ef_cgs
+            ptot_ef[j] = ptot_ef
+            cθ_ef[j] = pₓ_ef / ptot_ef
         end
 
         # Error checks
@@ -1296,11 +1296,11 @@ function get_dNdp_therm(
         #pressure = 0.0
         #i_unit  = 700 + i
         #for k in 1:num_hist_bins
-        #    ptot_pf_cgs = √(dNdp_therm_pvals[k-1,i,2] * dNdp_therm_pvals[k,i,2])
+        #    ptot_pf = √(dNdp_therm_pvals[k-1,i,2] * dNdp_therm_pvals[k,i,2])
         #    Δptot_pf = dNdp_therm_pvals[k,i,2] - dNdp_therm_pvals[k-1,i,2]
         #
-        #    γₚ_pf = √(1 + (ptot_pf_cgs*c/E₀)^2)
-        #    pressure += (ptot_pf_cgs * ptot_pf_cgs/(m_ion[i_ion]*γₚ_pf) *
+        #    γₚ_pf = √(1 + (ptot_pf*c/E₀)^2)
+        #    pressure += (ptot_pf * ptot_pf/(m_ion[i_ion]*γₚ_pf) *
         #                 dNdp_therm[k-1,i,2] * Δptot_pf/3)
         #
         #    j_plot += 1
