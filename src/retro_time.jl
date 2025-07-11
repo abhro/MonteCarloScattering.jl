@@ -6,6 +6,8 @@ using .parameters: na_c
 #const sin_upper_limit = 1 - epsilon(1.0)
 
 """
+    retro_time(...)
+
 Explicitly tracks particles downstream of the probability of return plane.
 Does so by the "retrodictive approach" explained in Jones (1978) [1978ApJ...222.1097J]
 and also by Ellison, Jones, & Reynolds (1990) [1990ApJ...360..702E].

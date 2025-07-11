@@ -1,6 +1,8 @@
 include("retro_time.jl")
 
 """
+    prob_return(...)
+
 If the particle ends its movement downstream of the shock, perform a series
 of tests to determine whether it will be culled from the simulation.
 
