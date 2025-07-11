@@ -28,7 +28,7 @@ function E(c, z)
 end
 # use constants from within module
 E(z) = √(Ω_r * (1 + z)^4 + Ω_m * (1 + z)^3 + Ω_k * (1 + z)^2 + Ω_vac)
-D_C(z) = d_H * quadgk(t -> 1/E(t), 0, z)[begin] # Hogg (1999) Equation 15
+D_C(z) = first(d_H * quadgk(t -> 1/E(t), 0, z)) # Hogg (1999) Equation 15
 D_C′(z) = d_H / E(z)
 
 #using PolynomialRoots: roots
