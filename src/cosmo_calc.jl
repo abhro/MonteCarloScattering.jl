@@ -49,9 +49,9 @@ is not necessary for GRB redshift calculation it is not passed back to the
 calling subroutine.
 
 ### Arguments
-- Comoving distance in Mpc
+- `d_CM`: Comoving distance in Mpc
 ### Returns
-- Redshift
+- `z`: Redshift
 """
 function get_redshift(d_CM)
     d_CM ≤ 0 && throw(DomainError(d_CM, "d_CM must be positive"))
