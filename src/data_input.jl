@@ -119,7 +119,7 @@ const feb_upstream = let
     else
         error("FEBUP: at least one choice must be negative.")
     end
-    ((feb_upstream/rg₀) < x_grid_start_rg) && error("FEBUP: upstream FEB must be within x_grid_start")
+    (feb_upstream/rg₀ < x_grid_start_rg) && error("FEBUP: upstream FEB must be within x_grid_start")
 
     feb_upstream
 end

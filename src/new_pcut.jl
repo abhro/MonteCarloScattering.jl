@@ -41,7 +41,7 @@ function new_pcut(
 
     grid_new        = zeros(Int,        n_pts_use*i_mult)
     tcut_new        = zeros(Int,        n_pts_use*i_mult)
-    downstream_new         = zeros(Bool,       n_pts_use*i_mult)
+    downstream_new  = zeros(Bool,       n_pts_use*i_mult)
     inj_new         = zeros(Bool,       n_pts_use*i_mult)
     weight_new      = zeros(Float64,    n_pts_use*i_mult)
     ptot_pf_new     = zeros(MomentumCGS, n_pts_use*i_mult)
@@ -74,7 +74,7 @@ function new_pcut(
             pb_pf_new[n_pts_new]       = pb_pf_sav[j]
             x_PT_cm_new[n_pts_new]     = x_PT_cm_sav[j]
             grid_new[n_pts_new]        = grid_sav[j]
-            downstream_new[n_pts_new]         = downstream_sav[j]
+            downstream_new[n_pts_new]  = downstream_sav[j]
             inj_new[n_pts_new]         = inj_sav[j]
             xn_per_new[n_pts_new]      = xn_per_sav[j]
             prp_x_cm_new[n_pts_new]    = prp_x_cm_sav[j]
