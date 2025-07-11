@@ -84,9 +84,9 @@ function iter_finalize()
 
 
     # Compute various adiabatic indices and write them out
-    n_avg     = min(i_iter, 4)
+    n_avg = min(i_iter, 4)
     Γ_downstream_esc = mean(Γ_downstream[i_iter-n_avg+1:i_iter])
-    Γ_upstream     = 5//3 # #assumecold
+    Γ_upstream       = 5//3 # #assumecold
 
     println(outfile, " Iteration #", i_iter)
     println(outfile, "   r_comp = ", r_comp, "      r_RH = ", r_RH)

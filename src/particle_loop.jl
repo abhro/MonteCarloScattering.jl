@@ -17,18 +17,18 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, p
 
 
     # Get the properties of the particle we're about to treat
-    weight      = weight_new[i_prt]
-    ptot_pf     = ptot_pf_new[i_prt]
-    pb_pf       = pb_pf_new[i_prt]
-    i_grid      = grid_new[i_prt]
-    i_grid_old  = i_grid  # Needed for energy transfer
-    l_downstream       = downstream_new[i_prt]
-    inj         = inj_new[i_prt]
-    xn_per      = xn_per_new[i_prt]
-    prp_x_cm    = prp_x_cm_new[i_prt]
-    acctime_sec = acctime_sec_new[i_prt]
-    φ_rad       = φ_rad_new[i_prt]
-    tcut_curr   = tcut_new[i_prt]
+    weight       = weight_new[i_prt]
+    ptot_pf      = ptot_pf_new[i_prt]
+    pb_pf        = pb_pf_new[i_prt]
+    i_grid       = grid_new[i_prt]
+    i_grid_old   = i_grid  # Needed for energy transfer
+    l_downstream = downstream_new[i_prt]
+    inj          = inj_new[i_prt]
+    xn_per       = xn_per_new[i_prt]
+    prp_x_cm     = prp_x_cm_new[i_prt]
+    acctime_sec  = acctime_sec_new[i_prt]
+    φ_rad        = φ_rad_new[i_prt]
+    tcut_curr    = tcut_new[i_prt]
 
     r_PT_cm = SVector{3,LengthCGS}(x_PT_cm_new[i_prt], # x
                                    # Not currently tracked, but could be added in at later date

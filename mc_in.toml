@@ -37,7 +37,8 @@ ENINJ = 1e3
 # How to assign initial weights. True = equal by particle, false = equal by bin
 INJWT = true
 
-# Max particle energy as Emax[keV], Emax/nuc[keV/aa], pmax/(m_pc). 1st nonzero value used. Also used in setting PSD
+# Max particle energy as Emax[keV], Emax/nuc[keV/aa], pmax/(m_pc). 1st nonzero
+# value used. Also used in setting phase space distribution
 ENMAX = [0, 0, 1e10]
 
 # Gyrofactor, i.e. MFP = gyrofac*gyroradius. Ignored if "NWFRG" = 66
@@ -46,10 +47,10 @@ GYFAC = 1.0
 # Far upstream magnetic field in Gauss
 BMAGZ = 1e-5
 
-# UpS angle[deg] between B-field and shock normal
+# Upstream angle[deg] between B-field and shock normal
 THTBZ = 0.0
 
-# Start of grid[rg0]. Can not be closer than UpS FEB.
+# Start of grid[rg0]. Can not be closer than upstream FEB.
 XGDUP = -1e7
 
 # Downstream limit of grid[rg0]
@@ -119,15 +120,15 @@ PCUTS = [
     1.778e10,
     3.162e10,
     5.623e10,
-    1.00e11,
+    1.000e11,
     1.778e11,
     3.162e11,
     5.623e11,
-    1.00e12,
+    1.000e12,
     1.778e12,
     3.162e12,
     5.623e12,
-    1.00e13,
+    1.000e13,
 ]
 
 # Enter "66" for no shock, i.e. force r_comp = 1. For testing only.
@@ -170,7 +171,7 @@ AGEMX = 3.15e11
 # List of time cutoffs to use for tracking particles.
 TCUTS = [ 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 3e13 ]
 
-# Enter "66" to use retro time calc downstream. Ignored if "AGEMX" < 0
+# Enter "66" to use retro time calculation downstream. Ignored if "AGEMX" < 0
 RETRO = 66
 
 # Enter "66" for fast Ups transport

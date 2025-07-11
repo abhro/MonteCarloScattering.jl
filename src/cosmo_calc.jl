@@ -41,6 +41,9 @@ Subroutine adapted from Hogg (1999). For more detail see Hogg (1999)
 Note one major difference: Equation (13) in Hogg uses Ω_r where this
 program uses Ω_k, and does not include a term for what this program
 calls Ω_r. For more information, see Wright (2006): [DOI 10.1086/510102]
+Note one major difference: Equation (13) in Hogg uses ``Ω_r`` where this
+program uses ``Ω_k``, and does not include a term for what this program
+calls ``Ω_r``. For more information, see Wright (2006): [DOI 10.1086/510102]
 
 The program calculates lookback time (in years) as well, but since this result
 is not necessary for GRB redshift calculation it is not passed back to the
@@ -58,7 +61,8 @@ function get_redshift(d_CM)
     if d_CM < 0.443
         z      = 0.0
         #t_look = d_CM * 3.2616e6 # convert Mpc to years
-        # d_CM less than critical value. Skip stepping through z integral and integration to find t_look
+        # d_CM less than critical value. Skip stepping through z integral and
+        # integration to find t_look
         code_stat = 2
         return z
     end

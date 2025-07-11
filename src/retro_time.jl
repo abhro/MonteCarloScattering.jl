@@ -68,7 +68,7 @@ function retro_time(
     b_sinθ = sin(θ_grid[n_grid])
 
     B_CMB_loc = B_CMBz * γᵤ_ef
-    B_tot_sq  = B^2 + B_CMB_loc^2
+    B²_tot    = B^2 + B_CMB_loc^2
 
     lose_pt = false
 
@@ -96,7 +96,7 @@ function retro_time(
         # Square root corresponds to Blandford-McKee solution, where e ∝ 1/χ ∝ 1/r
         if use_custom_εB
             B          = btot_grid[n_grid] * √(x_grid_stop / x_PT)
-            B_tot_sq   = B^2 + B_CMB_loc^2
+            B²_tot     = B^2 + B_CMB_loc^2
             gyro_denom = 1 / (zz * B)
         end
         gyro_rad     = p_perp_b_pf * c * gyro_denom |> cm
@@ -138,7 +138,7 @@ function retro_time(
             # Note that here dp_synch is actually dp/p. If this value is too large we will
             # directly integrate from p_i to get p_f, since the discrete approach would
             # result in too high a loss in a single time step
-            dp_synch = rad_loss_fac * B_tot_sq * ptot_pf * t_step
+            dp_synch = rad_loss_fac * B²_tot * ptot_pf * t_step
 
             # Correction to make sure electrons don't lose too much energy in a single time step
             if dp_synch > 1e-2
