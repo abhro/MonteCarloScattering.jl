@@ -6,7 +6,7 @@ using UnitfulAstro: kpc
 using ..constants: E₀ₚ
 using ..parameters: psd_max, na_cr, num_therm_bins
 using ..transformers: get_transform_dN, transform_psd_corners
-using ..debug: zone_vol, therm_energy_density, energy_density
+#using ..debug: zone_vol, therm_energy_density, energy_density
 import ..print_plot_vals
 
 """
