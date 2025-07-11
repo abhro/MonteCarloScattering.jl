@@ -362,7 +362,7 @@ begin # "module" pcut_vars
     l_save = zeros(Bool, na_particles) # Whether or not to save particle for next pcut
     grid_sav        = zeros(Int, na_particles)
     tcut_sav        = zeros(Int, na_particles)
-    downstream_sav         = zeros(Bool, na_particles)
+    downstream_sav  = zeros(Bool, na_particles)
     inj_sav         = zeros(Bool, na_particles)
     weight_sav      = zeros(na_particles)
     ptot_pf_sav     = zeros(MomentumCGS, na_particles)
@@ -376,7 +376,7 @@ begin # "module" pcut_vars
 
     grid_new        = zeros(Int, na_particles)
     tcut_new        = zeros(Int, na_particles)
-    downstream_new         = zeros(Bool, na_particles)
+    downstream_new  = zeros(Bool, na_particles)
     inj_new         = zeros(Bool, na_particles)
     xn_per_new      = zeros(na_particles)
     #zz_new         = zeros(na_particles)
