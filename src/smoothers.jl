@@ -154,7 +154,7 @@ function smooth_grid_par(
 
         pxx_EM = γβ^2 / 8π * B^2 + γ² / 8π * (B_z^2 - B_x^2) - (γ² - γᵤ_sf) / 2π * (β_uz/β_uₓ) * B_x * B_z
 
-        energy_EM  = γᵤ_sf^2 / 4π * β_uₓ * B_z^2 - (2γ_sq - γᵤ_sf) / 4π * β_uz * B_x * B_z
+        energy_EM  = γ² / 4π * β_uₓ * B_z^2 - (2γ² - γᵤ_sf) / 4π * β_uz * B_x * B_z
 
         # Total momentum/energy fluxes, including electrons (if needed) and EM.
         # Also normalized against far upstream values and in log space for plotting.

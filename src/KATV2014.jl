@@ -108,30 +108,32 @@ Calulates F(Tₚ, Eᵧ) as defined in Equations (9) and (11) of Kafexhiu+ (2014)
 Equation 9:
 
 ```math
-Y_γ        = E_γ        + \frac{m_π²}{4E_γ} , \;
-Y_γ^{\max} = E_γ^{\max} + \frac{m_π²}{4E_γ^{\max}} , \;
-X_γ        = \frac{Y_γ - m_π}{Y_γ^{\max} - m_π}
+\begin{align*}
+Y_γ        &= E_γ        + \frac{m_π^2}{4E_γ} , \\
+Y_γ^{\max} &= E_γ^{\max} + \frac{m_π^2}{4E_γ^{\max}} , \\
+X_γ        &= \frac{Y_γ - m_π}{Y_γ^{\max} - m_π}
+\end{align*}
 ```
 
 Equation 11:
 
 ```math
-F(Tₚ, E_γ) = \frac{ ( 1 - X_γ^{α(Tₚ)} )^{β(Tₚ)} }{ ( 1 + X_γ / C )^{γ(Tₚ)} }
+F(T_p, E_γ) = \frac{ ( 1 - X_γ^{α(Tₚ)} )^{β(Tₚ)} }{ ( 1 + X_γ / C )^{γ(T_p)} }
 ```
 
 Also uses equation 14:
 
 ```math
 \begin{align*}
-b₀ &= 5.9, &
-κ(Tₚ) &= 3.29 - \frac{1}{5} θₚ^{-3/2}
+b_0 &= 5.9, &
+κ(T_p) &= 3.29 - \frac{1}{5} θ_p^{-3/2}
 \end{align}
 ```
 
 and equation 15:
 
 ```math
-μ(Tₚ) = \frac{5}{4} q^{5/4} \exp\left(- \frac{5}{4} q\right)
+μ(T_p) = \frac{5}{4} q^{5/4} \exp\left(- \frac{5}{4} q\right)
 ```
 """
 function get_Ffunc(Tₚ, Eᵧ, i_data, Eᵧ_max)

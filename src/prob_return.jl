@@ -7,8 +7,8 @@ of tests to determine whether it will be culled from the simulation.
 ### Arguments
 
 - `rad_loss_fac`: constant related to radiative losses; only used to pass to `retro_time` when needed
-- `B_CMBz`: effective magnetic field due to CMB at redshift of source; only used to pass to
-  function retro_time when needed
+- `B_CMBz`: effective magnetic field due to CMB at redshift of source;
+  only used to pass to function retro_time when needed
 - `x_PT_old`: particle position before most recent move
 - `aa`: atomic mass number of ion species
 - `gyro_denom`: denominator of gyroradius fraction, q⋅B

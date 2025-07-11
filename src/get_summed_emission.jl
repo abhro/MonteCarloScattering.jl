@@ -458,7 +458,7 @@ function get_summed_emission(
             if photon_flux_pion[j,n] > 1e-99
                 photon_flux_pion[j,n] = log10(photon_flux_pion[j,n] / ΔlogE)
             else
-                photon_flux_pion[j,n] = -99.0
+                photon_flux_pion[j,n] = -99
             end
         end
 
