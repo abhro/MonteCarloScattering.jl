@@ -40,9 +40,6 @@ Calculator to get redshift from comoving distance.
 Subroutine adapted from Hogg (1999). For more detail see Hogg (1999)
 [DOI 10.48550/arXiv.astro-ph/9905116]
 
-Note one major difference: Equation (13) in Hogg uses Ω_r where this
-program uses Ω_k, and does not include a term for what this program
-calls Ω_r. For more information, see Wright (2006): [DOI 10.1086/510102]
 Note one major difference: Equation (13) in Hogg uses ``Ω_r`` where this
 program uses ``Ω_k``, and does not include a term for what this program
 calls ``Ω_r``. For more information, see Wright (2006): [DOI 10.1086/510102]
