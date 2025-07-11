@@ -117,8 +117,8 @@ psd_mom_max = let
     elseif Emax_per_aa > 0keV
         γ = 1 + Emax_per_aa/E₀ₚ
         rest_mass_max*c * √(γ^2 - 1)
-    elseif pmax_cgs > 0g*cm/s
-        pmax_cgs
+    elseif pmax > 0g*cm/s
+        pmax
     else
         # Something has gone very wrong.
         error("Max CR energy not set in data_input, so can not set PSD bins.")

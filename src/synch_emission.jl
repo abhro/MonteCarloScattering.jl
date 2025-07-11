@@ -1,5 +1,5 @@
 using SpecialFunctions: besselk
-using .constants: E₀ₚ, ħ_cgs, c
+using .constants: E₀ₚ, ħ, c
 
 """
     synch_emission(...)
@@ -10,10 +10,10 @@ This subroutine takes an electron distribution and calculates the synchrotron em
 
 - `i_grid`: current grid zone, used to find magnetic field strength
 - `num_hist_bins`: number of momentum bins in the distribution of thermal particles
-- `p_pf_cgs_therm`: momentum boundary values, cgs units, of thermal distribution histogram
+- `p_pf_therm`: momentum boundary values, cgs units, of thermal distribution histogram
 - `dN_therm`: thermal particle distribution. It is a pure number of particles in the spectral region
 - `num_psd_mom_bins`: number of momentum bins in the distribution of accelerated particles
-- `p_pf_cgs_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
+- `p_pf_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
 - `dN_cr`: cosmic ray distribution. It is a pure number of particles in the spectral region
 - `n_photon_synch`: number of energy bins to use for photon production
 - `photon_synch_min_MeV`: minimum photon energy, in MeV, to use for synchrotron spectrum
@@ -21,12 +21,12 @@ This subroutine takes an electron distribution and calculates the synchrotron em
 
 ### Returns
 
-- `energy_γ_cgs`: energy bin values of resultant photon distribution (in ergs)
+- `energy_γ`: energy bin values of resultant photon distribution (in ergs)
 - `synch_emis`: emitted synchrotron spectrum, units of erg/s
 """
 function synch_emission(
-        i_grid, num_hist_bins, p_pf_cgs_therm, dN_therm,
-        num_psd_mom_bins, p_pf_cgs_cr, dN_cr, n_photon_synch,
+        i_grid, num_hist_bins, p_pf_therm, dN_therm,
+        num_psd_mom_bins, p_pf_cr, dN_cr, n_photon_synch,
         photon_synch_min_MeV, bins_per_dec_photon,
         n_ions, aa_ion, n₀_ion, γ₀, u₀, flux_px_upstream, flux_energy_upstream, u₂,
         n_grid, btot_grid,
@@ -58,7 +58,7 @@ function synch_emission(
 
     # Initialize emission array and set energy of output photons
     synch_emis = fill(1e-99, n_photon_synch)
-    energy_γ_cgs = exp10.(range(start = energy_γ_min_log, step = Δγ, length = n_photon_synch)) # Photon energy in ergs
+    energy_γ = exp10.(range(start = energy_γ_min_log, step = Δγ, length = n_photon_synch)) # Photon energy in ergs
 
     nu = 5//3
 
@@ -92,10 +92,10 @@ function synch_emission(
         # photon energy, then write to the scratch file
         for i in 1:n_photon_synch
             if synch_emis[i] > 1e-90
-                p_fac = max(synch_emis[i] / energy_γ_cgs[i]^2, 1e-99)
-                write(synch_unit, energy_γ_cgs[i], p_fac)
+                p_fac = max(synch_emis[i] / energy_γ[i]^2, 1e-99)
+                write(synch_unit, energy_γ[i], p_fac)
             else
-                write(synch_unit, energy_γ_cgs[i], 1e-99)
+                write(synch_unit, energy_γ[i], 1e-99)
             end
         end
 
@@ -103,7 +103,7 @@ function synch_emission(
     #-------------------------------------------------------------------------
     # Scratch file created/updated as needed
 
-    return energy_γ_cgs, synch_emis
+    return energy_γ, synch_emis
 end
 
 
@@ -115,7 +115,7 @@ function synch_emission_thermal_particles!(synch_emis)
         xnum_electron ≤ 1e-60 && continue # skip empty bins
 
         # Assume electrons with E < 3 MeV contribute no synchrotron emission
-        p1 = √(p_pf_cgs_therm[iii] * p_pf_cgs_therm[iii+1]) # Geometric mean
+        p1 = √(p_pf_therm[iii] * p_pf_therm[iii+1]) # Geometric mean
         p1*c < 3MeV && continue
 
         # Lorentz factor for electron
@@ -130,7 +130,7 @@ function synch_emission_thermal_particles!(synch_emis)
             if bmag_curr < 1e-20 || ω_c < 1e-55
                 F = 0.0
             else
-                ω_γ = energy_γ_cgs[iit] / ħ_cgs    # from E = ħω
+                ω_γ = energy_γ[iit] / ħ    # from E = ħω
                 x = ω_γ/ω_c
 
                 xxx_max_set = 30.0
@@ -168,7 +168,7 @@ function synch_emission_cosmic_ray!(synch_emis)
         xnum_electron ≤ 1e-60 && continue # skip empty bins
 
         # Assume electrons with E < 3 MeV contribute no synchrotron emission
-        p1 = √(p_pf_cgs_cr[iii] * p_pf_cgs_cr[iii+1]) # Geometric mean
+        p1 = √(p_pf_cr[iii] * p_pf_cr[iii+1]) # Geometric mean
         p1*c < 3MeV && continue
 
         # Lorentz factor for electron
@@ -183,7 +183,7 @@ function synch_emission_cosmic_ray!(synch_emis)
             if bmag_curr < 1e-20 || ω_c < 1e-55
                 F = 0.0
             else
-                ω_γ = energy_γ_cgs[iit] / ħ_cgs    # from E = ħω
+                ω_γ = energy_γ[iit] / ħ    # from E = ħω
                 x = ω_γ/ω_c
 
                 xxx_max_set = 30.0

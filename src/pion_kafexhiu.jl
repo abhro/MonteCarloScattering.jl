@@ -4,6 +4,8 @@ using .constants: E₀ₚ, T_th
 using .KATV2014: get_σ_π, get_Ffunc, get_Amax
 
 """
+    pion_kafexhiu(...)
+
 Calculates pion decay emission from given spectrum of particles interacting
 with a medium of density ds_proton_density.
 
@@ -11,27 +13,27 @@ See: Kafexhiu et al., PhRvD 2014, V.90, 123014
 
 ### Arguments
 
-- num_hist_bins: number of momentum bins in the distribution of thermal particles
-- p_pf_cgs_therm: momentum boundary values, cgs units, of thermal distribution histogram
-- dN_therm: thermal particle distribution. It is a pure number of particles in the spectral region
-- num_psd_mom_bins: number of momentum bins in the distribution of accelerated particles
-- p_pf_cgs_cr: momentum boundary values, cgs units, of cosmic ray distribution histogram
-- dN_cr: cosmic ray distribution. It is a pure number of particles in the spectral region
-- n_photon_pion: number of energy bins to use for photon production. Must be an even number.
-- target_density: density of "thermal" protons with which the particle spectrum will interact
-- ID: which of the various decay products to calculate the spectrum of. Currently only photons (ID=1) enabled.
-- photon_pion_min_MeV: minimum photon energy, in MeV, to use for pion decay spectrum.
-- bins_per_dec_photon: number of energy bins per decade of photon spectrum
-- aa: mass number of the nucleus being handled
+- `num_hist_bins`: number of momentum bins in the distribution of thermal particles
+- `p_pf_therm`: momentum boundary values, cgs units, of thermal distribution histogram
+- `dN_therm`: thermal particle distribution. It is a pure number of particles in the spectral region
+- `num_psd_mom_bins`: number of momentum bins in the distribution of accelerated particles
+- `p_pf_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
+- `dN_cr`: cosmic ray distribution. It is a pure number of particles in the spectral region
+- `n_photon_pion`: number of energy bins to use for photon production. Must be an even number.
+- `target_density`: density of "thermal" protons with which the particle spectrum will interact
+- `ID`: which of the various decay products to calculate the spectrum of. Currently only photons (ID=1) enabled.
+- `photon_pion_min_MeV`: minimum photon energy, in MeV, to use for pion decay spectrum.
+- `bins_per_dec_photon`: number of energy bins per decade of photon spectrum
+- `aa`: mass number of the nucleus being handled
 
 ### Returns
 
-- energy_γ_cgs: energy bin values for pion decay emission spectrum
-- pion_emis: pion decay emission spectrum
+- `energy_γ`: energy bin values for pion decay emission spectrum
+- `pion_emis`: pion decay emission spectrum
 """
 function pion_kafexhiu(
-        num_hist_bins, p_pf_cgs_therm, dN_therm,
-        num_psd_mom_bins, p_pf_cgs_cr, dN_cr, n_photon_pion,
+        num_hist_bins, p_pf_therm, dN_therm,
+        num_psd_mom_bins, p_pf_cr, dN_cr, n_photon_pion,
         target_density, ID, photon_pion_min_MeV, bins_per_dec_photon, aa,
         n_ions, aa_ion, n₀_ion, mc
     )
@@ -58,11 +60,11 @@ function pion_kafexhiu(
         end
     end
 
-    # Set parameters that affect energy_γ_cgs and "zero" out emission prior to the calculation
+    # Set parameters that affect energy_γ and "zero" out emission prior to the calculation
     γ_min_log = log10(photon_pion_min_MeV)
     log_photon_energy_MeV = range(start = γ_min_log, length = n_photon_pion,
                                   step = 1/bins_per_dec_photon)
-    energy_γ_cgs = ustrip(erg, exp10.(log_photon_energy_MeV) * MeV)
+    energy_γ = ustrip(erg, exp10.(log_photon_energy_MeV) * MeV)
     pion_emis = fill(1e-99, n_photon_pion)
 
     # "1" to use GEANT 4 data
@@ -88,17 +90,17 @@ function pion_kafexhiu(
         bin_count = dN_therm[i_fp]
         bin_count ≤ 1e-99 && continue # skip empty bins
 
-        p_pf_sq = p_pf_cgs_therm[i_fp] * p_pf_cgs_therm[i_fp+1] # Geometric mean
-        γ = √(p_pf_sq/mc^2 + 1)
+        p²_pf = p_pf_therm[i_fp] * p_pf_therm[i_fp+1] # Geometric mean (squared)
+        γ = √(p²_pf/mc^2 + 1)
         Tₚ = (γ - 1) * aa*ustrip(GeV, E₀ₚ*erg) # particle kinetic energy in GeV
         Tₚ /= aa  # kinetic energy per nucleon
-        vel = √p_pf_sq / (γ*aa*mp)
+        vel = √p²_pf / (γ*aa*mp)
 
         # Tₚ must be at T_th; otherwise no possibility to produce pions/photons
         Tₚ < T_th && continue
 
         # Square of proton energy in center-of-mass frame will be used repeatedly
-        s_ECM = 2rmp * (Tₚ + 2rmp)
+        s_ECM = 2E₀ₚ * (Tₚ + 2E₀ₚ)
 
         # Calculate inclusive pion production cross section using material from section 4
         σ_π = get_σ_π(Tₚ, i_data, s_ECM)
@@ -114,7 +116,7 @@ function pion_kafexhiu(
         #-----------------------------------------------------------------------
         for i_γ in 1:n_photon_pion
 
-            Eγ = ustrip(GeV, energy_γ_cgs[i_γ]*erg)  # in GeV
+            Eγ = ustrip(GeV, energy_γ[i_γ]*erg)  # in GeV
 
             # Calculate F function for current value of Tₚ and Eγ
             F_func = get_Ffunc(Tₚ, Eγ, i_data, Eγ_max)
@@ -139,7 +141,7 @@ function pion_kafexhiu(
             # As calculated previously, pion_emis_photon is d²N/d(lnE)dt. Multiplying by energy
             # makes it an energy production rate (power) per logarithmic energy bin, dP/d(lnE).
             # This is what photon_pion_decay expects as output, with units of [erg/sec].
-            pion_emis[i_γ] += pion_emis_photon*energy_γ_cgs[i_γ]
+            pion_emis[i_γ] += pion_emis_photon*energy_γ[i_γ]
 
         end
         #-----------------------------------------------------------------------
@@ -156,17 +158,17 @@ function pion_kafexhiu(
         bin_count = dN_cr[i_fp]
         bin_count ≤ 1e-99 && continue # skip empty bins
 
-        p_pf_sq = p_pf_cgs_cr[i_fp] * p_pf_cgs_cr[i_fp+1] # Geometric mean
-        γ = √(p_pf_sq/mc^2 + 1)
-        Tₚ = (γ - 1) * aa*ustrip(GeV, E₀ₚ*erg) # particle K.E. in GeV
+        p²_pf = p_pf_cr[i_fp] * p_pf_cr[i_fp+1] # Geometric mean (squared)
+        γ = √(p²_pf/mc^2 + 1)
+        Tₚ = (γ - 1) * aa*ustrip(GeV, E₀ₚ*erg) # particle kinetic energy in GeV
         Tₚ /= aa  # kinetic energy per nucleon
-        vel = √(p_pf_sq)/(γ*aa*mp)
+        vel = √(p²_pf)/(γ*aa*mp)
 
         # Tₚ must be at T_th; otherwise no possibility to produce pions/photons
         Tₚ < T_th && continue
 
         # Square of proton energy in center-of-mass frame will be used repeatedly
-        s_ECM = 2rmp * (Tₚ + 2rmp)
+        s_ECM = 2E₀ₚ * (Tₚ + 2E₀ₚ)
 
         # Calculate inclusive pion production cross section using material from section 4
         σ_π = get_σ_π(Tₚ, i_data, s_ECM)
@@ -182,7 +184,7 @@ function pion_kafexhiu(
         #-----------------------------------------------------------------------
         for i_γ in 1:n_photon_pion
 
-            Eγ = ustrip(GeV, energy_γ_cgs[i_γ]*erg)  # in GeV
+            Eγ = ustrip(GeV, energy_γ[i_γ]*erg)  # in GeV
 
             # Calculate F function for current value of Tₚ and Eγ
             F_func = get_Ffunc(Tₚ, Eγ, i_data, Eγ_max)
@@ -209,7 +211,7 @@ function pion_kafexhiu(
             # Multiplying by energy makes it an energy production rate (power)
             # per logarithmic energy bin, dP/d(lnE). This is what
             # photon_pion_decay expects as output, with units of [erg/sec].
-            pion_emis[i_γ] += pion_emis_photon*energy_γ_cgs[i_γ]
+            pion_emis[i_γ] += pion_emis_photon*energy_γ[i_γ]
 
         end
         #-----------------------------------------------------------------------
@@ -230,5 +232,5 @@ function pion_kafexhiu(
         end
     end
 
-    return energy_γ_cgs, pion_emis
+    return energy_γ, pion_emis
 end

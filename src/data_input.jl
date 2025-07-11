@@ -59,7 +59,7 @@ const inp_distr = cfg_toml["INDST"]
 const energy_inj = cfg_toml["ENINJ"] * keV
 const inj_weight = get(cfg_toml, "INJWT", true)
 
-const Emax, Emax_per_aa, pmax_cgs = let
+const Emax, Emax_per_aa, pmax = let
     energy_max = cfg_toml["ENMAX"]
     if energy_max[1] > 0      # All species have same max energy
         Emax        = energy_max[1]
@@ -185,11 +185,11 @@ begin
                   "Emax_per_aa = $Emax_per_aa; Emax_eff/aa = $Emax_eff")
         end
 
-    elseif pmax_cgs > 0mp*c # Limit was on total momentum. Assume Fe for strictest limit on mom/nuc.
+    elseif pmax > 0mp*c # Limit was on total momentum. Assume Fe for strictest limit on mom/nuc.
         pmax_eff = 56mp*c * pcuts_in[n_pcuts-1]
-        if pmax_cgs > pmax_eff
+        if pmax > pmax_eff
             error("PCUTS: max momentum exceeds highest pcut. Add more pcuts or lower pmax. ",
-                  "pmax[m_pc] = $pmax_cgs; pmax_eff (for Fe) = $pmax_eff")
+                  "pmax[m_pc] = $pmax; pmax_eff (for Fe) = $pmax_eff")
         end
     else   # Something unexpected has happened
         error("Unexpected result when comparing pcut max to energy/momentum max")

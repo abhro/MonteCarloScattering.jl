@@ -1195,12 +1195,12 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
         n_pts_use = n_pts_inj
 
         rm_energy      = m * c^2
-        energy_inj_cgs = ustrip(erg, T_or_E*keV)
+        energy_inj = ustrip(erg, T_or_E*keV)
 
-        if energy_inj_cgs/rm_energy < energy_rel_pt
-            p1 = √(2m * energy_inj_cgs)
+        if energy_inj/rm_energy < energy_rel_pt
+            p1 = √(2m * energy_inj)
         else
-            p1 = √(energy_inj_cgs^2 - rm_energy^2) / c
+            p1 = √(energy_inj^2 - rm_energy^2) / c
         end
 
         ptot_out[1:n_pts_inj] .= p1

@@ -15,7 +15,7 @@ one photon field: the CMB.
 
 ### Arguments
 - `n_grid`: current grid zone. Used for tracking emission output
-- `p_pf_cgs_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
+- `p_pf_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
 - `num_psd_mom_bins`: number of momentum bins in the distribution of accelerated particles
 - `cos_bounds`: boundaries of the angular bins of PSD, but in cosine form rather than mixed
   cosine and θ form (as in psd_θ_bounds)
@@ -30,7 +30,7 @@ one photon field: the CMB.
 - `redshift`: redshift of source, used to adjust photon energies; passed to `IC_emission_FCJ`.
 """
 function photon_IC(
-        n_grid, p_pf_cgs_cr, num_psd_mom_bins, cos_bounds,
+        n_grid, p_pf_cr, num_psd_mom_bins, cos_bounds,
         num_psd_θ_bins, d²Ndp_slice, n_photon_IC, photon_ic_min_MeV,
         bins_per_dec_photon, dist_lum, redshift,
         n_IC_specs, energy_IC_MeV, ic_photon_sum,
@@ -44,12 +44,12 @@ function photon_IC(
     # in d²N_slice:
     #    1  -  angle          2  -  momentum
     d²N_slice = OffsetMatrix{Float64}(undef, 0:num_psd_mom_bins, 0:num_psd_θ_bins)
-    dp = diff(p_pf_cgs_cr)
+    dp = diff(p_pf_cr)
     for i in 0:num_psd_mom_bins, j in 0:num_psd_θ_bins
         if d²Ndp_slice[j,i] ≤ 1e-99
             d²N_slice[j,i] = 1e-99
         else
-            d²N_slice[j,i] = d²Ndp_slice[j,i] * dp_pf_cgs_cr[i]
+            d²N_slice[j,i] = d²Ndp_slice[j,i] * dp_pf_cr[i]
         end
     end
 
@@ -72,23 +72,23 @@ function photon_IC(
         end
 
         # Compute the spectra
-        energy_γ_cgs, ic_emis = IC_emission_FCJ(
-            num_psd_mom_bins, p_pf_cgs_cr,
+        energy_γ, ic_emis = IC_emission_FCJ(
+            num_psd_mom_bins, p_pf_cr,
             num_psd_θ_bins, cos_bounds, d²N_slice, n_photon_IC, j3,
             photon_ic_min_MeV, bins_per_dec_photon, dist_lum, redshift,
             jet_sph_frac, mc)
 
-        # Convert units of energy_γ_cgs and ic_emis
+        # Convert units of energy_γ and ic_emis
         # NOTE: unlike the other two photon production subroutines, ic_emis comes out of
         # IC_emission_FCJ already in the form of observed energy flux at Earth per
         # log energy bin, i.e. dP/(d(lnE)-dA). Pion production and synchrotron both require
         # processing from dP/d(lnE). The units of ic_emis are [erg/s⋅cm²].
         for i in 1:n_photon_IC
-            energy_γ_MeV[i] = ustrip(MeV, energy_γ_cgs[i]*erg)
+            energy_γ_MeV[i] = ustrip(MeV, energy_γ[i]*erg)
 
             # Add the current photon flux to the running total over all fields
             if ic_emis[i] > 1e-99
-                ic_photon_sum[i,n_grid] += ic_emis[i] / energy_γ_cgs[i]
+                ic_photon_sum[i,n_grid] += ic_emis[i] / energy_γ[i]
             end
             energy_IC_MeV[i] = energy_γ_MeV[i]
 
@@ -166,7 +166,7 @@ from a given electron distribution upscattering a specified photon field.
 ### Arguments
 
 - `num_psd_mom_bins`: number of momentum bins in the distribution of particles
-- `p_pf_cgs_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
+- `p_pf_cr`: momentum boundary values, cgs units, of cosmic ray distribution histogram
 - `num_psd_θ_bins`: number of angular bins in the distribution array
 - `cos_bounds`: boundaries of the angular cosine bins for determining CR pitch angle
 - `d²N_slice`: particle distribution array. It is pure number of particles
@@ -180,13 +180,13 @@ from a given electron distribution upscattering a specified photon field.
 
 ### Returns
 
-- `energy_γ_cgs`: energy bin values of resultant photon distribution
+- `energy_γ`: energy bin values of resultant photon distribution
 - `ic_emis`: observed IC spectrum at Earth, units of erg/(sec⋅cm²). Note that this is NOT the
   same units as produced by the other two photon production subroutines. They do not
   convert to flux, while IC_emission_FCJ does.
 """
 function IC_emission_FCJ(
-        num_psd_mom_bins, p_pf_cgs_cr,
+        num_psd_mom_bins, p_pf_cr,
         num_psd_θ_bins, cos_bounds, d²N_slice, n_photon_IC, j3,
         photon_ic_min_MeV, bins_per_dec_photon, dist_lum, redshift,
         jet_sph_frac, mc,
@@ -261,7 +261,7 @@ function IC_emission_FCJ(
         # Below are constants for spectral energy density of CMB in units of
         # energy per volume per Hz taken from Wikipedia
         con_f1 = 8π*h/(c^3)
-        con_f2 = h_cgs/(kB*photon_temp_IC)
+        con_f2 = h/(kB*photon_temp_IC)
 
         for j_in in 1:n_freq     # loop over incoming photon energy density
             f1 = exp10(freq_min_log + (j_in-1)*Δfreq) # = freq_min (freq_max/freq_min)^[(j-1)/n_freq]
@@ -273,7 +273,7 @@ function IC_emission_FCJ(
             photon_energy_density   = (f2 - f1) * con_f1 * f_avg^3 / (exp_fac - 1)
             ∑photon_energy_density += photon_energy_density
 
-            photon_energy_erg      = h_cgs*f_avg      # incoming photon energy (erg)
+            photon_energy_erg      = h*f_avg      # incoming photon energy (erg)
             photon_energy_rm[j_in] = photon_energy_erg/E₀ₑ
 
             # Below is number density of incoming photons [/cm³] in frequency bin
@@ -298,8 +298,8 @@ function IC_emission_FCJ(
         # Otherwise, sum number of electrons at this energy, since that's all equation (9) needs
         xnum_electron = sum(d²N_slice[begin:jθ_max,i_el])
 
-        p1_cgs = √(p_pf_cgs_cr[i_el] * p_pf_cgs_cr[i_el+1])
-        γ = p1_cgs/mc < energy_rel_pt ? 1.0 : hypot(p1_cgs/mc, 1)
+        p1 = √(p_pf_cr[i_el] * p_pf_cr[i_el+1])
+        γ = p1/mc < energy_rel_pt ? 1.0 : hypot(p1/mc, 1)
 
         # Loop over incoming photons, then over outgoing photons, then over angle.
         # Fill d²N_o_dtdα as defined by equation (9) in the process.
@@ -358,16 +358,16 @@ function IC_emission_FCJ(
     # but needs to be converted to a flux so that it's actually (photons observed) / (s⋅dα⋅cm²).
     d²N_o_dtda ./= beam_area
 
-    energy_γ_cgs = α_out * E₀ₑ   # photon energy in ergs
+    energy_γ = α_out * E₀ₑ   # photon energy in ergs
     # To get d²N/(dt dE) we multiply d²N/(dt dα) by dα/dE = 1 / mₑc²
     # photon_IC() expects energy production rate per logarithmic energy bin, dP/d(lnE).
     # Multiply d²N/(dt dE) by E once to make it dP/dE, then again to make it dP/d(lnE).
-    ic_emis = @. d²N_o_dtda/E₀ₑ * energy_γ_cgs^2  # erg/(s⋅cm²)
+    ic_emis = @. d²N_o_dtda/E₀ₑ * energy_γ^2  # erg/(s⋅cm²)
     for k in eachindex(ic_emis)
         if ic_emis[k] ≤ 1e-55
             ic_emis[k] = 1e-99
         end
     end
 
-    return energy_γ_cgs, ic_emis
+    return energy_γ, ic_emis
 end

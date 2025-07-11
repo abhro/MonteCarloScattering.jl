@@ -298,16 +298,16 @@ TODO
 function track_pitch_angles() # TODO figure out arguments
     # Adjust cell_weight to remove the velocity-weighting applied in PSD
     if i == 0
-        pt_sk_cgs = 0.0
+        pt_sk = 0.0
         i_pt_sk  = i_ct_pt_sk_min
     else
-        pt_sk_cgs = exp10(psd_mom_bounds[i] + psd_mom_bounds[i+1])
-        pt_sk_cgs = √pt_sk_cgs * mp * utsk_cm
+        pt_sk = exp10(psd_mom_bounds[i] + psd_mom_bounds[i+1])
+        pt_sk = √pt_sk * mp * utsk_cm
         i_pt_sk  = floor(Int, psd_mom_bounds[i])
     end
-    γₚ_sk = hypot(1, pt_sk_cgs/(rest_mass*c))
+    γₚ_sk = hypot(1, pt_sk/(rest_mass*c))
 
-    cell_weight = cell_weight * pt_sk_cgs / (γₚ_sk * rest_mass) / proton_num_density_upstream
+    cell_weight = cell_weight * pt_sk / (γₚ_sk * rest_mass) / proton_num_density_upstream
 
     # Binning shock frame values very easy; just add directly to correct bin of histogram
     if m == 1
@@ -618,21 +618,21 @@ function transform_psd_corners(
 
             # psd_mom_bounds uses logarithmic spacing for its bins, so undo that before
             # continuing the calculation
-            pt_sk_cgs = exp10(psd_mom_bounds[i])
+            pt_sk = exp10(psd_mom_bounds[i])
 
             #if i == 0
-            #    pt_sk_cgs = 0.0 # Edge case when i = 0
+            #    pt_sk = 0.0 # Edge case when i = 0
             #end
 
-            pₓ_sk_cgs   = pt_sk_cgs * cosθ
-            etot_sk_cgs = hypot(pt_sk_cgs*c, rest_mass_energy)
+            pₓ_sk   = pt_sk * cosθ
+            etot_sk = hypot(pt_sk*c, rest_mass_energy)
 
-            pₓ_Xf_cgs  = γ_in * (pₓ_sk_cgs - βᵤ*etot_sk_cgs/c)
-            pt_Xf_cgs  = √(pt_sk_cgs^2 + pₓ_Xf_cgs^2 - pₓ_sk_cgs^2)
+            pₓ_Xf  = γ_in * (pₓ_sk - βᵤ*etot_sk/c)
+            pt_Xf  = √(pt_sk^2 + pₓ_Xf^2 - pₓ_sk^2)
 
             # Transform to log space because get_dNdp_cr expects it
-            transform_corner_pt[i,j] = log10(pt_Xf_cgs)
-            transform_corner_ct[i,j] = pₓ_Xf_cgs / pt_Xf_cgs
+            transform_corner_pt[i,j] = log10(pt_Xf)
+            transform_corner_ct[i,j] = pₓ_Xf / pt_Xf
 
 
         end # loop over momentum
