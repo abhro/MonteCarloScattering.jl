@@ -53,9 +53,66 @@ begin
     include("ion_finalize.jl")
 end
 
+zero!(A::AbstractArray{T}) where T = fill!(A, zero(T))
+
 include("debug.jl")
 include("particle_counter.jl")
 include("smoothers.jl")
+
+function parse_shock_speed(skspd, skspd_unit)
+    skspd > 0 || error("Shock speed must be positive")
+
+    if skspd_unit ∈ ("gamma", "γ")
+        skspd > 1 || error("SKSPD: Lorentz factor must be > 1")
+        γ = skspd
+        β = √(1 - 1/γ^2)
+        u = β * c |> cm/s
+    else
+        if skspd_unit == "km/s"
+            0 < skspd < ustrip(km/s, Unitful.c0) || error("SKSPD: u must be between 0 and c")
+            u = (skspd * 1e5) * cm/s
+            β = u / c
+        elseif skspd_unit == "c"
+            0 < skspd < 1 || error("SKSPD: β must be between 0 and 1")
+            β = skspd
+            u = β * c |> cm/s
+        else
+            error("SKSPD: unknown units provided with SKSPD_UNIT")
+        end
+        γ = lorentz(β)
+    end
+
+    return (u, β, γ)
+end
+
+function parse_maximum_energy(energy_max)
+    if energy_max[1] > 0      # All species have same max energy
+        Emax        = energy_max[1]
+        Emax_per_aa = 0.0
+        pmax        = 0.0
+
+    elseif energy_max[2] > 0  # Max energy depends on aa
+        Emax        = 0.0
+        Emax_per_aa = energy_max[2]
+        pmax        = 0.0
+
+    elseif energy_max[3] > 0  # All species have same max momentum
+        Emax        = 0.0
+        Emax_per_aa = 0.0
+        pmax        = energy_max[3]
+    else
+        error("ENMAX: at least one choice must be non-zero.")
+    end
+    return (Emax*keV, Emax_per_aa*keV, pmax*mp*c)
+end
+
+function check_shock_angle(θ)
+    if θ > 0
+        error("program cannot currently handle oblique shocks. Adjust THTBZ.")
+    elseif θ < 0
+        error("unphysical value for THTBZ. Must be at least 0.")
+    end
+end
 
 function (@main)()
     # Start the wall clock for this run
@@ -64,34 +121,7 @@ function (@main)()
     # Get input, control variables, etc.
     cfg_toml = TOML.parsefile("mc_in.toml")
 
-    (u₀, β₀, γ₀) = let
-
-        skspd = cfg_toml["SKSPD"]
-        skspd > 0 || error("Shock speed must be positive")
-
-        skspd_unit = cfg_toml["SKSPD_UNIT"]
-        if skspd_unit ∈ ("gamma", "γ")
-            skspd > 1 || error("SKSPD: Lorentz factor must be > 1")
-            γ = skspd
-            β = √(1 - 1/γ^2)
-            u = β * c |> cm/s
-        else
-            if skspd_unit == "km/s"
-                0 < skspd < ustrip(km/s, Unitful.c0) || error("SKSPD: u must be between 0 and c")
-                u = (skspd * 1e5) * cm/s
-                β = u / c
-            elseif skspd_unit == "c"
-                0 < skspd < 1 || error("SKSPD: β must be between 0 and 1")
-                β = skspd
-                u = β * c |> cm/s
-            else
-                error("SKSPD: unknown units provided with SKSPD_UNIT")
-            end
-            γ = lorentz(β)
-        end
-
-        (u, β, γ)
-    end
+    (u₀, β₀, γ₀) = parse_shock_speed(cfg_toml["SKSPD"], cfg_toml["SKSPD_UNIT"])
 
     species = let
         masses = cfg_toml["AA_ION"] # species mass in units of proton mass
@@ -116,45 +146,17 @@ function (@main)()
     energy_inj = cfg_toml["ENINJ"] * keV
     inj_weight = get(cfg_toml, "INJWT", true)
 
-    Emax, Emax_per_aa, pmax = let
-        energy_max = cfg_toml["ENMAX"]
-        if energy_max[1] > 0      # All species have same max energy
-            Emax        = energy_max[1]
-            Emax_per_aa = 0.0
-            pmax        = 0.0
-
-        elseif energy_max[2] > 0  # Max energy depends on aa
-            Emax        = 0.0
-            Emax_per_aa = energy_max[2]
-            pmax        = 0.0
-
-        elseif energy_max[3] > 0  # All species have same max momentum
-            Emax        = 0.0
-            Emax_per_aa = 0.0
-            pmax        = energy_max[3]
-        else
-            error("ENMAX: at least one choice must be non-zero.")
-        end
-        (Emax*keV, Emax_per_aa*keV, pmax*mp*c)
-    end
+    Emax, Emax_per_aa, pmax = parse_maximum_energy(cfg_toml["ENMAX"])
 
     η_mfp = get(cfg_toml, "GYFAC", 1)
-
 
     bmag₀ = cfg_toml["BMAGZ"]*G
     # rg₀ below is the gyroradius of a proton whose speed is u₀ that is gyrating in a field
     # of strength bmag₀. Note that this formula is relativistically correct
     rg₀ = (γ₀ * E₀ₚ * β₀) / (qcgs * bmag₀) |> cm
 
-
-    begin
-        θ_B₀ = cfg_toml["THTBZ"] # must be zero
-        if θ_B₀ > 0
-            error("program cannot currently handle oblique shocks. Adjust THTBZ.")
-        elseif θ_B₀ < 0
-            error("unphysical value for THTBZ. Must be at least 0.")
-        end
-    end
+    θ_B₀ = cfg_toml["THTBZ"] # must be zero
+    check_shock_angle(θ_B₀)
 
     begin
         x_grid_start_rg = cfg_toml["XGDUP"]
@@ -167,7 +169,7 @@ function (@main)()
         febup = get(cfg_toml, "FEBUP", nothing)
         if isnothing(febup)
             feb_upstream = x_grid_start_rg * rg₀ # default value
-            return
+            return feb_upstream
         end
         if febup[1] < 0
             feb_upstream = febup[1] * rg₀
@@ -846,7 +848,69 @@ function (@main)()
         #------------------------------------------------------------------------
         for i_ion in 1:n_ions # loop_ion
 
-            vals = ion_init(i_iter, i_ion, species)
+            zz = charge(species[i_ion])
+            m = mass(species[i_ion])
+            aa = m/mp |> NoUnits
+            mc = m*c
+
+            # At the start of each ion, print a glyph to the screen
+            @info("Starting species iteration", i_iter, i_ion)
+
+            pmax_cutoff = get_pmax_cutoff(Emax, Emax_per_aa, pmax)
+
+            # Zero out the phase space distributions and set variables related to
+            # tracking thermal particles
+            n_cr_count = clear_psd!(num_crossings, therm_grid, therm_pₓ_sk, therm_ptot_sk,
+                                    therm_weight, psd, esc_psd_feb_upstream, esc_psd_feb_downstream)
+
+            # In addition to initializing the phase space distribution, open the scratch (i.e.
+            # temporary) file to which we will write information about thermal particle grid crossings
+            nc_unit = open("mc_crossings.dat", "a")
+
+            # To maintain identical results between OpenMP and serial versions,
+            # set RNG seed based on current iteration/ion/pcut/particle number
+            iseed_mod = (i_iter - 1)*n_ions + (i_ion - 1)
+            Random.seed!(iseed_mod)
+
+
+            # Initialize the particle populations that will be propagated through
+            # the shock structure
+            (n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in, x_PT_cm_in,
+             pxx_flux, pxz_flux, energy_flux) = init_pop(
+                do_fast_push, inp_distr, i_ion, m,
+                temperature.(species), energy_inj, inj_weight, n_pts_inj,
+                density.(species), x_grid_start, rg₀, η_mfp, x_fast_stop_rg,
+                β₀, γ₀, u₀, n_ions, mass.(species),
+                n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid,
+                ptot_inj, weight_inj, n_pts_MB,
+            )
+            @info("Finished init_pop on",
+                  i_iter, i_ion,
+                  n_pts_use, i_grid_in, weight_in, ptot_pf_in,
+                  pb_pf_in, x_PT_cm_in, pxx_flux, pxz_flux, energy_flux)
+
+            # Assign the various particle properties to the population
+            assign_particle_properties_to_population!(
+                n_pts_use, xn_per_fine, x_grid_stop,
+                weight_new, weight_in, ptot_pf_new, ptot_pf_in,
+                pb_pf_new, pb_pf_in, x_PT_cm_new, x_PT_cm_in, grid_new, i_grid_in,
+                downstream_new, inj_new, xn_per_new, prp_x_cm_new, acctime_sec_new, tcut_new, φ_rad_new)
+
+            # Weight of remaining particles, printed after each pcut; note that this will not be
+            # correct for all particles if they were originally created so each thermal bin
+            # would have equal weight
+            weight_running = weight_in[1]
+
+            # When using OpenMP, the array energy_transfer_pool can't be conditionally assigned
+            # shared or reduction status, so it can't be used for both the ion and electron loops.
+            # To get around this, use one array to hold the donated energy, and another to hold
+            # the received energy.
+            energy_recv_pool .= energy_transfer_pool
+
+
+            # The array of pcuts read in by data_input has units momentum/mc.
+            # Convert to momentum for this species
+            pcuts_use[1:n_pcuts] .= pcuts_in[1:n_pcuts] * aa*mp*c
 
             # Determine the pcut at which to switch from low-E particle counts to high-E
             # particle counts. Recall that energy_pcut_hi has units of keV per aa, so when
@@ -865,11 +929,18 @@ function (@main)()
                 # Initialize all of the *_sav arrays to help prevent bleeding over between pcuts or ion species
                 l_save .= false  # Whole array must be initialized in case number of particles changes from pcut to pcut
 
-                for arr in (:weight_sav, :ptot_pf_sav, :pb_pf_sav, :x_PT_cm_sav, :grid_sav, :downstream_sav,
-                            :inj_sav, :xn_per_sav, :prp_x_cm_sav, :acctime_sec_sav, :φ_rad_sav, :tcut_sav)
-                    # zero out each array in a type stable manner
-                    @eval fill!($arr, zero(eltype($arr)))
-                end
+                zero!(weight_sav)
+                zero!(ptot_pf_sav)
+                zero!(pb_pf_sav)
+                zero!(x_PT_cm_sav)
+                zero!(grid_sav)
+                zero!(downstream_sav)
+                zero!(inj_sav)
+                zero!(xn_per_sav)
+                zero!(prp_x_cm_sav)
+                zero!(acctime_sec_sav)
+                zero!(φ_rad_sav)
+                zero!(tcut_sav)
 
                 # A separate variable tracks the number of finished particles,
                 # so that race conditions can be avoided in OMP mode
@@ -903,8 +974,18 @@ function (@main)()
                 for i_prt in 1:n_pts_use # loop_pt
 
                     (i_fin, ∑P_downstream, ∑KEdensity_downstream) = particle_loop(
-                        i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, pₓ_esc_upstream,
-                        pcut_prev, i_fin, ∑P_downstream, ∑KEdensity_downstream)
+                        i_iter, i_ion, i_cut, i_prt, n_ions, n_pcuts, n_pts_max,
+                        energy_esc_upstream, pₓ_esc_upstream,
+                        pcut_prev, i_fin, ∑P_downstream, ∑KEdensity_downstream,
+                        aa, zz, m, mc,
+                        nc_unit, n_cr_count, pmax_cutoff,
+                        weight_new, ptot_pf_new, pb_pf_new, grid_new, downstream_new, inj_new,
+                        xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new, tcut_new, x_PT_cm_new,
+                        use_custom_εB, x_grid_stop,
+                        uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
+                        γ_ef_grid, β_ef_grid, btot_grid, θ_grid,
+                        dont_DSA
+                       )
 
                 end # loop_pt
                 #$omp end parallel do

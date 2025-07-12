@@ -1,4 +1,15 @@
-function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, pₓ_esc_upstream, pcut_prev, i_fin, ∑P_downstream, ∑KEdensity_downstream)
+function particle_loop(
+        i_iter, i_ion, i_cut, i_prt, n_ions, n_pcuts, n_pts_max,
+        energy_esc_upstream, pₓ_esc_upstream, pcut_prev, i_fin, ∑P_downstream,
+        ∑KEdensity_downstream,
+        aa, zz, m, mc,
+        nc_unit, n_cr_count, pmax_cutoff,
+        weight_new, ptot_pf_new, pb_pf_new, grid_new, downstream_new, inj_new,
+        xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new, tcut_new, x_PT_cm_new,
+        use_custom_εB, x_grid_stop,
+        uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid, γ_ef_grid, β_ef_grid, btot_grid, θ_grid,
+        dont_DSA
+    )
     # To maintain identical results between OpenMP and serial versions,
     # set RNG seed based on current iteration/ion/pcut/particle number
     iseed_mod =  (  (i_iter - 1)*n_ions*n_pcuts*n_pts_max
@@ -6,11 +17,6 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, p
                   + (i_cut - 1)                *n_pts_max
                   +  i_prt)
     Random.seed!(iseed_mod)
-
-    (
-     aa, zz, m, mc,
-     nc_unit, n_cr_count, pmax_cutoff
-    ) = vals
 
     # Reset the counter for number of times through the main loop
     helix_count = 0
@@ -46,7 +52,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, p
 
     # Gyroradius assuming all motion is perpendicular to B field;
     # pitch-angle-correct gyroradius is gyro_rad_cm
-    global gyro_rad_tot_cm = ptot_pf * c * gyro_denom |> cm
+    gyro_rad_tot_cm = ptot_pf * c * gyro_denom |> cm
 
     # Gyroperiod in seconds
     gyro_period_sec = 2π * γₚ_pf * aa*mp * c * gyro_denom
@@ -122,10 +128,10 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, p
             # Code Block 1: start of helix loop; minor setup
             #--------------------------------------------------------------
             # Calculate momentum perpendicular to magnetic field...
-            global p_perp_b_pf = perpendicular_momentum(ptot_pf, pb_pf)
+            p_perp_b_pf = perpendicular_momentum(ptot_pf, pb_pf)
 
             # ...and turn that into a gyroradius
-            global gyro_rad_cm = p_perp_b_pf * c * gyro_denom |> cm
+            gyro_rad_cm = p_perp_b_pf * c * gyro_denom |> cm
             #--------------------------------------------------------------
             # End of Code Block 1
 
@@ -174,9 +180,9 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, p
                                     b_cos_old, b_sin_old, uₓ_sk, uz_sk, utot, γᵤ_sf,
                                     b_cosθ, b_sinθ, mc)
 
-                global gyro_rad_cm = p_perp_b_pf * c * gyro_denom |> cm
-                global gyro_rad_tot_cm = ptot_pf * c * gyro_denom |> cm
-                global pₓ_sk, py_sk, pz_sk = p_sk
+                gyro_rad_cm = p_perp_b_pf * c * gyro_denom |> cm
+                gyro_rad_tot_cm = ptot_pf * c * gyro_denom |> cm
+                pₓ_sk, py_sk, pz_sk = p_sk
             end
 
 
@@ -365,7 +371,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, p
                     pb_pf_sav[i_prt]        = pb_pf
                     x_PT_cm_sav[i_prt]      = r_PT_cm.x
                     grid_sav[i_prt]         = i_grid
-                    downstream_sav[i_prt]          = l_downstream
+                    downstream_sav[i_prt]   = l_downstream
                     inj_sav[i_prt]          = inj
                     xn_per_sav[i_prt]       = xn_per
                     prp_x_cm_sav[i_prt]     = r_PT_cm.x < prp_x_cm ? prp_x_cm : r_PT_cm.x * 1.1cm # Ensure particle is within PRP
@@ -395,7 +401,7 @@ function particle_loop(i_iter, i_ion, i_cut, i_prt, vals, energy_esc_upstream, p
 
 
         # Find time step
-        global t_step = gyro_period_sec / xn_per |> s
+        t_step = gyro_period_sec / xn_per |> s
 
         # Odd little loop that only matters if DSA has been disabled per the input file
         #------------------------------------------------------------------------------
