@@ -1,5 +1,7 @@
 function particle_loop(
-        i_iter, i_ion, i_cut, i_prt, n_ions, n_pcuts, n_pts_max,
+        i_iter, i_ion, i_cut, i_prt, i_grid_feb, n_ions, n_pcuts, n_pts_max, n_xspec, n_grid,
+        γ₀, β₀, u₀,
+        psd, num_crossings, x_spec, feb_upstream, feb_downstream,
         energy_esc_upstream, pₓ_esc_upstream, pcut_prev, i_fin, ∑P_downstream,
         ∑KEdensity_downstream,
         aa, zz, m, mc,
@@ -8,7 +10,9 @@ function particle_loop(
         xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new, tcut_new, x_PT_cm_new,
         use_custom_εB, x_grid_stop,
         uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid, γ_ef_grid, β_ef_grid, btot_grid, θ_grid,
-        dont_DSA
+        pxx_flux, pxz_flux, energy_flux,
+        dont_DSA, inj_fracs,
+        spectra_pf, spectra_sf,
     )
     # To maintain identical results between OpenMP and serial versions,
     # set RNG seed based on current iteration/ion/pcut/particle number
@@ -407,7 +411,8 @@ function particle_loop(
         #------------------------------------------------------------------------------
         (; pb_pf, φ_rad, x_move_bpar, r_PT_cm) = no_DSA_loop(
             φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA,
-            inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion)
+            inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion,
+            gyro_rad_cm)
         #----------------------------------------------------------------
         # DSA injection prevented if specified
 
@@ -521,7 +526,8 @@ end
 
 function no_DSA_loop(
         φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA,
-        inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion)
+        inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion,
+        gyro_rad_cm)
     local x_move_bpar
     while true # loop_no_DSA
 

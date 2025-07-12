@@ -974,7 +974,9 @@ function (@main)()
                 for i_prt in 1:n_pts_use # loop_pt
 
                     (i_fin, ∑P_downstream, ∑KEdensity_downstream) = particle_loop(
-                        i_iter, i_ion, i_cut, i_prt, n_ions, n_pcuts, n_pts_max,
+                        i_iter, i_ion, i_cut, i_prt, i_grid_feb, n_ions, n_pcuts, n_pts_max, n_xspec, n_grid,
+                        γ₀, β₀, u₀,
+                        psd, num_crossings, x_spec, feb_upstream, feb_downstream,
                         energy_esc_upstream, pₓ_esc_upstream,
                         pcut_prev, i_fin, ∑P_downstream, ∑KEdensity_downstream,
                         aa, zz, m, mc,
@@ -984,7 +986,9 @@ function (@main)()
                         use_custom_εB, x_grid_stop,
                         uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
                         γ_ef_grid, β_ef_grid, btot_grid, θ_grid,
-                        dont_DSA
+                        pxx_flux, pxz_flux, energy_flux,
+                        dont_DSA, inj_fracs,
+                        spectra_pf, spectra_sf,
                        )
 
                 end # loop_pt
