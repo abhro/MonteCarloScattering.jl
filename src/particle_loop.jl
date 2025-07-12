@@ -1,18 +1,21 @@
 function particle_loop(
         i_iter, i_ion, i_cut, i_prt, i_grid_feb, n_ions, n_pcuts, n_pts_max, n_xspec, n_grid,
-        γ₀, β₀, u₀,
+        γ₀, β₀, u₀, u₂, bmag₂,
+        pₑ_crit, γₑ_crit, η_mfp,
+        energy_transfer_frac,
         psd, num_crossings, x_spec, feb_upstream, feb_downstream,
         energy_esc_upstream, pₓ_esc_upstream, pcut_prev, i_fin, ∑P_downstream,
         ∑KEdensity_downstream,
         aa, zz, m, mc,
         nc_unit, n_cr_count, pmax_cutoff,
+        B_CMBz,
         weight_new, ptot_pf_new, pb_pf_new, grid_new, downstream_new, inj_new,
         xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new, tcut_new, x_PT_cm_new,
         use_custom_εB, x_grid_stop,
         uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid, γ_ef_grid, β_ef_grid, btot_grid, θ_grid,
         pxx_flux, pxz_flux, energy_flux,
-        dont_DSA, inj_fracs,
-        spectra_pf, spectra_sf,
+        do_rad_losses, do_retro, dont_DSA, dont_scatter, use_custom_frg, inj_fracs, xn_per_fine, xn_per_coarse,
+        x_grid_cm, therm_grid, therm_ptot_sk, therm_pₓ_sk, therm_weight, spectra_pf, spectra_sf, age_max,
     )
     # To maintain identical results between OpenMP and serial versions,
     # set RNG seed based on current iteration/ion/pcut/particle number
@@ -119,6 +122,7 @@ function particle_loop(
     i_reason = 0
     lose_pt  = false
 
+    local t_step, p_perp_b_pf, gyro_rad_cm
     r_PT_old = SVector{3,LengthCGS}(0cm, 0cm, 0cm)
     while keep_looping # loop_helix
 

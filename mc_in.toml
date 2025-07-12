@@ -2,13 +2,13 @@
 ISEED = 210
 
 # Shock speed as: km/s, Lorentz factor γ, or β
-SKSPD = 5.0
+shock-speed = 5.0
 # Units of shock speed. One of: "km/s", "gamma", "γ", or "c"
 # gamma and γ are the Lorentz factors, and c is in units of c, i.e., β
-SKSPD_UNIT = "gamma"
+shock-speed-unit = "gamma"
 
 # Number of iterations to perform
-NITRS = 20
+num-iterations = 20
 
 # Number of time steps per gyro period, for "coarse" and "fine" scattering
 #XNPER = [100.0, 2000.0]
@@ -22,14 +22,14 @@ AA_ION = [1.0, nan]
 ZZ_ION = [1.0, -1.0]
 # T₀[K] for each species
 TZ_ION = [1e6, 1e6]
-# den₀[/cc] for each species
+# den₀[/cm³] for each species
 DENZ_ION = [1.0, 0.0]
 
-# Far upstream electron temperature. Is set to 0 if e- is a separate species.
-TELEC = 0.0
+# Far upstream electron temperature. Is set to 0 if e⁻ is a separate species.
+upstream-electron-temperature = 0.0
 
 # Input distribution. 1 = thermal, 2 = delta function, 3 = other
-INDST = 1
+input-distribution = 1
 
 # Injection energy[keV] and min PSD limit if "INDST" = 2. Ignored otherwise.
 ENINJ = 1e3
@@ -42,7 +42,7 @@ INJWT = true
 ENMAX = [0, 0, 1e10]
 
 # Gyrofactor, i.e. MFP = gyrofac*gyroradius. Ignored if "NWFRG" = 66
-GYFAC = 1.0
+gyrofactor = 1.0
 
 # Far upstream magnetic field in Gauss
 BMAGZ = 1e-5
@@ -50,11 +50,9 @@ BMAGZ = 1e-5
 # Upstream angle[deg] between B-field and shock normal
 THTBZ = 0.0
 
-# Start of grid[rg0]. Can not be closer than upstream FEB.
-XGDUP = -1e7
-
-# Downstream limit of grid[rg0]
-XGDDW = 1e1
+# Start of grid and downstream limit of grid in units of rg0. The start cannot
+# be closer than the upstream FEB.
+x_grid_limits = [-1e7, 1e1]
 
 # Upstream FEB, in [rg0] or [pc]. 1st non-zero value used. Must be negative.
 FEBUP = [-1e2, 0.0]
@@ -174,8 +172,7 @@ TCUTS = [ 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 3e13 ]
 # Enter "66" to use retro time calculation downstream. Ignored if "AGEMX" < 0
 RETRO = 66
 
-# Enter "66" for fast Ups transport
-FPUSH = 66
+fast-upstream-transport = true
 
 # Upstream x position[rg0] where PROTON fast transport stops
 FPSTP = -1.0
@@ -186,20 +183,18 @@ ARTSM = [0.0, 0.0]
 # Kinetic energy[keV] below which electrons have constant mfp. Ignored if <= 0
 EMNFP = 1e4
 
-# Enter "66" for NO radiation losses
-NORAD = 0
+radiation-losses = true
 
-# Enter "66" to calculate photon production
-PHOTN = 0
+calculate-photon-production = false
 
-# Jet shock radius[pc] used for normalizing photon production. Ignored if "PHOTN" != 66
-JETRD = 4.38e-01
+# Jet shock radius[pc] used for normalizing photon production. Ignored if calculate-photon-production = false.
+jet-shock-radius = 4.38e-01
 
-# Fraction of sphere producing CRs, or jet open angle[deg]. 1st non-zero value used. Ignored if "PHOTN" != 66
+# Fraction of sphere producing CRs, or jet open angle[deg]. 1st non-zero value used. Ignored if calculate-photon-production = false
 JETFR = [0.0, 5.0]
 
 # Distance from jet to observer[kpc]. Used to calculate photon fluxes & CMB parameters
-JETDS = 1e6
+jet-distance = 1e6
 
 # Whether to use jet distance (= 1) or redshift (= 2) for cosmological calculations
 COSMO_VAR = 1
@@ -207,8 +202,8 @@ COSMO_VAR = 1
 # Fraction of ion energy transferred to electrons at 1st shock crossing. Must be [0,1]; 0 to ignore
 ENXFR = 0.1
 
-# number of upstream & downstream shells for photon emission. Ignored if "PHOTN" != 66
-NSHLS = [5, 2]
+# number of upstream & downstream shells for photon emission. Ignored if calculate-photon-production = false
+num-shells = [5, 2]
 
 # Fraction of compressed B turbulence to use in scattering & losses. Must be in [0,1]. 0 means ignore
 BTRBF = 1.0

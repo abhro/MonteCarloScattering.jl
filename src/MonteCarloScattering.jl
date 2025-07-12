@@ -16,7 +16,8 @@ using TOML
 module CGSTypes
 using Unitful: g, K, cm, s, dyn, erg, keV, GeV
 using UnitfulGaussian: Fr, G, qcgs
-export LengthCGS, TimeCGS, MomentumCGS, BFieldCGS, MomentumFluxCGS, MomentumDensityFluxCGS, EnergyFluxCGS, EnergyDensityFluxCGS
+export LengthCGS, TimeCGS, MomentumCGS, BFieldCGS, EnergyCGS, MomentumFluxCGS,
+       MomentumDensityFluxCGS, EnergyFluxCGS, EnergyDensityFluxCGS
 const LengthCGS              = typeof(1.0 * cm)
 const TimeCGS                = typeof(1.0 * s)
 const MomentumCGS            = typeof(1.0 * g*cm/s)
@@ -63,21 +64,21 @@ function parse_shock_speed(skspd, skspd_unit)
     skspd > 0 || error("Shock speed must be positive")
 
     if skspd_unit ∈ ("gamma", "γ")
-        skspd > 1 || error("SKSPD: Lorentz factor must be > 1")
+        skspd > 1 || error("shock-speed: Lorentz factor must be > 1")
         γ = skspd
         β = √(1 - 1/γ^2)
         u = β * c |> cm/s
     else
         if skspd_unit == "km/s"
-            0 < skspd < ustrip(km/s, Unitful.c0) || error("SKSPD: u must be between 0 and c")
+            0 < skspd < ustrip(km/s, Unitful.c0) || error("shock-speed: u must be between 0 and c")
             u = (skspd * 1e5) * cm/s
             β = u / c
         elseif skspd_unit == "c"
-            0 < skspd < 1 || error("SKSPD: β must be between 0 and 1")
+            0 < skspd < 1 || error("shock-speed: β must be between 0 and 1")
             β = skspd
             u = β * c |> cm/s
         else
-            error("SKSPD: unknown units provided with SKSPD_UNIT")
+            error("shock-speed: unknown units provided with shock-speed-unit")
         end
         γ = lorentz(β)
     end
@@ -106,12 +107,36 @@ function parse_maximum_energy(energy_max)
     return (Emax*keV, Emax_per_aa*keV, pmax*mp*c)
 end
 
+function parse_electron_critical_energy(Eₑ_crit)
+    if isnothing(Eₑ_crit) || Eₑ_crit ≤ 0
+        return (-1.0*me*c, -1.0)
+    end
+
+    Eₑ_crit *= keV # attach units
+    # Convert input energy to momentum and Lorentz factor
+    Eₑ_crit_rm = Eₑ_crit / E₀ₑ
+
+    # Different forms for nonrelativistic and relativstic momenta
+    if Eₑ_crit_rm < 1e-2
+        pₑ_crit = √(2 * me * Eₑ_crit)
+        γₑ_crit = 1.0
+    else
+        pₑ_crit = me*c * √((Eₑ_crit_rm + 1)^2 - 1)
+        γₑ_crit = Eₑ_crit_rm + 1
+    end
+    return (pₑ_crit |> g*cm/s, γₑ_crit)
+end
+
 function check_shock_angle(θ)
     if θ > 0
         error("program cannot currently handle oblique shocks. Adjust THTBZ.")
     elseif θ < 0
         error("unphysical value for THTBZ. Must be at least 0.")
     end
+end
+function check_x_grid_limits(x_grid_start_rg, x_grid_stop_rg)
+    x_grid_start_rg ≥ 0 && error("x_grid_limits: x_grid_start must be negative.")
+    x_grid_stop_rg  ≤ 0 && error("x_grid_limits: x_grid_stop must be positive.")
 end
 
 function (@main)()
@@ -121,7 +146,7 @@ function (@main)()
     # Get input, control variables, etc.
     cfg_toml = TOML.parsefile("mc_in.toml")
 
-    (u₀, β₀, γ₀) = parse_shock_speed(cfg_toml["SKSPD"], cfg_toml["SKSPD_UNIT"])
+    (u₀, β₀, γ₀) = parse_shock_speed(cfg_toml["shock-speed"], cfg_toml["shock-speed-unit"])
 
     species = let
         masses = cfg_toml["AA_ION"] # species mass in units of proton mass
@@ -142,13 +167,13 @@ function (@main)()
     end
     n_ions = length(species)
 
-    inp_distr = cfg_toml["INDST"]
+    inp_distr = cfg_toml["input-distribution"]
     energy_inj = cfg_toml["ENINJ"] * keV
     inj_weight = get(cfg_toml, "INJWT", true)
 
     Emax, Emax_per_aa, pmax = parse_maximum_energy(cfg_toml["ENMAX"])
 
-    η_mfp = get(cfg_toml, "GYFAC", 1)
+    η_mfp = get(cfg_toml, "gyrofactor", 1)
 
     bmag₀ = cfg_toml["BMAGZ"]*G
     # rg₀ below is the gyroradius of a proton whose speed is u₀ that is gyrating in a field
@@ -158,12 +183,8 @@ function (@main)()
     θ_B₀ = cfg_toml["THTBZ"] # must be zero
     check_shock_angle(θ_B₀)
 
-    begin
-        x_grid_start_rg = cfg_toml["XGDUP"]
-        x_grid_stop_rg  = cfg_toml["XGDDW"]
-        x_grid_start_rg ≥ 0 && error("XGDUP: x_grid_start must be negative.")
-        x_grid_stop_rg  ≤ 0 && error("XGDDW: x_grid_stop must be positive.")
-    end
+    x_grid_start_rg, x_grid_stop_rg = cfg_toml["x_grid_limits"]
+    check_x_grid_limits(x_grid_start_rg, x_grid_stop_rg)
 
     feb_upstream = let
         febup = get(cfg_toml, "FEBUP", nothing)
@@ -206,7 +227,7 @@ function (@main)()
         n_xspec = length(x_spec)
     end
 
-    n_itrs = cfg_toml["NITRS"]
+    n_itrs = cfg_toml["num-iterations"]
     xn_per_coarse = cfg_toml["XN_PER_COARSE"]
     xn_per_fine = cfg_toml["XN_PER_FINE"]
 
@@ -321,7 +342,7 @@ function (@main)()
     # default behavior of do_retro is dependent on age_max
     do_retro = (get(cfg_toml, "RETRO", age_max > 0s ? 66 : 0) == 66)
 
-    do_fast_push = (get(cfg_toml, "FPUSH", 0) == 66)
+    do_fast_push = get(cfg_toml, "fast-upstream-transport", false)
     x_fast_stop_rg = do_fast_push ? cfg_toml["FPSTP"] : 0.0
 
     x_art_start_rg, x_art_scale = let
@@ -335,34 +356,13 @@ function (@main)()
         (x_art_start_rg, x_art_scale)
     end
 
-    pₑ_crit, γₑ_crit = let
+    pₑ_crit, γₑ_crit = parse_electron_critical_energy(get(cfg_toml, "EMNFP", nothing))
 
-        energyₑ_crit = get(cfg_toml, "EMNFP", nothing) * keV
-        # If needed, convert input energy to momentum and Lorentz factor
-        if !isnothing(energyₑ_crit) && energyₑ_crit > 0keV
-            energyₑ_crit_rm = energyₑ_crit / E₀ₑ
+    do_rad_losses = get(cfg_toml, "radiation-losses", true)
+    do_photons = get(cfg_toml, "calculate-photon-production", false)
 
-            # Different forms for nonrelativistic and relativstic momenta
-            if energyₑ_crit_rm < 1e-2
-                pₑ_crit = me*c * √(2energyₑ_crit_rm)
-                γₑ_crit = 1.0
-            else
-                pₑ_crit = me*c * √((energyₑ_crit_rm + 1)^2 - 1)
-                γₑ_crit = energyₑ_crit_rm + 1.0
-            end
-        else
-            pₑ_crit = -1.0
-            γₑ_crit = -1.0
-        end
-        (pₑ_crit, γₑ_crit)
-    end
-
-    do_rad_losses = (get(cfg_toml, "NORAD", 0) != 66)
-
-    do_photons = (get(cfg_toml, "PHOTN", 0) == 66)
-
-    # JETRD only mandatory if doing photons
-    jet_rad_pc = do_photons ? cfg_toml["JETRD"] : get(cfg_toml, "JETRD", 0.0)
+    # jet-shock-radius only mandatory if doing photons
+    jet_rad_pc = do_photons ? cfg_toml["jet-shock-radius"] : get(cfg_toml, "jet-shock-radius", 0.0)
 
     jet_sph_frac, jet_open_ang_deg = let
 
@@ -384,10 +384,10 @@ function (@main)()
     end
 
     begin
-        jet_dist_kpc = get(cfg_toml, "JETDS", 1.0)
+        jet_dist_kpc = get(cfg_toml, "jet-distance", 1.0)
         redshift = get(cfg_toml, "RDSHF", 0.0)
         if jet_dist_kpc > 0 && redshift > 0
-            error("JETDS: At most one of 'JETDS' and 'RDSHF' may be non-zero.")
+            error("jet-distance: At most one of 'jet-distance' and 'RDSHF' may be non-zero.")
         end
     end
     begin
@@ -403,7 +403,7 @@ function (@main)()
         end
     end
 
-    num_upstream_shells, num_downstream_shells = cfg_toml["NSHLS"]
+    num_upstream_shells, num_downstream_shells = cfg_toml["num-shells"]
 
     begin
         bturb_comp_frac = get(cfg_toml, "BTRBF", 0.0)
@@ -975,20 +975,25 @@ function (@main)()
 
                     (i_fin, ∑P_downstream, ∑KEdensity_downstream) = particle_loop(
                         i_iter, i_ion, i_cut, i_prt, i_grid_feb, n_ions, n_pcuts, n_pts_max, n_xspec, n_grid,
-                        γ₀, β₀, u₀,
+                        γ₀, β₀, u₀, u₂, bmag₂,
+                        pₑ_crit, γₑ_crit, η_mfp,
+                        energy_transfer_frac,
                         psd, num_crossings, x_spec, feb_upstream, feb_downstream,
                         energy_esc_upstream, pₓ_esc_upstream,
                         pcut_prev, i_fin, ∑P_downstream, ∑KEdensity_downstream,
                         aa, zz, m, mc,
                         nc_unit, n_cr_count, pmax_cutoff,
+                        B_CMBz,
                         weight_new, ptot_pf_new, pb_pf_new, grid_new, downstream_new, inj_new,
                         xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new, tcut_new, x_PT_cm_new,
                         use_custom_εB, x_grid_stop,
                         uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
                         γ_ef_grid, β_ef_grid, btot_grid, θ_grid,
                         pxx_flux, pxz_flux, energy_flux,
-                        dont_DSA, inj_fracs,
-                        spectra_pf, spectra_sf,
+                        do_rad_losses, do_retro, dont_DSA, dont_scatter, use_custom_frg,
+                        inj_fracs, xn_per_fine, xn_per_coarse,
+                        x_grid_cm, therm_grid, therm_ptot_sk, therm_pₓ_sk, therm_weight,
+                        spectra_pf, spectra_sf, age_max,
                        )
 
                 end # loop_pt
