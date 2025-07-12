@@ -1,8 +1,9 @@
 function particle_loop(
-        i_iter, i_ion, i_cut, i_prt, i_grid_feb, n_ions, n_pcuts, n_pts_max, n_xspec, n_grid,
+        i_iter, i_ion, i_cut, i_prt, i_grid_feb, i_shock,
+        n_ions, n_pcuts, n_pts_max, n_xspec, n_grid,
         γ₀, β₀, u₀, u₂, bmag₂,
         pₑ_crit, γₑ_crit, η_mfp,
-        energy_transfer_frac,
+        energy_transfer_frac, energy_recv_pool,
         psd, num_crossings, x_spec, feb_upstream, feb_downstream,
         energy_esc_upstream, pₓ_esc_upstream, pcut_prev, i_fin, ∑P_downstream,
         ∑KEdensity_downstream,
@@ -14,8 +15,10 @@ function particle_loop(
         use_custom_εB, x_grid_stop,
         uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid, γ_ef_grid, β_ef_grid, btot_grid, θ_grid,
         pxx_flux, pxz_flux, energy_flux,
-        do_rad_losses, do_retro, dont_DSA, dont_scatter, use_custom_frg, inj_fracs, xn_per_fine, xn_per_coarse,
-        x_grid_cm, therm_grid, therm_ptot_sk, therm_pₓ_sk, therm_weight, spectra_pf, spectra_sf, age_max,
+        do_rad_losses, do_retro, do_tcuts, dont_DSA, dont_scatter, use_custom_frg,
+        inj_fracs, xn_per_fine, xn_per_coarse,
+        x_grid_cm, therm_grid, therm_ptot_sk, therm_pₓ_sk, therm_weight,
+        spectra_pf, spectra_sf, tcuts, age_max,
     )
     # To maintain identical results between OpenMP and serial versions,
     # set RNG seed based on current iteration/ion/pcut/particle number
