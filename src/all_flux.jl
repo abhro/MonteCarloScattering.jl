@@ -109,29 +109,11 @@ function all_flux!(
 
     # Calculate spectrum at x_spec locations if needed
     if n_xspec > 0
-        i_pt    = get_psd_bin_momentum(ptot_sk, psd_bins_per_dec_mom,
-                                       # from some module
-                                       psd_mom_min, num_psd_mom_bins)
-        i_pt_pf = get_psd_bin_momentum(ptot_pf, psd_bins_per_dec_mom,
-                                       # from some module
-                                       psd_mom_min, num_psd_mom_bins)
-
-        for i in 1:n_xspec
-            if ((x_PT_old < x_spec[i] && x_PT_cm  ≥ x_spec[i]) ||
-                (x_PT_cm  ≤ x_spec[i] && x_PT_old > x_spec[i]))
-
-                # Spectrum in shock frame
-                spectra_sf[i_pt, i] += weight * pt_o_pₓ_sk
-
-
-                # Spectrum in plasma frame; flux_weight_fac corresponds to vx_pf/vx_sk and
-                # measures relative likelihood of crossing in the plasma frame
-                # given a known crossing in the shock frame
-                flux_weight_fac = abs(pb_pf/p_sk.x) * (γₚ_sk/γₚ_pf)
-
-                spectra_pf[i_pt_pf, i] += weight * pt_o_pₓ_pf * flux_weight_fac
-            end
-        end
+        caclulate_x_spec_spectra!(
+            spectra_sf, spectra_pf, n_xspec, x_spec, x_PT_old, x_PT_cm,
+            ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins,
+            weight, pt_o_pₓ_sk, pb_pf, p_sk, γₚ_sk, γₚ_pf,
+        )
     end
 
 
@@ -139,9 +121,8 @@ function all_flux!(
     # or downstream and update fluxes across all zone boundaries the particle
     # crossed. WARNING: the particle quantity "weight" is the fraction of the
     # far upstream density each particle represents. However, the actual flux is
-    #     γ₀ * u₀ * n₀,
-    # which means that the flux contribution of each particle must be increased
-    # by a factor of γ₀⋅u₀.
+    # γ₀⋅u₀⋅n₀, which means that the flux contribution of each particle must
+    # be increased by a factor of γ₀⋅u₀.
     #--------------------------------------------------------------------------
     # Downstream first
     if x_PT_cm > x_PT_old
@@ -154,10 +135,11 @@ function all_flux!(
         sign_fac = -1
     end  # check on direction of motion
     n_cr_count = flux_stream!(
-        i_range, inj_check, sign_fac,
+        i_range, num_crossings, γ₀, u₀, inj_check, sign_fac,
         pxx_flux, pxz_flux, energy_flux,
         p_sk, ptot_sk, weight, energy_flux_add, inj, n_cr_count, abs_inv_vx_sk,
-        therm_ptot_sk)
+        therm_ptot_sk, therm_pₓ_sk, therm_grid, therm_weight,
+    )
     #--------------------------------------------------------------------------
     # Finished updating fluxes for crossed grid boundaries
 
@@ -174,16 +156,45 @@ function all_flux!(
     return (i_grid, i_grid_old, n_cr_count, pₓ_esc_upstream, energy_esc_upstream)
 end
 
+function caclulate_x_spec_spectra!(
+        spectra_sf, spectra_pf, n_xspec, x_spec, x_PT_old, x_PT_cm,
+        ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins,
+        weight, pt_o_pₓ_sk, pb_pf, p_sk, γₚ_sk, γₚ_pf,
+    )
+    i_pt    = get_psd_bin_momentum(ptot_sk, psd_bins_per_dec_mom,
+                                   # from some module
+                                   psd_mom_min, num_psd_mom_bins)
+    i_pt_pf = get_psd_bin_momentum(ptot_pf, psd_bins_per_dec_mom,
+                                   # from some module
+                                   psd_mom_min, num_psd_mom_bins)
+
+    for i in 1:n_xspec
+        if ((x_PT_old < x_spec[i] && x_PT_cm  ≥ x_spec[i]) ||
+            (x_PT_cm  ≤ x_spec[i] && x_PT_old > x_spec[i]))
+
+            # Spectrum in shock frame
+            spectra_sf[i_pt, i] += weight * pt_o_pₓ_sk
+
+            # Spectrum in plasma frame; flux_weight_fac corresponds to vₓ_pf/vₓ_sk and
+            # measures relative likelihood of crossing in the plasma frame
+            # given a known crossing in the shock frame
+            flux_weight_fac = abs(pb_pf/p_sk.x) * (γₚ_sk/γₚ_pf)
+
+            spectra_pf[i_pt_pf, i] += weight * pt_o_pₓ_pf * flux_weight_fac
+        end
+    end
+end
+
 """
     flux_stream!(...)
 
 TODO
 """
 function flux_stream!(
-        i_range, inj_check, sign_fac,
+        i_range, num_crossings, γ₀, u₀, inj_check, sign_fac,
         pxx_flux, pxz_flux, energy_flux,
         p_sk, ptot_sk, weight, energy_flux_add, inj, n_cr_count, abs_inv_vx_sk,
-        therm_ptot_sk,
+        therm_ptot_sk, therm_pₓ_sk, therm_grid, therm_weight,
     )
 
     # Check if particle has already been injected into acceleration process;
