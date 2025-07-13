@@ -89,3 +89,68 @@ function new_pcut(
             x_PT_cm_new, xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new,
             n_pts_new, weight_running)
 end
+
+function pcut_finalize(
+        i_iter, i_ion, i_cut, p_pcut_hi, n_pts_pcut, n_pts_pcut_hi, n_pts_use,
+        weight_running, l_save, t_start, pcuts_in, pcuts_use, outfile)
+    break_pcut = false
+    n_saved = count(l_save)
+
+    t_end = now()
+    run_time = t_end - t_start
+
+    @info("Finalizing pcut", i_iter, i_ion, i_cut,
+          pcuts_in[i_cut], pcuts_use[i_cut]/(mp*c)|>NoUnits,
+          n_saved, n_pts_use, weight_running, run_time)
+    println(outfile, " itr=$i_iter ion=$i_ion icut=$i_cut ",
+            pcuts_in[i_cut], pcuts_use[i_cut]/(mp*c)|>NoUnits,
+            "  n_sav=$n_saved/$n_pts_use ", weight_running, run_time)
+
+
+    # If no particles saved, don't bother with remaining pcuts
+    if n_saved == 0
+        break_pcut = true
+        return break_pcut
+    end
+
+    # Prepare population for next pcut
+    n_pts_target = pcuts_use[i_cut] < p_pcut_hi ? n_pts_pcut : n_pts_pcut_hi
+    return break_pcut, n_pts_target, n_saved
+end
+
+"""
+    tcut_track!(...)
+
+If directed in data_input, track particles' momenta -- and whether they are
+still interacting with the shock -- at various times since acceleration began.
+
+### Modifies
+
+- `weight_coupled`
+- `spectra_coupled`
+
+### Arguments
+
+- `tcut_curr`: current tcut for tracking
+- `weight`: particle weight
+- `ptot_pf`: plasma-frame total momentum
+- `i_ion`
+- `num_psd_mom_bins`
+
+### Returns
+
+Nothing. All adjustments made to input arrays
+"""
+function tcut_track!(
+        weight_coupled::AbstractArray, spectra_coupled::AbstractArray,
+        tcut_curr, weight, ptot_pf,
+        i_ion, num_psd_mom_bins, psd_mom_min, psd_bins_per_dec_mom)
+    # Since particle is still coupled to shock (i.e. being accelerated),
+    # add its weight to appropriate bin of weight_coupled
+    weight_coupled[tcut_curr,i_ion] += weight
+
+    # For spectra, need to convert ptot_pf into a psd bin, then add it to array;
+    #  note that we don't care about angular component
+    i_pt = get_psd_bin_momentum(ptot_pf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
+    spectra_coupled[i_pt, tcut_curr, i_ion] += weight
+end
