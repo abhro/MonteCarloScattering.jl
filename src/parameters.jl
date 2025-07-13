@@ -1,7 +1,8 @@
+"""
+Parameters governing array sizes. All of these should be interpreted as maximum values for
+their respective quantity; the code will quite happily run if not all the array is used.
+"""
 module parameters
-
-# Parameters governing array sizes. All of these should be interpreted as maximum values for
-# their respective quantity; the code will quite happily run if not all the array is used.
 
 export na_particles, na_c
 "Max number of particles at each pcut"
