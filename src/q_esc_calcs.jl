@@ -30,6 +30,8 @@ end
 
 
 """
+    q_esc_calcs_nonrelativistic(...)
+
 Solution comes from Ellison (1985) [1985JGR....90...29E] (Eqs 8-10).
 Note assumption of zero escaping momentum flux, which is good to
 within a couple percent for strong nonrelativistic shocks.
@@ -58,23 +60,32 @@ function q_esc_calcs_nonrelativistic()
     return q_esc_cal_energy, q_esc_cal_pₓ
 end
 
-"""
+@doc raw"""
+    q_esc_calcs_relativistic(...)
+
 Solution comes from Ellison+ (1990) [1991ApJ...378..214E]. Uses relativistic Rankine-Hugoniot
 relations. See that paper for details of equations and associated quantities. Briefly,
-   R-H1:   g₀  n₀ b₀        =  g₂  n₂ b₂
-   R-H2:   g₀² w₀ b₀²  + P₀ =  g₂² w₂ b₂²  + P₂ + Q_px
-   R-H3:   g₀² w₀ b₀ c      =  g₂² w₂ b₂ c      + Q_en
+
+```math
+\begin{align}
+g_0   n_0 b_0         &=  g_2   n_2 b_2                  \tag{RH1} \\
+g_0^2 w_0 b_0^2 + P_0 &=  g_2^2 w_2 b_2^2 + P_2 + Q_{px} \tag{RH2} \\
+g_0^2 w_0 b_0 c       &=  g_2^2 w_2 b_2 c       + Q_{en} \tag{RH3}
+\end{align}
+```
 where
-   w    = E_rm + E_ke + P,   <--- enthalpy as total energy density + pressure
-   E_rm =      nmc²          <--- rest mass energy density
-   E_ke = (γ-1)nmc²          <--- kinetic energy density, with γ = √(1 + (p/mc)²)
-   P    =     ⅓npv           <--- pressure
+- ``w   = E_0 + E_k + P``   is the enthalpy as total energy density + pressure
+- ``E_0 =       nmc^2``     is the rest mass energy density
+- ``E_k = (γ-1) nmc^2``     is the kinetic energy density, with ``γ = \sqrt{1 + (p/mc)^2}``
+- ``P   = \frac{1}{3} npv`` is the pressure
 
 For closure, it is assumed that the two escaping fluxes are related by
-    Q_en = √[(1+β₀)/2] * Q_px * c,
+```math
+Q_{en} = \sqrt{(1+β₀)/2} ⋅ Q_{px} ⋅ c,
+```
 i.e. the geometric mean of the arithmetic mean of u₀ and c. This allows the solution to
-smoothly join with the non-relativistic version. Use only fluid component of
-fluxes, not fluid+EM, for now.
+smoothly join with the non-relativistic version. Use only fluid component of fluxes,
+not fluid+EM, for now.
 """
 function q_esc_calcs_relativistic()
     # Factor relating Q_en and Q_px
