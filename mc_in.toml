@@ -129,17 +129,17 @@ PCUTS = [
     1.000e13,
 ]
 
-# Enter "66" for no shock, i.e. force r_comp = 1. For testing only.
-NOSHK = 0
+# Enter true for no shock, i.e. force r_comp = 1. For testing only.
+no-shock = false
 
-# Enter "66" for scatter-FREE propagation. For testing only.
-NOSCT = 0
+# Enter true for scatter-FREE propagation. For testing only.
+no-scatter = false
 
-# Enter "66" to turn off DSA. For testing only.
-NODSA = 0
+# Enter true to turn off DSA. For testing only.
+no-DSA = false
 
-# Enter "66" to keep velocity profile constant between iterations (i.e. NO smoothing)
-SMSHK = 66
+# Enter false to keep velocity profile constant between iterations (i.e. NO smoothing)
+smooth-shocks = false
 
 # Factor to weight old profile with in shock smoothing.
 # > 1 favors old profile over new. = 1 to use mean of the two
