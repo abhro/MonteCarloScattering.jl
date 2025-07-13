@@ -1,8 +1,10 @@
 function particle_loop(
         i_iter, i_ion, i_cut, i_prt, i_grid_feb, i_shock,
-        n_ions, n_pcuts, n_pts_max, n_xspec, n_grid,
+        n_ions, n_pcuts, n_pts_max, n_xspec, n_grid, n_print_pt, num_psd_mom_bins, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min,
+        species,
         γ₀, β₀, u₀, u₂, bmag₂,
         pₑ_crit, γₑ_crit, η_mfp,
+        psd_mom_min, psd_bins_per_dec_mom, psd_bins_per_dec_θ,
         energy_transfer_frac, energy_recv_pool,
         psd, num_crossings, x_spec, feb_upstream, feb_downstream,
         energy_esc_upstream, pₓ_esc_upstream, pcut_prev, i_fin, ∑P_downstream,
@@ -12,13 +14,17 @@ function particle_loop(
         B_CMBz,
         weight_new, ptot_pf_new, pb_pf_new, grid_new, downstream_new, inj_new,
         xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new, tcut_new, x_PT_cm_new,
+        l_save, weight_sav, ptot_pf_sav, pb_pf_sav, grid_sav, downstream_sav, inj_sav,
+        xn_per_sav, prp_x_cm_sav, acctime_sec_sav, φ_rad_sav, tcut_sav, x_PT_cm_sav,
         use_custom_εB, x_grid_stop,
         uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid, γ_ef_grid, β_ef_grid, btot_grid, θ_grid,
-        pxx_flux, pxz_flux, energy_flux,
+        pxx_flux, pxz_flux, energy_flux, pₓ_esc_feb, energy_esc_feb,
         do_rad_losses, do_retro, do_tcuts, dont_DSA, dont_scatter, use_custom_frg,
         inj_fracs, xn_per_fine, xn_per_coarse,
         x_grid_cm, therm_grid, therm_ptot_sk, therm_pₓ_sk, therm_weight,
-        spectra_pf, spectra_sf, tcuts, age_max,
+        spectra_pf, spectra_sf, tcuts, pcuts_use, age_max,
+        weight_coupled, spectra_coupled, esc_energy_eff, esc_num_eff, esc_flux,
+        esc_psd_feb_upstream, esc_psd_feb_downstream,
     )
     # To maintain identical results between OpenMP and serial versions,
     # set RNG seed based on current iteration/ion/pcut/particle number
@@ -56,8 +62,8 @@ function particle_loop(
     # Constant that will be used repeatedly during loop
     # Square root corresponds to Blandford-McKee solution, where e ∝ 1/χ ∝ 1/r
     gyro_denom = 1 / (zz * btot_grid[i_grid]) # zz already has units of charge
-    if use_custom_εB && (r_PT_cm.x > x_grid_stop)
-        gyro_denom *=  √(r_PT_cm.x / x_grid_stop)
+    if use_custom_εB && r_PT_cm.x > x_grid_stop
+        gyro_denom *= √(r_PT_cm.x / x_grid_stop)
     end
 
     # Gyroradius assuming all motion is perpendicular to B field;
@@ -271,7 +277,6 @@ function particle_loop(
             # end check on whether particles are thermal and upstream
             # end check on energy_transfer_frac
 
-
             # Particle escape: downstream with scattering disabled
             if dont_scatter && r_PT_cm.x > 10gyro_rad_cm
                 i_return = 0
@@ -281,13 +286,11 @@ function particle_loop(
                 continue
             end
 
-
             # Particle escape: pmax (note that effects are same as for escape at upstream FEB)
             if ptot_pf > pmax_cutoff
                 # Transform plasma frame momentum into shock frame to test there also
                 ptot_sk, p_sk, γₚ_sk = transform_p_PS(aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                                                      uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
-                                                      mc)
+                                                      uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ, mc)
 
                 if ptot_sk > pmax_cutoff
                     i_reason = 2
@@ -330,9 +333,9 @@ function particle_loop(
 
                 # Catch electrons that have somehow lost all their energy in a single time step
                 if ptot_pf ≤ 0g*cm/s
-                    ptot_pf = 1e-99MomentumCGS
-                    pb_pf = 1e-99MomentumCGS
-                    p_perp_b_pf = 1e-99MomentumCGS
+                    ptot_pf = 1e-99g*cm/s
+                    pb_pf = 1e-99g*cm/s
+                    p_perp_b_pf = 1e-99g*cm/s
                     γₚ_pf = 1
                     i_reason = 4
                     keep_looping = false
@@ -368,7 +371,9 @@ function particle_loop(
                 acctime_sec += t_step*γᵤ_ef
 
                 if do_tcuts && acctime_sec ≥ tcuts[tcut_curr]
-                    tcut_track!(weight_coupled, spectra_coupled, tcut_curr, weight, ptot_pf, i_ion, num_psd_mom_bins)
+                    tcut_track!(weight_coupled, spectra_coupled, tcut_curr,
+                                weight, ptot_pf, i_ion, num_psd_mom_bins,
+                                psd_mom_min, psd_bins_per_dec_mom)
                     tcut_curr += 1
                 end
 
@@ -417,9 +422,8 @@ function particle_loop(
         # Odd little loop that only matters if DSA has been disabled per the input file
         #------------------------------------------------------------------------------
         (; pb_pf, φ_rad, x_move_bpar, r_PT_cm) = no_DSA_loop(
-            φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA,
-            inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion,
-            gyro_rad_cm)
+            φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA, inj_fracs,
+            r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion, gyro_rad_cm)
         #----------------------------------------------------------------
         # DSA injection prevented if specified
 
@@ -461,6 +465,7 @@ function particle_loop(
             n_xspec, x_spec, feb_upstream, γ₀, u₀, mc,
             n_grid, x_grid_cm,
             therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight,
+            psd_bins_per_dec_mom, psd_bins_per_dec_θ, psd_mom_min, num_psd_mom_bins, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min,
         )
 
 
@@ -506,29 +511,9 @@ function particle_loop(
     end # loop_helix
     #------------------------------------------------------------------
     # End of loop moving/tracking particles on/off grid
-
-
-    if !l_save[i_prt]
-      particle_finish!(pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
-                       esc_flux, esc_psd_feb_downstream, esc_psd_feb_upstream,
-                       i_reason, i_iter, i_ion,
-                       num_psd_θ_bins,
-                       aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                       uₓ_sk, uz_sk, utot,
-                       γᵤ_sf, b_cosθ, b_sinθ, weight, mc)
-    end
-
-
-    # Particle counting
-    if i_cut == 1 && (i_prt == 1 || i_prt % n_print_pt == 0)
-      @info("Particle = $i_prt")
-    end
-
-    i_fin += 1
-    #if i_fin % 16 == 0
-    #    print_progress_bar(i_fin, n_pts_use)
-    #end
-    return i_fin, ∑P_downstream, ∑KEdensity_downstream
+    return (i_fin, i_reason, pb_pf, p_perp_b_pf, γₚ_pf, γᵤ_sf, b_cosθ, b_sinθ, weight,
+            uₓ_sk, uz_sk, utot, φ_rad,
+            ∑P_downstream, ∑KEdensity_downstream)
 end
 
 function no_DSA_loop(

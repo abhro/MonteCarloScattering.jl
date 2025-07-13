@@ -888,11 +888,16 @@ function (@main)()
                 #$omp parallel for default(none), schedule(dynamic,1), num_threads(6)
                 for i_prt in 1:n_pts_use # loop_pt
 
-                    (i_fin, ∑P_downstream, ∑KEdensity_downstream) = particle_loop(
+                    (i_fin, i_reason, pb_pf, p_perp_b_pf, γₚ_pf, γᵤ_sf, b_cosθ, b_sinθ, weight,
+                     uₓ_sk, uz_sk, utot, φ_rad,
+                     ∑P_downstream, ∑KEdensity_downstream) = particle_loop(
                         i_iter, i_ion, i_cut, i_prt, i_grid_feb, i_shock,
-                        n_ions, n_pcuts, n_pts_max, n_xspec, n_grid,
+                        n_ions, n_pcuts, n_pts_max, n_xspec, n_grid, n_print_pt, num_psd_mom_bins, num_psd_θ_bins,
+                        psd_cos_fine, Δcos, psd_θ_min,
+                        species,
                         γ₀, β₀, u₀, u₂, bmag₂,
                         pₑ_crit, γₑ_crit, η_mfp,
+                        psd_mom_min, psd_bins_per_dec_mom, psd_bins_per_dec_θ,
                         energy_transfer_frac, energy_recv_pool,
                         psd, num_crossings, x_spec, feb_upstream, feb_downstream,
                         energy_esc_upstream, pₓ_esc_upstream,
@@ -902,23 +907,62 @@ function (@main)()
                         B_CMBz,
                         weight_new, ptot_pf_new, pb_pf_new, grid_new, downstream_new, inj_new,
                         xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new, tcut_new, x_PT_cm_new,
+                        l_save, weight_sav, ptot_pf_sav, pb_pf_sav, grid_sav, downstream_sav, inj_sav,
+                        xn_per_sav, prp_x_cm_sav, acctime_sec_sav, φ_rad_sav, tcut_sav, x_PT_cm_sav,
                         use_custom_εB, x_grid_stop,
                         uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
                         γ_ef_grid, β_ef_grid, btot_grid, θ_grid,
-                        pxx_flux, pxz_flux, energy_flux,
+                        pxx_flux, pxz_flux, energy_flux, pₓ_esc_feb, energy_esc_feb,
                         do_rad_losses, do_retro, do_tcuts, dont_DSA, dont_scatter, use_custom_frg,
                         inj_fracs, xn_per_fine, xn_per_coarse,
                         x_grid_cm, therm_grid, therm_ptot_sk, therm_pₓ_sk, therm_weight,
-                        spectra_pf, spectra_sf, tcuts, age_max,
+                        spectra_pf, spectra_sf, tcuts, pcuts_use, age_max,
+                        weight_coupled, spectra_coupled, esc_energy_eff, esc_num_eff, esc_flux,
+                        esc_psd_feb_upstream, esc_psd_feb_downstream,
                        )
+
+                    if !l_save[i_prt]
+                        particle_finish!(pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
+                                         esc_flux, esc_psd_feb_downstream, esc_psd_feb_upstream,
+                                         i_reason, i_iter, i_ion,
+                                         num_psd_mom_bins, num_psd_θ_bins,
+                                         psd_bins_per_dec_mom, psd_bins_per_dec_θ,
+                                         psd_mom_min, psd_θ_min, psd_cos_fine, Δcos,
+                                         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
+                                         uₓ_sk, uz_sk, utot,
+                                         γᵤ_sf, b_cosθ, b_sinθ, weight, mc)
+                    end
+
+                    # Particle counting
+                    if i_cut == 1 && (i_prt == 1 || i_prt % n_print_pt == 0)
+                        @info("Particle = $i_prt")
+                    end
+
+                    i_fin += 1
+                    #if i_fin % 16 == 0
+                    #    print_progress_bar(i_fin, n_pts_use)
+                    #end
 
                 end # loop_pt
                 #$omp end parallel do
                 #--------------------------------------------------------------------
                 # Conclusion of particle loop
 
-                break_pcut = pcut_finalize(i_iter, i_ion, i_cut, p_pcut_hi, n_pts_pcut, n_pts_pcut_hi)
-                break_pcut && break
+                break_pcut, n_pts_target, n_saved = pcut_finalize(
+                     i_iter, i_ion, i_cut, p_pcut_hi, n_pts_pcut, n_pts_pcut_hi, n_pts_use,
+                     weight_running, l_save, t_start, pcuts_in, pcuts_use, outfile)
+                if break_pcut
+                    break
+                end
+                (
+                 grid_new, tcut_new, downstream_new, inj_new, weight_new, ptot_pf_new, pb_pf_new,
+                 x_PT_cm_new, xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new,
+                 n_pts_use, weight_running
+                ) = new_pcut(
+                    n_pts_target, n_saved, l_save, grid_sav, downstream_sav, inj_sav,
+                    weight_sav, ptot_pf_sav, pb_pf_sav, x_PT_cm_sav, xn_per_sav,
+                    prp_x_cm_sav, acctime_sec_sav, φ_rad_sav, tcut_sav,
+                    n_pts_use, weight_running)
 
 
             end # loop_pcut
