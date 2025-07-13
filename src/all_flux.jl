@@ -58,6 +58,7 @@ function all_flux!(
         # thread-safe. Only n_cr_count and num_crossings need protection from race
         # conditions, and so need to be included explicitly in the arguments of all_flux.
         therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight,
+        psd_bins_per_dec_mom, psd_bins_per_dec_θ, psd_mom_min, num_psd_mom_bins, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min,
     )
 
     # Very early check to see if particle crossed a grid zone boundary
@@ -76,8 +77,6 @@ function all_flux!(
     # Don't bother with *any* of the other computations if
     # 1. Grid zone hasn't changed, and
     # 2. There's no possibility of crossing an intra-grid detector
-    ##TODO: remove extra return statement, folding rest of computation into
-    # "else" block of if-then
     if i_grid == i_grid_old && i_grid > i_grid_feb && iszero(n_xspec)
         return (i_grid, i_grid_old, n_cr_count, pₓ_esc_upstream, energy_esc_upstream)
     end
@@ -139,6 +138,9 @@ function all_flux!(
         pxx_flux, pxz_flux, energy_flux,
         p_sk, ptot_sk, weight, energy_flux_add, inj, n_cr_count, abs_inv_vx_sk,
         therm_ptot_sk, therm_pₓ_sk, therm_grid, therm_weight,
+        psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins, psd_bins_per_dec_θ,
+        num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min,
+        i_grid_feb, psd,
     )
     #--------------------------------------------------------------------------
     # Finished updating fluxes for crossed grid boundaries
@@ -195,6 +197,9 @@ function flux_stream!(
         pxx_flux, pxz_flux, energy_flux,
         p_sk, ptot_sk, weight, energy_flux_add, inj, n_cr_count, abs_inv_vx_sk,
         therm_ptot_sk, therm_pₓ_sk, therm_grid, therm_weight,
+        psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins, psd_bins_per_dec_θ,
+        num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min,
+        i_grid_feb, psd,
     )
 
     # Check if particle has already been injected into acceleration process;
@@ -209,7 +214,9 @@ function flux_stream!(
 
         # Is particle upstream of free escape boundary after crossing downstream?
         # Then don't count flux contributions to grid zones upstream from FEB
-        inj_check && inj && i ≤ i_grid_feb && continue
+        if inj_check && inj && i ≤ i_grid_feb
+            continue
+        end
 
         # Update fluxes; note the minus signs in sign_fac force pxx_flux to increase
         # (because particle is moving upstream and p_sk.x < 0) and force energy_flux to decrease
