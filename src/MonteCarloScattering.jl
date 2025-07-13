@@ -194,13 +194,10 @@ function (@main)()
         end
     end
 
-    dont_shock = (get(cfg_toml, "NOSHK", 0) == 66)
-
-    dont_scatter = (get(cfg_toml, "NOSCT", 0) == 66)
-
-    dont_DSA = (get(cfg_toml, "NODSA", 0) == 66)
-
-    do_smoothing = (cfg_toml["SMSHK"] != 66)
+    dont_shock = get(cfg_toml, "no-shock", false)
+    dont_scatter = get(cfg_toml, "no-scatter", false)
+    dont_DSA = get(cfg_toml, "no-DSA", false)
+    do_smoothing = cfg_toml["smooth-shocks"]
 
     prof_weight_fac = get(cfg_toml, "SMIWT", 1.0)
 
