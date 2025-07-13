@@ -25,10 +25,9 @@ calculate the pressure (which may be anisotropic) everywhere on the grid.
 - `energy_density_psd`: local kinetic energy density of fluid in every grid zone
 """
 function thermo_calcs(
-        num_crossings, n_cr_count, therm_grid, therm_pₓ_sk,
-        therm_ptot_sk, therm_weight, nc_unit, psd, zone_pop,
-        aa_ion, zz_ion, T₀_ion, n₀_ion, psd_lin_cos_bins,
-        γ₀, β₀
+        num_crossings, n_cr_count, therm_grid, therm_pₓ_sk, therm_ptot_sk,
+        therm_weight, nc_unit, psd, zone_pop, aa_ion, zz_ion, T₀_ion, n₀_ion,
+        psd_lin_cos_bins, γ₀, β₀,
     )
 
     d²N_pf = fill(1e-99, (0:psd_max, 0:psd_max, n_grid))

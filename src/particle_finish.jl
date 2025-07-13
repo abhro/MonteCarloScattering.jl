@@ -2,7 +2,7 @@ using .constants: E₀ₚ
 using .parameters: energy_rel_pt
 using .transformers: transform_p_PS
 
-const _pf_spike_away = 1000.0
+const _pf_spike_away = 1000
 
 """
     particle_finish!(...)
@@ -35,7 +35,8 @@ function particle_finish!(
         pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
         esc_flux, esc_psd_feb_downstream, esc_psd_feb_upstream,
         i_reason, i_iter, i_ion,
-        num_psd_θ_bins,
+        num_psd_mom_bins, num_psd_θ_bins,
+        psd_bins_per_dec_mom, psd_bins_per_dec_θ, psd_mom_min, psd_θ_min, psd_cos_fine, Δcos,
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
         b_cosθ, b_sinθ, weight, mc,
     )

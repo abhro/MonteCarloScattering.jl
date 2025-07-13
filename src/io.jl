@@ -73,6 +73,8 @@ function tcut_print(
 end
 
 """
+    print_input(...)
+
 Prints a whole mess of information to the screen and to mc_out
 
 ### Arguments
