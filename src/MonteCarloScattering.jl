@@ -40,23 +40,19 @@ include("cosmo_calc.jl"); using .cosmo_calc
 include("all_flux.jl")
 include("prob_return.jl")
 include("scattering.jl")
-include("new_pcut.jl")
-include("tcut_track.jl")
+include("cuts.jl")
 include("get_psd_bins.jl")
 include("particle_finish.jl")
 begin
     include("iter_init.jl")
     include("iter_finalize.jl")
     include("particle_loop.jl")
-    include("pcut_init.jl")
-    include("pcut_finalize.jl")
     include("ion_init.jl")
     include("ion_finalize.jl")
 end
 
 zero!(A::AbstractArray{T}) where T = fill!(A, zero(T))
 
-include("debug.jl")
 include("particle_counter.jl")
 include("smoothers.jl")
 include("data_input.jl")
