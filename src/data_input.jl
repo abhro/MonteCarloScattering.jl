@@ -72,7 +72,40 @@ function check_shock_angle(θ)
         error("unphysical value for THTBZ. Must be at least 0.")
     end
 end
+
 function check_x_grid_limits(x_grid_start_rg, x_grid_stop_rg)
     x_grid_start_rg ≥ 0 && error("x_grid_limits: x_grid_start must be negative.")
     x_grid_stop_rg  ≤ 0 && error("x_grid_limits: x_grid_stop must be positive.")
+end
+
+function check_pcuts_in(pcuts_in, Emax)
+    n_pcuts = length(pcuts_in)
+    n_pcuts+1 > na_c && error("PCUTS: parameter na_c smaller than desired number of pcuts.")
+
+    if Emax > 0keV
+        # Convert from momentum[mₚc/aa] to energy[keV]
+        Emax_eff = 56 * pcuts_in[n_pcuts-1] * ustrip(keV, E₀ₚ*erg)
+
+        if Emax > Emax_eff
+            error("PCUTS: max energy exceeds highest pcut. Add more pcuts or lower Emax. ",
+                  "Emax (assuming Fe) = $Emax; Emax_eff = $Emax_eff")
+        end
+    elseif Emax_per_aa > 0keV   # Limit was on energy per nucleon
+        # Convert from momentum[mₚc/aa] to energy[keV/aa]
+        Emax_eff_per_aa = pcuts_in[n_pcuts-1] * ustrip(keV, E₀ₚ*erg)
+
+        if Emax_per_aa > Emax_eff_per_aa
+            error("PCUTS: max energy per aa exceeds highest pcut. Add more pcuts or lower Emax_per_aa. ",
+                  "Emax_per_aa = $Emax_per_aa; Emax_eff/aa = $Emax_eff_per_aa")
+        end
+
+    elseif pmax > 0mp*c # Limit was on total momentum. Assume Fe for strictest limit on mom/nuc.
+        pmax_eff = 56mp*c * pcuts_in[n_pcuts-1]
+        if pmax > pmax_eff
+            error("PCUTS: max momentum exceeds highest pcut. Add more pcuts or lower pmax. ",
+                  "pmax[m_pc] = $pmax; pmax_eff (for Fe) = $pmax_eff")
+        end
+    else   # Something unexpected has happened
+        error("Unexpected result when comparing pcut max to energy/momentum max")
+    end
 end

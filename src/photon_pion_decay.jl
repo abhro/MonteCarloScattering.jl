@@ -143,7 +143,6 @@ function photon_pion_decay(
             #ω_γ       = energy_γ[i]/ħ # angular frequency (ω)
             #f_jansky  = max(1e-99Jy, uconvert(Jy, emis_γ[i]/ν_γ*(erg/cm^2)))
             xMeV_log   = log10(ustrip(MeV, energy_γ[i]))
-            #xkeV_log  = xMeV_log + 3
 
             # This is photon flux [#/(cm²⋅sec)] per log energy bin d(lnE) = dE/E.
             # Number of photons in spectrum is area under curve when plotted with
@@ -162,11 +161,10 @@ function photon_pion_decay(
             write(j_unit, # photon_pion_decay_grid.dat
                   n_grid, i,
                   i_ion,                          # 1 nucleus species
-                  (xMeV_log + 3),                 # 2 Log10(keV)
                   log10(photon_flux),             # 3 Log10(photons/(cm²⋅sec))
-                  xMeV_log,                       # 4 Log10(MeV)
-                  log10(emis_γ),                  # 5 Log10[MeV/(cm²⋅sec)] at earth
-                  log10(photon_flux/energy_γ))    # 6 Log10[photons/(cm²⋅sec⋅keV)]
+                  xMeV_log,                       # 3 Log10(MeV)
+                  log10(emis_γ),                  # 4 Log10[MeV/(cm²⋅sec)] at earth
+                  log10(photon_flux/energy_γ))    # 5 Log10[photons/(cm²⋅sec⋅MeV)]
 
         end # Loop over photon energies
 

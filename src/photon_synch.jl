@@ -40,7 +40,7 @@ function photon_synch(
             dN_therm[i] = dNdp_pf_therm[i] * (p_pf_therm[i+1] - p_pf_therm[i])
         end
     end
-    dN_cr = OffsetVector{Float64}(undef, 0:psd_max)
+    dN_cr = OffsetVector{Float64}(undef, 0:num_psd_mom_bins)
     for i in 0:num_psd_mom_bins
         if dNdp_pf_cr[i] ≤ 1e-99
             dN_cr[i] = 1e-99
@@ -85,23 +85,13 @@ function photon_synch(
             if emis_γ[i] > 1e-99
                 emis_γ_MeV = ustrip(MeV, emis_γ[i]*erg)  # MeV/(cm²⋅s) at earth
             else
-                emis_γ_MeV = 1e-99
-            end
-
-            if emis_γ_MeV ≤ 1e-99
-                emis_γ_keV = 1e-99               # "zero" emission
-            else
-                emis_γ_keV = emis_γ_MeV * 1e3 # keV/(cm²⋅s) at earth
+                emis_γ_MeV = 1e-99               # "zero" emission
             end
 
             #ν_γ = energy_γ[i]/h # frequency (ν)
             #ω_γ = energy_γ[i]/ħ # ω
 
             #f_jansky = max(ustrip(Jy, emis_γ[i]/ν_γ * erg/cm^2), 1e-99)
-
-            xMeV_log   = log10(energy_γ_MeV[i])
-            xkeV_log   = xMeV_log + 3
-            energy_keV = energy_γ_MeV[i]*1000
 
             # This is photon flux [#/(cm²⋅s)] per log energy bin d(lnE) = dE/E.
             # Number of photons in spectrum is area under curve when plotted
@@ -121,12 +111,10 @@ function photon_synch(
             # everything is handled in time_seq_photons so this section is irrelevant
             write(j_unit,           # photon_synch_grid.dat
                   n_grid, iplot,
-                  xkeV_log,                     #1 Log10(keV)
-                  log10(photon_flux),           #2 Log10(photons/(cm²⋅sec))
-                  xMeV_log,                     #3 Log10(MeV)
-                  log10(emis_γ_MeV),            #4 Log10[MeV/(cm²⋅sec)] at earth
-                  log10(emis_γ_keV),            #5 Log10[keV/(cm²⋅sec)] at earth
-                  log10(photon_flux/energy_keV))#6 Log10[photons/(cm²⋅sec⋅keV)]
+                  log10(photon_flux),            # 1 log10(photons/(cm²⋅sec))
+                  log10(energy_γ_MeV[i]),        # 2 log10(MeV)
+                  log10(emis_γ_MeV),             # 3 log10[MeV/(cm²⋅sec)] at earth
+                  log10(photon_flux/energy_MeV)) # 4 log10[photons/(cm²⋅sec⋅MeV)]
 
         end # loop over n_photon_synch
 

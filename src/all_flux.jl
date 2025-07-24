@@ -77,8 +77,6 @@ function all_flux!(
     # Don't bother with *any* of the other computations if
     # 1. Grid zone hasn't changed, and
     # 2. There's no possibility of crossing an intra-grid detector
-    ##TODO: remove extra return statement, folding rest of computation into
-    # "else" block of if-then
     if i_grid == i_grid_old && i_grid > i_grid_feb && iszero(n_xspec)
         return (i_grid, i_grid_old, n_cr_count, pₓ_esc_upstream, energy_esc_upstream)
     end
@@ -142,6 +140,7 @@ function all_flux!(
         therm_ptot_sk, therm_pₓ_sk, therm_grid, therm_weight,
         psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins, psd_bins_per_dec_θ,
         num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min,
+        i_grid_feb, psd,
     )
     #--------------------------------------------------------------------------
     # Finished updating fluxes for crossed grid boundaries
@@ -200,6 +199,7 @@ function flux_stream!(
         therm_ptot_sk, therm_pₓ_sk, therm_grid, therm_weight,
         psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins, psd_bins_per_dec_θ,
         num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min,
+        i_grid_feb, psd,
     )
 
     # Check if particle has already been injected into acceleration process;

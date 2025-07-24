@@ -1,8 +1,9 @@
 function particle_loop(
-        i_iter, i_ion, i_cut, i_prt, i_grid_feb, i_shock,
-        n_ions, n_pcuts, n_pts_max, n_xspec, n_grid, n_print_pt, num_psd_mom_bins, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min,
+        i_iter::Int, i_ion::Int, i_cut::Int, i_prt::Int, i_grid_feb::Int, i_shock::Int,
+        n_ions::Int, n_pcuts::Int, n_pts_max::Int, n_xspec::Int, n_grid::Int, n_print_pt::Int, num_psd_mom_bins::Int, num_psd_θ_bins::Int,
+        psd_cos_fine, Δcos, psd_θ_min,
         species,
-        γ₀, β₀, u₀, u₂, bmag₂,
+        γ₀::Float64, β₀::Float64, u₀, u₂, bmag₂,
         pₑ_crit, γₑ_crit, η_mfp,
         psd_mom_min, psd_bins_per_dec_mom, psd_bins_per_dec_θ,
         energy_transfer_frac, energy_recv_pool,
@@ -478,10 +479,13 @@ function particle_loop(
              i_return, lose_pt, tcut_curr, _x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf,
              gyro_denom, pb_pf, p_perp_b_pf, acctime_sec, φ_rad
             ) = prob_return(
-                            i_ion, rad_loss_fac, B_CMBz, r_PT_old.x, aa, zz, gyro_denom,
+                            i_ion, num_psd_mom_bins, rad_loss_fac, B_CMBz, r_PT_old.x, aa, zz, gyro_denom,
                             r_PT_cm.x, prp_x_cm, ptot_pf, γₚ_pf, pb_pf, p_perp_b_pf,
                             acctime_sec, φ_rad, helix_count, pcut_prev, weight, tcut_curr,
                             x_grid_stop, u₂, use_custom_εB, η_mfp, do_retro, bmag₂, mc,
+                            do_rad_losses, do_tcuts, tcuts,
+                            n_grid, uₓ_sk_grid, γ_sf_grid, γ_ef_grid, θ_grid, btot_grid,
+                            psd_mom_min, psd_bins_per_dec_mom, weight_coupled, spectra_coupled,
                            )
             r_PT_cm = SVector(_x_PT_cm, r_PT_cm.y, r_PT_cm.z)
         end

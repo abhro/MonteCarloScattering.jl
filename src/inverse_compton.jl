@@ -108,18 +108,8 @@ function photon_IC(
             if ic_emis[i] > 1e-99
                 emis_γ_MeV = ustrip(MeV, ic_emis[i]*erg)  # MeV/(cm²⋅s) at earth
             else
-                emis_γ_MeV = 1e-99
+                emis_γ_MeV = 1e-99               # "zero" emission
             end
-
-            if emis_γ_MeV ≤ 1e-99
-                emis_γ_keV = 1e-99               # "zero" emission
-            else
-                emis_γ_keV = emis_γ_MeV * 1e3 # keV/(cm²⋅s) at earth
-            end
-
-            xMeV_log   = log10(energy_γ_MeV[i])
-            energy_keV = energy_γ_MeV[i]*1000
-            #xkeV_log   = xMeV_log + 3
 
             # This is photon flux [#/(cm²⋅sec)] per log energy bin d(lnE) = dE/E.
             # Number of photons in spectrum is area under curve when plotted
@@ -142,13 +132,11 @@ function photon_IC(
             ##TODO: incorporate redshift into this write-out;
             # right now, everything is handled in time_seq_photons so this section is irrelevant
             write(j_unit, n_grid, iplot, # photon_IC_grid.dat
-                  j3,                           # 1 photon source
-                  (xMeV_log + 3),               # 2 log10(keV)
-                  log10(photon_flux),           # 3 log10(photons/(cm²⋅s))
-                  xMeV_log,                     # 4 log10(MeV)
-                  log10(emis_γ_MeV),            # 5 log[MeV/(cm²⋅s)] at earth
-                  log10(emis_γ_keV),            # 6 log[keV/(cm²⋅s)] at earth
-                  log10(photon_flux/energy_keV))# 7 log10[photons/(cm²⋅s⋅keV)]
+                  j3,                                   # 1 photon source
+                  log10(photon_flux),                   # 2 log10(photons/(cm²⋅s))
+                  log10(energy_γ_MeV[i]),               # 3 log10(MeV)
+                  log10(emis_γ_MeV),                    # 4 log[MeV/(cm²⋅s)] at earth
+                  log10(photon_flux/energy_γ_MeV[i]))   # 5 log10[photons/(cm²⋅s⋅MeV)]
 
         end # loop over n_photon_IC
 
