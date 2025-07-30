@@ -86,26 +86,26 @@ function (@main)()
     n_ions = length(species)
 
     inp_distr = cfg_toml["input-distribution"]
-    energy_inj = cfg_toml["ENINJ"] * keV
-    inj_weight = get(cfg_toml, "INJWT", true)
+    energy_inj = cfg_toml["injection-energy"] * keV
+    inj_weight = get(cfg_toml, "injection-weights", true)
 
-    Emax, Emax_per_aa, pmax = parse_maximum_energy(cfg_toml["ENMAX"])
+    Emax, Emax_per_aa, pmax = parse_maximum_energy(cfg_toml["maximum-energy"])
 
     η_mfp = get(cfg_toml, "gyrofactor", 1)
 
-    bmag₀ = cfg_toml["BMAGZ"]*G
+    bmag₀ = cfg_toml["B-mag-upstream"]*G
     # rg₀ below is the gyroradius of a proton whose speed is u₀ that is gyrating in a field
     # of strength bmag₀. Note that this formula is relativistically correct
     rg₀ = (γ₀ * E₀ₚ * β₀) / (qcgs * bmag₀) |> cm
 
-    θ_B₀ = cfg_toml["THTBZ"] # must be zero
+    θ_B₀ = cfg_toml["theta-B0"] # must be zero
     check_shock_angle(θ_B₀)
 
     x_grid_start_rg, x_grid_stop_rg = cfg_toml["x_grid_limits"]
     check_x_grid_limits(x_grid_start_rg, x_grid_stop_rg)
 
     feb_upstream = let
-        febup = get(cfg_toml, "FEBUP", nothing)
+        febup = get(cfg_toml, "FEB-upstream", nothing)
         if isnothing(febup)
             feb_upstream = x_grid_start_rg * rg₀ # default value
             return feb_upstream
@@ -115,15 +115,15 @@ function (@main)()
         elseif febup[2] < 0
             feb_upstream = uconvert(cm, febup[2] * pc)
         else
-            error("FEBUP: at least one choice must be negative.")
+            error("FEB-upstream: at least one choice must be negative.")
         end
-        (feb_upstream/rg₀ < x_grid_start_rg) && error("FEBUP: upstream FEB must be within x_grid_start")
+        (feb_upstream/rg₀ < x_grid_start_rg) && error("FEB-upstream: upstream FEB must be within x_grid_start")
 
         feb_upstream
     end
 
     feb_downstream, use_prp = let
-        febdw = get(cfg_toml, "FEBDW", nothing)
+        febdw = get(cfg_toml, "FEB-downstream", nothing)
         use_prp = false
         if isnothing(febdw)
             feb_downstream = -1 # default value
@@ -146,8 +146,8 @@ function (@main)()
     end
 
     n_itrs = cfg_toml["num-iterations"]
-    xn_per_coarse = cfg_toml["XN_PER_COARSE"]
-    xn_per_fine = cfg_toml["XN_PER_FINE"]
+    xn_per_coarse = cfg_toml["coarse-scattering-Ng"]
+    xn_per_fine = cfg_toml["fine-scattering-Ng"]
 
     begin
         n_pts_inj = cfg_toml["N_PTS_INJ"]
@@ -162,9 +162,9 @@ function (@main)()
     end
 
     begin
-        pcuts_in = cfg_toml["PCUTS"]
+        pcuts_in = cfg_toml["momentum-cutoffs"]
         n_pcuts = length(pcuts_in)
-        check_pcuts_in(pcuts_in, Emax)
+        check_pcuts_in(pcuts_in, Emax, Emax_per_aa, pmax)
     end
 
     dont_shock = get(cfg_toml, "no-shock", false)
@@ -172,9 +172,9 @@ function (@main)()
     dont_DSA = get(cfg_toml, "no-DSA", false)
     do_smoothing = cfg_toml["smooth-shocks"]
 
-    prof_weight_fac = get(cfg_toml, "SMIWT", 1.0)
+    prof_weight_fac = get(cfg_toml, "old-profile-weight", 1.0)
 
-    do_prof_fac_damp = (get(cfg_toml, "SMVWT", 0) == 66)
+    do_prof_fac_damp = get(cfg_toml, "increase-old-profile-weighting", false)
 
     begin
         smooth_mom_energy_fac = get(cfg_toml, "SMMOE", 0.0)
@@ -197,7 +197,7 @@ function (@main)()
     end
 
     r_comp, r_RH, Γ₂_RH = let
-        r_comp = cfg_toml["RCOMP"]
+        r_comp = cfg_toml["target-compression-ratio"]
         r_RH, Γ₂_RH = calc_rRH(u₀, β₀, γ₀, species)
         if r_comp == -1
             r_comp = r_RH
@@ -212,39 +212,41 @@ function (@main)()
     end
 
     begin
-        do_old_prof = (get(cfg_toml, "OLDIN", 0) == 66)
+        do_old_prof = get(cfg_toml, "read-old-profile", false)
         if do_old_prof
-            n_old_skip, n_old_profs, n_old_per_prof = cfg_toml["OLDDT"]
+            d = cfg_toml["old-profile-config"]
+            n_old_skip = d["lines-to-skip"]
+            n_old_profs = d["profiles-to-average"]
+            n_old_per_prof = d["lines-per-profile"]
         else
             n_old_skip, n_old_profs, n_old_per_prof = [0, 0, 0]
         end
     end
 
     age_max = let
-        age_max = get(cfg_toml, "AGEMX", -1.0)
+        age_max = get(cfg_toml, "maximum-age", -1.0)
         if age_max < 0
             age_max = -1.0
         end
         age_max * s
     end
     # default behavior of do_retro is dependent on age_max
-    do_retro = (get(cfg_toml, "RETRO", age_max > 0s ? 66 : 0) == 66)
+    do_retro = get(cfg_toml, "use-retro", age_max > 0s ? true : false)
 
     do_fast_push = get(cfg_toml, "fast-upstream-transport", false)
-    x_fast_stop_rg = do_fast_push ? cfg_toml["FPSTP"] : 0.0
+    x_fast_stop_rg = do_fast_push ? cfg_toml["proton-fast-transport-stop"] : 0.0
 
     x_art_start_rg, x_art_scale = let
-        art = get(cfg_toml, "ARTSM", nothing)
+        art = get(cfg_toml, "artificial-smoothing", nothing)
         if isnothing(art)
-            x_art_start_rg = 0.0
-            x_art_scale = 0.0
+            x_art_start_rg = x_art_scale = 0.0
         else
             x_art_start_rg, x_art_scale = art
         end
         (x_art_start_rg, x_art_scale)
     end
 
-    pₑ_crit, γₑ_crit = parse_electron_critical_energy(get(cfg_toml, "EMNFP", nothing))
+    pₑ_crit, γₑ_crit = parse_electron_critical_energy(get(cfg_toml, "electron-energy-mfp-threshold", nothing))
 
     do_rad_losses = get(cfg_toml, "radiation-losses", true)
     do_photons = get(cfg_toml, "calculate-photon-production", false)
@@ -285,48 +287,44 @@ function (@main)()
     end
 
     begin
-        energy_transfer_frac = float(get(cfg_toml, "ENXFR", 0.0))
+        energy_transfer_frac = float(get(cfg_toml, "energy-transfer-frac", 0.0))
         if energy_transfer_frac < 0 || energy_transfer_frac > 1
-            error("ENXFR: energy_transfer_frac must be in [0,1]")
+            error("energy_transfer_frac must be in [0,1]")
         end
     end
 
     num_upstream_shells, num_downstream_shells = cfg_toml["num-shells"]
 
     begin
-        bturb_comp_frac = get(cfg_toml, "BTRBF", 0.0)
-        bfield_amp = get(cfg_toml, "BAMPF", 1.0)
-        bfield_amp < 1 && error("BAMPF: must be ≥ 1.d0")
+        bturb_comp_frac = get(cfg_toml, "b-field-turbulence", 0.0)
+        bfield_amp = get(cfg_toml, "b-field-amplify", 1.0)
+        bfield_amp < 1 && error("b-field-amplify: must be ≥ 1")
         if bfield_amp > 1 && iszero(bturb_comp_frac)
-            error("BTRBF: bfield_amp > 1 has no effect if BTRBF = 0")
+            error("b-field-turbulence: bfield_amp > 1 has no effect if b-field-turbulence = 0")
         end
     end
 
     psd_bins_per_dec_mom, psd_bins_per_dec_θ = let
-        psd_bins = get(cfg_toml, "PSDBD", [10, 10])
+        psd_bins = get(cfg_toml, "num-psd-bins-per-decade", [10, 10])
         psd_bins_per_dec_mom::Int = psd_bins[1]
         psd_bins_per_dec_θ::Int   = psd_bins[2]
         if psd_bins_per_dec_mom ≤ 0 || psd_bins_per_dec_θ ≤ 0
-            error("PSDBD: both values must be positive.")
+            error("num-psd-bins-per-decade: both values must be positive.")
         end
         (psd_bins_per_dec_mom::Int, psd_bins_per_dec_θ::Int)
     end
 
-    psd_lin_cos_bins, psd_log_θ_decs = let
-        psd_bins = get(cfg_toml, "PSDTB", [119, 4])
-        psd_lin_cos_bins = psd_bins[1]
-        psd_log_θ_decs   = psd_bins[2]
-        if psd_lin_cos_bins ≤ 0 || psd_log_θ_decs ≤ 0
-            error("PSDTB: both values must be positive.")
-        end
-        (psd_lin_cos_bins::Int, psd_log_θ_decs::Int)
-    end
+    psd_lin_cos_bins = get(cfg_toml, "psd-linear-cosine-bins", 119)
+    psd_lin_cos_bins > 0 || error("psd-linear-cosine-bins must be positive")
 
-    use_custom_frg = (get(cfg_toml, "NWFRG", 0) == 66)
+    psd_log_θ_decs = get(cfg_toml, "psd-log-theta-decs", 4)
+    psd_log_θ_decs > 0 || error("psd-log-theta-decs must be positive")
+
+    use_custom_frg = get(cfg_toml, "use-custom-frg", false)
 
     emin_therm_fac = get(cfg_toml, "EMNFC", 0.01)
 
-    do_multi_dNdps = (get(cfg_toml, "DNDPS", 0) == 66)
+    do_multi_dNdps = get(cfg_toml, "separate-dNdp-write", false)
 
     do_tcuts, tcuts, n_tcuts = let
         do_tcuts = haskey(cfg_toml, "TCUTS")
@@ -352,7 +350,7 @@ function (@main)()
         length(inj_fracs) == n_ions || error("Number of injection probabilities must match NIONS")
     end
 
-    use_custom_εB = (get(cfg_toml, "NWEPB", 0) == 66)
+    use_custom_εB = get(cfg_toml, "use-custom-epsB", false)
 
     # Set up the computational grid
     x_grid_rg, x_grid_start, x_grid_stop = setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_downstream, rg₀)
@@ -403,7 +401,7 @@ function (@main)()
 
     # Now find the maximum momentum for the PSD (this will be adjusted due to SF->PF Lorentz
     # transformation). How to actually calculate it depends on the user-specified maximum energy
-    # "ENMAX"
+    # "maximum-energy"
     psd_mom_max = let
         rest_mass_max = maximum(mass.(species))
         rest_energy_max = uconvert(erg, rest_mass_max, MassEnergy())
@@ -803,7 +801,8 @@ function (@main)()
             # Determine the pcut at which to switch from low-E particle counts to high-E
             # particle counts. Recall that energy_pcut_hi has units of keV per aa, so when
             # dividing by particle mass the factor of aa is already present in the denominator.
-            # Also set the maximum momentum cutoff based on the values given in keyword "ENMAX"
+            # Also set the maximum momentum cutoff based on the values given in keyword
+            # "maximum-energy"
             p_pcut_hi = pcut_hi(energy_pcut_hi, energy_rel_pt, mass(species[i_ion]))
 
             #----------------------------------------------------------------------

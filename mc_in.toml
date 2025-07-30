@@ -1,5 +1,5 @@
 # Seed for random number generator
-ISEED = 210
+random-seed = 210
 
 # Shock speed as: km/s, Lorentz factor γ, or β
 shock-speed = 5.0
@@ -11,9 +11,8 @@ shock-speed-unit = "gamma"
 num-iterations = 20
 
 # Number of time steps per gyro period, for "coarse" and "fine" scattering
-#XNPER = [100.0, 2000.0]
-XN_PER_COARSE = 100.0
-XN_PER_FINE = 2000.0
+coarse-scattering-Ng = 100.0
+fine-scattering-Ng = 2000.0
 
 # mass for each species, in units of proton mass (nan for e⁻)
 # this also determines the number of ions
@@ -31,43 +30,43 @@ upstream-electron-temperature = 0.0
 # Input distribution. 1 = thermal, 2 = delta function, 3 = other
 input-distribution = 1
 
-# Injection energy[keV] and min PSD limit if "INDST" = 2. Ignored otherwise.
-ENINJ = 1e3
+# Injection energy[keV] and min PSD limit if "input-distribution" = 2. Ignored otherwise.
+injection-energy = 1e3
 
 # How to assign initial weights. True = equal by particle, false = equal by bin
-INJWT = true
+injection-weights = true
 
 # Max particle energy as Emax[keV], Emax/nuc[keV/aa], pmax/(m_pc). 1st nonzero
 # value used. Also used in setting phase space distribution
-ENMAX = [0, 0, 1e10]
+maximum-energy = [0, 0, 1e10]
 
-# Gyrofactor, i.e. MFP = gyrofac*gyroradius. Ignored if "NWFRG" = 66
+# Gyrofactor, i.e. MFP = gyrofac*gyroradius. Ignored if use-custom-frg = true
 gyrofactor = 1.0
 
 # Far upstream magnetic field in Gauss
-BMAGZ = 1e-5
+B-mag-upstream = 1e-5
 
 # Upstream angle[deg] between B-field and shock normal
-THTBZ = 0.0
+theta-B0 = 0.0
 
 # Start of grid and downstream limit of grid in units of rg0. The start cannot
 # be closer than the upstream FEB.
 x_grid_limits = [-1e7, 1e1]
 
 # Upstream FEB, in [rg0] or [pc]. 1st non-zero value used. Must be negative.
-FEBUP = [-1e2, 0.0]
+FEB-upstream = [-1e2, 0.0]
 
 # Downstream FEB, in [rg0] or [pc]. 1st non-zero value used. Must be positive if included; set <= 0 otherwise.
-FEBDW = [0.0, 0.0]
+FEB-downstream = [0.0, 0.0]
 
 # Number of x-positions [rg0] where particle spectrum is calculated
 NSPEC = 0
 
-# Enter "66" to write a separate dN/dp for each iteration
-DNDPS = 66
+# Write a separate dN/dp for each iteration?
+separate-dNdp-write = true
 
-# Enter "66" to define custom f(r_g) in subroutine "scattering"; else = eta_mfp*r_g
-NWFRG = 0
+# Enter true to define custom f(r_g) in subroutine "scattering"; else = eta_mfp*r_g
+use-custom-frg = false
 
 # Number of particles to inject, and target number of particles at low-E pcuts.
 #NPTLO = [600, 1200]
@@ -81,7 +80,7 @@ N_PTS_PCUT_HI = 2000
 EN_PCUT_HI = 1_000_000
 
 # List of momentum cutoffs [aa*m_pc] to use during iterations.
-PCUTS = [
+momentum-cutoffs = [
     0.01,
     0.6,
     1.6,
@@ -143,10 +142,10 @@ smooth-shocks = false
 
 # Factor to weight old profile with in shock smoothing.
 # > 1 favors old profile over new. = 1 to use mean of the two
-SMIWT = 1.0
+old-profile-weight = 1.0
 
-# Enter "66" to increase old profile weighting for later iterations
-SMVWT = 0
+# Increase old profile weighting for later iterations?
+increase-old-profile-weighting = false
 
 # For profile iteration, = 0 uses only momentum flux equation, = 1 only energy. Must be in [0,1]
 SMMOE = 0.0
@@ -155,33 +154,34 @@ SMMOE = 0.0
 SMPFP = 0.0
 
 # Target compression ratio. = -1 to use R-H value of 3.00884E+00
-RCOMP = -1.0
+target-compression-ratio = -1.0
 
-# Enter "66" to read in old profile from "mc_grid_old.dat"
-OLDIN = 0
+# Enter true to read in old profile from "mc_grid_old.dat"
+read-old-profile = false
 
-# If reading old profile, # lines to skip, # profiles to average, # lines per profile
-OLDDT = [1300, 5, 100]
+# If reading old profile, number of lines to skip, number of profiles to
+# average, number of lines per profile
+old-profile-config = {lines-to-skip = 1300, profiles-to-average = 5, lines-per-profile = 100}
 
 # Maximum allowed CR age (sec, explosion frame). Ignored if <= 0
-AGEMX = 3.15e11
+maximum-age = 3.15e11
 
 # List of time cutoffs to use for tracking particles.
 TCUTS = [ 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 3e13 ]
 
-# Enter "66" to use retro time calculation downstream. Ignored if "AGEMX" < 0
-RETRO = 66
+# Use retro time calculation downstream? Ignored if "maximum-age" < 0
+use-retro = true
 
 fast-upstream-transport = true
 
 # Upstream x position[rg0] where PROTON fast transport stops
-FPSTP = -1.0
+proton-fast-transport-stop = -1.0
 
 # Artificial smoothing: start position[rg0], scale factor. Ignored if 1st input >= 0
-ARTSM = [0.0, 0.0]
+artificial-smoothing = [0.0, 0.0]
 
 # Kinetic energy[keV] below which electrons have constant mfp. Ignored if <= 0
-EMNFP = 1e4
+electron-energy-mfp-threshold = 1e4
 
 radiation-losses = true
 
@@ -200,22 +200,25 @@ jet-distance = 1e6
 COSMO_VAR = 1
 
 # Fraction of ion energy transferred to electrons at 1st shock crossing. Must be [0,1]; 0 to ignore
-ENXFR = 0.1
+energy-transfer-frac = 0.1
 
 # number of upstream & downstream shells for photon emission. Ignored if calculate-photon-production = false
 num-shells = [5, 2]
 
 # Fraction of compressed B turbulence to use in scattering & losses. Must be in [0,1]. 0 means ignore
-BTRBF = 1.0
+b-field-turbulence = 1.0
 
 # Amplification factor to use for B field. 1.0 means no amp
-BAMPF = 1.0
+b-field-amplify = 1.0
 
-# Enter "66" to define custom epsilon_B on grid; else = B(x) controlled by "BTRBF" and "BAMPF"
-NWEPB = 66
+# Enter true to define custom epsilon_B on grid; else = B(x) controlled by
+# "b-field-turbulence" and "b-field-amplify"
+use-custom-epsB = true
 
 # number of PSD bins per decade in (1) momentum, (2) theta
-PSDBD = [10, 10]
+num-psd-bins-per-decade = [10, 10]
 
-# number PSD angle bins: (1) # linear (cosine) bins, (2) # log (theta) decades
-PSDTB = [119, 4]
+# number of PSD angle bins which are linear (cosine)
+psd-linear-cosine-bins = 119
+# number of PSD angle bins which are logarithmic (theta) decades
+psd-log-theta-decs = 4

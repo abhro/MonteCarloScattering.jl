@@ -67,9 +67,9 @@ end
 
 function check_shock_angle(θ)
     if θ > 0
-        error("program cannot currently handle oblique shocks. Adjust THTBZ.")
+        error("program cannot currently handle oblique shocks. Adjust theta-B0.")
     elseif θ < 0
-        error("unphysical value for THTBZ. Must be at least 0.")
+        error("unphysical value for theta-B0. Must be at least 0.")
     end
 end
 
@@ -78,9 +78,9 @@ function check_x_grid_limits(x_grid_start_rg, x_grid_stop_rg)
     x_grid_stop_rg  ≤ 0 && error("x_grid_limits: x_grid_stop must be positive.")
 end
 
-function check_pcuts_in(pcuts_in, Emax)
+function check_pcuts_in(pcuts_in, Emax, Emax_per_aa, pmax)
     n_pcuts = length(pcuts_in)
-    n_pcuts+1 > na_c && error("PCUTS: parameter na_c smaller than desired number of pcuts.")
+    n_pcuts+1 > na_c && error("momentum-cutoffs: parameter na_c smaller than desired number of pcuts.")
 
     if Emax > 0keV
         # Convert from momentum[mₚc/aa] to energy[keV]
