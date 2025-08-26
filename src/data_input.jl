@@ -109,3 +109,50 @@ function check_pcuts_in(pcuts_in, Emax, Emax_per_aa, pmax)
         error("Unexpected result when comparing pcut max to energy/momentum max")
     end
 end
+
+function get_feb(febup, febdw, x_grid_start_rg, rg₀)
+    if isnothing(febup)
+        feb_upstream = x_grid_start_rg * rg₀ # default value
+    else
+        if febup[1] < 0
+            feb_upstream = febup[1] * rg₀
+        elseif febup[2] < 0
+            feb_upstream = uconvert(cm, febup[2] * pc)
+        else
+            error("FEB-upstream: at least one choice must be negative.")
+        end
+        (feb_upstream/rg₀ < x_grid_start_rg) && error("FEB-upstream: upstream FEB must be within x_grid_start")
+    end
+
+    use_prp = false
+    if isnothing(febdw)
+        feb_downstream = -1 # default value
+    else
+        if febdw[1] > 0
+            feb_downstream = febdw[1] * rg₀
+        elseif febdw[2] > 0
+            feb_downstream = uconvert(cm, febdw[2] * pc)
+        else
+            feb_downstream = 0.0cm
+            use_prp = true
+        end
+    end
+    return (feb_upstream, feb_downstream, use_prp)
+end
+
+function parse_jet_frac(jetfr)
+    if isnothing(jetfr) # default behavior, handled differently based on PHOTNS
+        do_photons && error("If calculating photons, 'JETFR' must be specified manually.")
+        jet_sph_frac     = 0.0
+        jet_open_ang_deg = 0.0
+    elseif 0 < jetfr[1] ≤ 1
+        jet_sph_frac     = jetfr[1]
+        jet_open_ang_deg = acosd(1 - 2jet_sph_frac)
+    elseif 0 < jetfr[2] ≤ 180
+        jet_open_ang_deg = jetfr[2]
+        jet_sph_frac     = (1 - cosd(jet_open_ang_deg)) / 2
+    else
+        error("JETFR: Unphysical values entered.")
+    end
+    return (jet_sph_frac, jet_open_ang_deg)
+end
