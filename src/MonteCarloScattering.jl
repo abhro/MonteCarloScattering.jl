@@ -104,68 +104,29 @@ function (@main)()
     x_grid_start_rg, x_grid_stop_rg = cfg_toml["x_grid_limits"]
     check_x_grid_limits(x_grid_start_rg, x_grid_stop_rg)
 
-    feb_upstream = let
-        febup = get(cfg_toml, "FEB-upstream", nothing)
-        if isnothing(febup)
-            feb_upstream = x_grid_start_rg * rg₀ # default value
-            return feb_upstream
-        end
-        if febup[1] < 0
-            feb_upstream = febup[1] * rg₀
-        elseif febup[2] < 0
-            feb_upstream = uconvert(cm, febup[2] * pc)
-        else
-            error("FEB-upstream: at least one choice must be negative.")
-        end
-        (feb_upstream/rg₀ < x_grid_start_rg) && error("FEB-upstream: upstream FEB must be within x_grid_start")
+    feb_upstream, feb_downstream, use_prp = get_feb(
+            get(cfg_toml, "FEB-upstream", nothing),
+            get(cfg_toml, "FEB-downstream", nothing),
+            x_grid_start_rg, rg₀)
 
-        feb_upstream
-    end
-
-    feb_downstream, use_prp = let
-        febdw = get(cfg_toml, "FEB-downstream", nothing)
-        use_prp = false
-        if isnothing(febdw)
-            feb_downstream = -1 # default value
-            return
-        end
-        if febdw[1] > 0
-            feb_downstream = febdw[1] * rg₀
-        elseif febdw[2] > 0
-            feb_downstream = uconvert(cm, febdw[2] * pc)
-        else
-            feb_downstream = 0.0cm
-            use_prp = true
-        end
-        (feb_downstream, use_prp)
-    end
-
-    begin
-        x_spec = get(cfg_toml, "XSPEC", Float64[])
-        n_xspec = length(x_spec)
-    end
+    x_spec = get(cfg_toml, "XSPEC", Float64[])
+    n_xspec = length(x_spec)
 
     n_itrs = cfg_toml["num-iterations"]
     xn_per_coarse = cfg_toml["coarse-scattering-Ng"]
     xn_per_fine = cfg_toml["fine-scattering-Ng"]
 
-    begin
-        n_pts_inj = cfg_toml["N_PTS_INJ"]
-        n_pts_pcut = cfg_toml["N_PTS_PCUT"]
-        max(n_pts_inj,n_pts_pcut) > na_particles && error("Array size na_particles too small.")
-    end
+    n_pts_inj = cfg_toml["N_PTS_INJ"]
+    n_pts_pcut = cfg_toml["N_PTS_PCUT"]
+    max(n_pts_inj,n_pts_pcut) > na_particles && error("Array size na_particles too small.")
 
-    begin
-        n_pts_pcut_hi = cfg_toml["N_PTS_PCUT_HI"]
-        energy_pcut_hi = cfg_toml["EN_PCUT_HI"]
-        n_pts_pcut_hi > na_particles && error("Array size na_particles too small.")
-    end
+    n_pts_pcut_hi = cfg_toml["N_PTS_PCUT_HI"]
+    energy_pcut_hi = cfg_toml["EN_PCUT_HI"]
+    n_pts_pcut_hi > na_particles && error("Array size na_particles too small.")
 
-    begin
-        pcuts_in = cfg_toml["momentum-cutoffs"]
-        n_pcuts = length(pcuts_in)
-        check_pcuts_in(pcuts_in, Emax, Emax_per_aa, pmax)
-    end
+    pcuts_in = cfg_toml["momentum-cutoffs"]
+    n_pcuts = length(pcuts_in)
+    check_pcuts_in(pcuts_in, Emax, Emax_per_aa, pmax)
 
     dont_shock = get(cfg_toml, "no-shock", false)
     dont_scatter = get(cfg_toml, "no-scatter", false)
@@ -205,22 +166,19 @@ function (@main)()
         (r_comp, r_RH, Γ₂_RH) # shadowed variables
     end
 
-    begin
-        β₂, γ₂, bmag₂, θ_B₂, θᵤ₂ = calc_downstream(bmag₀, r_comp, β₀)
-        u₂ = β₂*c
-        @debug("Results from calc_downstream()", u₂, β₂, γ₂, bmag₂, θ_B₂, θᵤ₂)
-    end
+    β₂, γ₂, bmag₂, θ_B₂, θᵤ₂ = calc_downstream(bmag₀, r_comp, β₀)
+    u₂ = β₂*c
+    @debug("Results from calc_downstream()", u₂, β₂, γ₂, bmag₂, θ_B₂, θᵤ₂)
 
-    begin
-        do_old_prof = get(cfg_toml, "read-old-profile", false)
-        if do_old_prof
-            d = cfg_toml["old-profile-config"]
-            n_old_skip = d["lines-to-skip"]
-            n_old_profs = d["profiles-to-average"]
-            n_old_per_prof = d["lines-per-profile"]
-        else
-            n_old_skip, n_old_profs, n_old_per_prof = [0, 0, 0]
-        end
+
+    do_old_prof = get(cfg_toml, "read-old-profile", false)
+    if do_old_prof
+        d = cfg_toml["old-profile-config"]
+        n_old_skip = d["lines-to-skip"]
+        n_old_profs = d["profiles-to-average"]
+        n_old_per_prof = d["lines-per-profile"]
+    else
+        n_old_skip, n_old_profs, n_old_per_prof = [0, 0, 0]
     end
 
     age_max = let
@@ -254,24 +212,7 @@ function (@main)()
     # jet-shock-radius only mandatory if doing photons
     jet_rad_pc = do_photons ? cfg_toml["jet-shock-radius"] : get(cfg_toml, "jet-shock-radius", 0.0)
 
-    jet_sph_frac, jet_open_ang_deg = let
-
-        jetfr = get(cfg_toml, "JETFR", nothing)
-        if isnothing(jetfr) # default behavior, handled differently based on PHOTNS
-            do_photons && error("If calculating photons, 'JETFR' must be specified manually.")
-            jet_sph_frac     = 0.0
-            jet_open_ang_deg = 0.0
-        elseif 0 < jetfr[1] ≤ 1
-            jet_sph_frac     = jetfr[1]
-            jet_open_ang_deg = acosd(1 - 2jet_sph_frac)
-        elseif 0 < jetfr[2] ≤ 180
-            jet_open_ang_deg = jetfr[2]
-            jet_sph_frac     = (1 - cosd(jet_open_ang_deg)) / 2
-        else
-            error("JETFR: Unphysical values entered.")
-        end
-        (jet_sph_frac, jet_open_ang_deg)
-    end
+    jet_sph_frac, jet_open_ang_deg = parse_jet_frac(get(cfg_toml, "JETFR", nothing))
 
     begin
         jet_dist_kpc = get(cfg_toml, "jet-distance", 1.0)
@@ -288,9 +229,7 @@ function (@main)()
 
     begin
         energy_transfer_frac = float(get(cfg_toml, "energy-transfer-frac", 0.0))
-        if energy_transfer_frac < 0 || energy_transfer_frac > 1
-            error("energy_transfer_frac must be in [0,1]")
-        end
+        0 ≤ energy_transfer_frac ≤ 1 || error("energy_transfer_frac must be in [0,1]")
     end
 
     num_upstream_shells, num_downstream_shells = cfg_toml["num-shells"]
@@ -345,10 +284,8 @@ function (@main)()
         (do_tcuts, tcuts, n_tcuts)
     end
 
-    begin
-        inj_fracs = get(cfg_toml, "INJFR", fill(1.0, n_ions))
-        length(inj_fracs) == n_ions || error("Number of injection probabilities must match NIONS")
-    end
+    inj_fracs = get(cfg_toml, "INJFR", fill(1.0, n_ions))
+    length(inj_fracs) == n_ions || error("Number of injection probabilities must match NIONS")
 
     use_custom_εB = get(cfg_toml, "use-custom-epsB", false)
 
@@ -369,16 +306,13 @@ function (@main)()
     # Set quantities related to the phase space distribution, including the bins
     psd_cos_fine = 1 - 2 / (psd_lin_cos_bins+1)
     psd_θ_fine = acos(psd_cos_fine)
-    psd_θ_min  = psd_θ_fine / 10^psd_log_θ_decs
+    psd_θ_min  = psd_θ_fine / exp10(psd_log_θ_decs)
     @debug("Phase space angle parameters", psd_cos_fine, psd_θ_fine, psd_θ_min)
 
     if inp_distr == 1
         # Set minimum PSD energy using thermal distribution for upstream plasma
         Emin = uconvert(keV, minimum(temperature.(species)), Thermal())
-
-        # Allow for a few extra zones below the thermal peak
-        Emin *= emin_therm_fac
-
+        Emin *= emin_therm_fac # Allow for a few extra zones below the thermal peak
     elseif inp_distr == 2
         # Set minimum PSD energy using δ-function dist for upstream plasma;
         # allow for a few extra zones below the location of the distribution
