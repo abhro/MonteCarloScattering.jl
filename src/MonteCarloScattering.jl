@@ -5,6 +5,7 @@ using JLD2
 using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
 using Unitful: g, K, cm, s, dyn, erg, keV, GeV
 using Unitful: mp, me, c, q, k as kB, h, ħ    # physical constants
+using UnitfulAstro: Mpc
 using UnitfulGaussian: Fr, G, qcgs
 using Cosmology
 using Statistics: mean
@@ -50,6 +51,10 @@ begin
     include("ion_init.jl")
     include("ion_finalize.jl")
 end
+# to shut the linter up
+using .parameters: na_c, na_photons, psd_max
+using .constants: B_CMB0, E₀ₑ
+using .initializers: set_photon_shells
 
 zero!(A::AbstractArray{T}) where T = fill!(A, zero(T))
 
@@ -197,7 +202,7 @@ function (@main)()
     # jet-shock-radius only mandatory if doing photons
     jet_rad_pc = do_photons ? cfg_toml["jet-shock-radius"] : get(cfg_toml, "jet-shock-radius", 0.0)
 
-    jet_sph_frac, jet_open_ang_deg = parse_jet_frac(get(cfg_toml, "JETFR", nothing))
+    jet_sph_frac, jet_open_ang_deg = parse_jet_frac(get(cfg_toml, "JETFR", nothing), do_photons)
 
     begin
         jet_dist_kpc = get(cfg_toml, "jet-distance", 1.0)
@@ -429,7 +434,7 @@ function (@main)()
         # figure out scoping issues
         redshift = get_redshift(jet_dist_Mpc)
     else
-        jet_dist_Mpc = ustrip(Mpc, comoving_radial_distance(cosmo_calc_params.cosmo, redshift))
+        jet_dist_Mpc = ustrip(Mpc, comoving_radial_dist(cosmo_calc.cosmo, redshift))
     end
 
 
