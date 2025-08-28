@@ -111,7 +111,7 @@ function all_flux!(
         caclulate_x_spec_spectra!(
             spectra_sf, spectra_pf, n_xspec, x_spec, x_PT_old, x_PT_cm,
             ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins,
-            weight, pt_o_pₓ_sk, pb_pf, p_sk, γₚ_sk, γₚ_pf,
+            weight, pt_o_pₓ_sk, pt_o_pₓ_pf, ptot_pf, pb_pf, p_sk, γₚ_sk, γₚ_pf,
         )
     end
 
@@ -140,7 +140,8 @@ function all_flux!(
         therm_ptot_sk, therm_pₓ_sk, therm_grid, therm_weight,
         psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins, psd_bins_per_dec_θ,
         num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min,
-        i_grid_feb, psd,
+        i_prt, i_grid_feb, psd,
+        nc_unit,
     )
     #--------------------------------------------------------------------------
     # Finished updating fluxes for crossed grid boundaries
@@ -161,7 +162,7 @@ end
 function caclulate_x_spec_spectra!(
         spectra_sf, spectra_pf, n_xspec, x_spec, x_PT_old, x_PT_cm,
         ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins,
-        weight, pt_o_pₓ_sk, pb_pf, p_sk, γₚ_sk, γₚ_pf,
+        weight, pt_o_pₓ_sk, pt_o_pₓ_pf, ptot_pf, pb_pf, p_sk, γₚ_sk, γₚ_pf,
     )
     i_pt    = get_psd_bin_momentum(ptot_sk, psd_bins_per_dec_mom,
                                    # from some module
@@ -199,7 +200,8 @@ function flux_stream!(
         therm_ptot_sk, therm_pₓ_sk, therm_grid, therm_weight,
         psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins, psd_bins_per_dec_θ,
         num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min,
-        i_grid_feb, psd,
+        i_prt, i_grid_feb, psd,
+        nc_unit,
     )
 
     # Check if particle has already been injected into acceleration process;

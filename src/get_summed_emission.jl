@@ -1,6 +1,8 @@
+include("constants.jl")
 using .constants: c
+include("parameters.jl")
 using .parameters: na_photons
-using .io: print_plot_vals
+include("io.jl")
 
 """
     get_summed_emission(...)
@@ -54,15 +56,15 @@ function get_summed_emission(
     i_grid_end = zeros(Int, n_ions)
     if n_pion_specs > 1
         skip_pion_read = true
-        pion_emission()
+        pion_emission(pion_photon_sum, n_photon_pion, n_grid, i_grid_start, i_grid_end, energy_pion_MeV)
     end # check on n_pion_specs
 
 
     # Now do inverse Compton
     skip_IC_read = false
-    if n_ic_specs > 1
+    if n_IC_specs > 1
         skip_IC_read = true
-        inverse_compton_emission()
+        inverse_compton_emission(ic_photon_sum, n_grid, i_grid_start, i_grid_end, n_photon_IC, energy_IC_MeV)
     end  # check on n_ic_specs
     #-------------------------------------------------------------------------
     # Summed spectra written if multiple spectra present
@@ -85,33 +87,34 @@ function get_summed_emission(
     #-------------------------------------------------------------------------
     for k in 1:kmax
 
+        grid_file_unit = nothing
         # First, if the output files are still open, close and reopen them to start reading
         # at the beginning of the file. Also, get the zone number of the first block of
         # emission data (not necessarily zone 1 because of the location of the free escape
         # boundary during the MC iterations)
         if k == 1 # Pion decay
-            inquire(file="./photon_pion_decay_grid.dat", opened=lopen, number=j_unit)
-            lopen && close(unit=j_unit)
+            ##inquire(file="./photon_pion_decay_grid.dat", opened=lopen, number=j_unit)
+            ##lopen && close(unit=j_unit)
 
-            open(newunit=grid_file_unit, status="unknown", file="./photon_pion_decay_grid.dat", position="append")
-            read(grid_file_unit, i_grid_start[k])
-            rewind(grid_file_unit)
+            ##open(newunit=grid_file_unit, status="unknown", file="./photon_pion_decay_grid.dat", position="append")
+            ##read(grid_file_unit, i_grid_start[k])
+            ##rewind(grid_file_unit)
 
         elseif k == 2 # Synchrotron
-            inquire(file="./photon_synch_grid.dat",opened=lopen,number=j_unit)
-            lopen && close(unit=j_unit)
+            ##inquire(file="./photon_synch_grid.dat",opened=lopen,number=j_unit)
+            ##lopen && close(unit=j_unit)
 
-            open(newunit=grid_file_unit, status="unknown", file="./photon_synch_grid.dat", position="append")
-            read(grid_file_unit, i_grid_start[k])
-            rewind(grid_file_unit)
+            ##open(newunit=grid_file_unit, status="unknown", file="./photon_synch_grid.dat", position="append")
+            ##read(grid_file_unit, i_grid_start[k])
+            ##rewind(grid_file_unit)
 
         elseif k == 3 # Inverse Compton, using CMB (or other) photon field
-            inquire(file="./photon_IC_grid.dat",opened=lopen,number=j_unit)
-            lopen && close(unit=j_unit)
+            ##inquire(file="./photon_IC_grid.dat",opened=lopen,number=j_unit)
+            ##lopen && close(unit=j_unit)
 
-            open(newunit=grid_file_unit, status="unknown", file="./photon_IC_grid.dat", position="append")
-            read(grid_file_unit, i_grid_start[k])
-            rewind(grid_file_unit)
+            ##open(newunit=grid_file_unit, status="unknown", file="./photon_IC_grid.dat", position="append")
+            ##read(grid_file_unit, i_grid_start[k])
+            ##rewind(grid_file_unit)
         end
 
         # Next, set the number of bins to be used in the summation. The "-1"s are
@@ -127,6 +130,7 @@ function get_summed_emission(
         # Initialize array that will hold fluxes, knowing that it is in log space
         fill!(photon_flux_in, -99.0)
 
+        local m
         # Loop over grid zones, building array photon_flux_in
         # WARNING: photon_flux_in is actually photon flux per unit ln(energy). To
         # get true photon flux, must multiply by width of energy bin in log space.
@@ -147,10 +151,11 @@ function get_summed_emission(
             # First spectrum read in gets slightly special treatment, in that its
             # energy bins are assigned directly to energy_γ_MeV_in without error checking.
             for j in 1:n_photon
-                read(grid_file_unit,  # photon_***.dat
-                     idum1, idum2,
-                     photon_flux_in[j,i_grid_start[k]], # 1 log10(photons/(cm²⋅sec))
-                     energy_MeV_in[j])                  # 2 log10(MeV)
+                (
+                    _, _,
+                    photon_flux_in[j, i_grid_start[k]], # 1 log10(photons/(cm²⋅sec))
+                    energy_MeV_in[j],                  # 2 log10(MeV)
+                ) = read(grid_file_unit)  # photon_***.dat
             end
             read(grid_file_unit,"(2I5,8ES12.3E2)") # Advance past output from print_plot_vals
 
@@ -161,11 +166,13 @@ function get_summed_emission(
                 # the energy bins match previously read-in energy bins? -- before being
                 # included in photon_flux_in
                 for j in 1:n_photon
-                    read(grid_file_unit, # photon_***.dat
-                         i_grid_end[k], idum2,
-                         photon_flux_tmp,           # 1 log10(photons/(cm²⋅sec))
-                         energy_MeV_tmp,            # 2 log10(MeV)
-                         iostat=m)
+                    (
+                        i_grid_end[k], _,
+                        photon_flux_tmp,           # 1 log10(photons/(cm²⋅sec))
+                        energy_MeV_tmp,            # 2 log10(MeV)
+                    ) = read(grid_file_unit) # photon_***.dat
+                    # XXX stub, takes place of Fortran's `open(..., iostat=m)`
+                    m = readstatus(grid_file_unit)
 
                     # If using a downstream FEB, end-of-file will be reached before i = n_grid.
                     # In that case, exit the loop early.
@@ -191,11 +198,12 @@ function get_summed_emission(
             # First spectrum read in gets slightly special treatment, in that its energy
             # bins are assigned directly to energy_MeV_in without error checking.
             for j in 1:n_photon
-                read(grid_file_unit,  # photon_***.dat
-                     idum1, idum2,
-                     xdum1,                                 # 1 nucleus species/photon field
-                     photon_flux_in[j,i_grid_start[k]],     # 2 log10(photons/(cm²⋅sec))
-                     energy_MeV_in[j])                      # 3 log10(MeV)
+                (
+                    _, _,
+                    _,                                  # 1 nucleus species/photon field
+                    photon_flux_in[j, i_grid_start[k]], # 2 log10(photons/(cm²⋅sec))
+                    energy_MeV_in[j],                   # 3 log10(MeV)
+                ) = read(grid_file_unit)  # photon_***.dat
             end
             read(grid_file_unit,"(2I4,F5.1,48ES12.3E2)") # Advance past output of print_plot_vals
 
@@ -206,12 +214,14 @@ function get_summed_emission(
                 # the energy bins match previously read-in energy bins? -- before being
                 # included in photon_flux_in
                 for j in 1:n_photon
-                    read(grid_file_unit,        # photon_***.dat
-                         i_grid_end[k], idum2,
-                         xdum1,                 # 1 ion species/photon field
-                         photon_flux_tmp,       # 2 log10(photons/(cm²⋅sec))
-                         energy_MeV_tmp,        # 3 log10(MeV)
-                         iostat=m)
+                    (
+                        i_grid_end[k], _,
+                        _,                     # 1 ion species/photon field
+                        photon_flux_tmp,       # 2 log10(photons/(cm²⋅sec))
+                        energy_MeV_tmp,        # 3 log10(MeV)
+                    ) = read(grid_file_unit)        # photon_***.dat
+                    # XXX stub, takes place of Fortran's `open(..., iostat=m)`
+                    m = readstatus(grid_file_unit)
 
                     # If using a downstream FEB, end-of-file will be reached before i = n_grid.
                     # In that case, exit the loop early.
@@ -524,7 +534,7 @@ function get_summed_emission(
                                          length = n_pts_sum)
 
     # Create histograms for summed emission
-    create_histograms()
+    create_histograms(n_shells, n_pts_sum, photon_flux_out, energy_MeV_out)
 
     # Now create the histograms for the various emission processes' spectral regions
     for k in 1:kmax
@@ -536,7 +546,7 @@ function get_summed_emission(
             energy_MeV_out[1:n_photon] .= energy_MeV_pion[1:n_photon]
             photon_flux_out[1:n_photon, 1:n_shells] .= photon_flux_pion[1:n_photon, 1:n_shells]
 
-            open(newunit=j_unit, status="unknown", file="./photon_pion_summed.dat")
+            j_unit = open(status="unknown", file="./photon_pion_summed.dat")
 
         elseif k == 2
             n_photon = n_photon_synch - 1
@@ -545,7 +555,7 @@ function get_summed_emission(
             energy_MeV_out[1:n_photon] .= energy_MeV_synch[1:n_photon]
             photon_flux_out[1:n_photon, 1:n_shells] .= photon_flux_synch[1:n_photon, 1:n_shells]
 
-            open(newunit=j_unit, status="unknown", file="./photon_synch_summed.dat")
+            j_unit = open(status="unknown", file="./photon_synch_summed.dat")
 
         elseif k == 3
             n_photon = n_photon_IC - 1
@@ -554,7 +564,7 @@ function get_summed_emission(
             energy_MeV_out[1:n_photon] .= energy_MeV_IC[1:n_photon]
             photon_flux_out[1:n_photon, 1:n_shells] .= photon_flux_IC[1:n_photon, 1:n_shells]
 
-            open(newunit=j_unit, status="unknown", file="./photon_IC_summed.dat")
+            j_unit = open(status="unknown", file="./photon_IC_summed.dat")
 
         end
 
@@ -602,7 +612,7 @@ function get_summed_emission(
 
 
     # Create histogram for total emission
-    create_total_emission_histogram()
+    create_total_emission_histogram(n_pts_sum, ΔlogE, energy_MeV_out, photon_flux_tot, j_unit)
 
     #-------------------------------------------------------------------------
     # Output written
@@ -611,7 +621,7 @@ function get_summed_emission(
     #deallocate(photon_flux_pion, photon_flux_synch, photon_flux_IC)
 end
 
-function pion_emission()
+function pion_emission(pion_photon_sum, n_photon_pion, n_grid, i_grid_start, i_grid_end, energy_pion_MeV)
     pion_photon_sum .= log10.(pion_photon_sum)
 
     # Make sure we're writing to photon_pion_decay_grid.dat, and at the end of the file.
@@ -655,7 +665,7 @@ function pion_emission()
     close(grid_file_unit)
 end
 
-function inverse_compton_emission()
+function inverse_compton_emission(ic_photon_sum, n_grid, i_grid_start, i_grid_end, n_photon_IC, energy_IC_MeV)
     ic_photon_sum .= log10(ic_photon_sum[:,:])
 
     # Make sure we're writing to photon_IC_grid.dat, and at the end of the file.
@@ -701,8 +711,8 @@ function inverse_compton_emission()
     close(grid_file_unit)
 end
 
-function create_histograms()
-    open(newunit=j_unit, status="unknown", file="./photon_tot_summed.dat")
+function create_histograms(n_shells, n_pts_sum, photon_flux_out, energy_MeV_out)
+    j_unit = open(status="unknown", file="./photon_tot_summed.dat")
     for n in 1:n_shells
         j_plot = 1
 
@@ -743,7 +753,7 @@ function create_histograms()
     close(j_unit)
 end
 
-function create_total_emission_histogram()
+function create_total_emission_histogram(n_pts_sum, ΔlogE, energy_MeV_out, photon_flux_tot, j_unit, photon_energy_min_MeV)
     energy_MeV_out[1:n_pts_sum] .= range(start = log10(photon_energy_min_MeV),
                                          step = ΔlogE,
                                          length = n_pts_sum)
