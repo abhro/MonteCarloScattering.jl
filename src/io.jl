@@ -317,3 +317,4 @@ function print_plot_vals(
          )
 
 end
+print_plot_vals(args...) = error("Fortran holdover function")

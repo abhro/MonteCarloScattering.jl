@@ -140,7 +140,7 @@ function get_feb(febup, febdw, x_grid_start_rg, rg₀)
     return (feb_upstream, feb_downstream, use_prp)
 end
 
-function parse_jet_frac(jetfr)
+function parse_jet_frac(jetfr, do_photons=false)
     if isnothing(jetfr) # default behavior, handled differently based on PHOTNS
         do_photons && error("If calculating photons, 'JETFR' must be specified manually.")
         jet_sph_frac     = 0.0
