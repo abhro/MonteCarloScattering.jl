@@ -66,23 +66,7 @@ function (@main)()
 
     (u₀, β₀, γ₀) = parse_shock_speed(cfg_toml["shock-speed"], cfg_toml["shock-speed-unit"])
 
-    species = let
-        masses = cfg_toml["AA_ION"] # species mass in units of proton mass
-        electron_index = findfirst(isnan, masses)
-        masses[electron_index] = NoUnits(me/mp) # electron mass over proton mass
-
-        charges = cfg_toml["ZZ_ION"]
-        charges[electron_index] = -1
-
-        temperatures = cfg_toml["TZ_ION"] # temperature of each species
-        densities = cfg_toml["DENZ_ION"] # number density of each species
-
-        if !(length(masses) == length(charges) == length(temperatures) == length(densities))
-            error("Inconsistent number of ion parameters given (AA_ION, ZZ_ION, TZ_ION, DENZ_ION)")
-        end
-
-        Species.(masses*mp, charges*qcgs, temperatures*K, densities/cm^3)
-    end
+    species = parse_species(cfg_toml)
     n_ions = length(species)
 
     inp_distr = cfg_toml["input-distribution"]
