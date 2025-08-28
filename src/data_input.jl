@@ -156,3 +156,21 @@ function parse_jet_frac(jetfr)
     end
     return (jet_sph_frac, jet_open_ang_deg)
 end
+
+function parse_species(cfg)
+    masses = cfg["AA_ION"] # species mass in units of proton mass
+    electron_index = findfirst(isnan, masses)
+    masses[electron_index] = NoUnits(me/mp) # electron mass over proton mass
+
+    charges = cfg["ZZ_ION"]
+    charges[electron_index] = -1
+
+    temperatures = cfg["TZ_ION"] # temperature of each species
+    densities = cfg["DENZ_ION"] # number density of each species
+
+    if !(length(masses) == length(charges) == length(temperatures) == length(densities))
+        error("Inconsistent number of ion parameters given (AA_ION, ZZ_ION, TZ_ION, DENZ_ION)")
+    end
+
+    return Species.(masses*mp, charges*qcgs, temperatures*K, densities/cm^3)
+end
