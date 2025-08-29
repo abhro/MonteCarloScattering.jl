@@ -1,5 +1,7 @@
+using OffsetArrays: OffsetVector
+using Unitful: ustrip, erg, MeV
+include("parameters.jl")
 using .parameters: psd_max, na_photons
-using .io: print_plot_vals
 
 """
     photon_synch(...)
@@ -27,7 +29,9 @@ Calculates photon production by an electron distribution due to synchtrotron emi
 function photon_synch(
         n_grid, num_hist_bins, p_pf_therm,
         dNdp_pf_therm, num_psd_mom_bins, p_pf_cr, dNdp_pf_cr, n_photon_synch,
-        photon_synch_min_MeV, bins_per_dec_photon, dist_lum, redshift)
+        photon_synch_min_MeV, bins_per_dec_photon, dist_lum, redshift,
+        n_ions, aa_ion, n₀_ion, γ₀, u₀, flux_px_upstream, flux_energy_upstream, u₂, btot_grid, i_ion, mc,
+    )
 
     # Our distribution function has already been normalized to the total number of emitting
     # particles, so no additional scaling is needed. However, it must be converted from
@@ -69,6 +73,7 @@ function photon_synch(
     # and IC subroutines because synchrotron subroutine doesn't have an internal loop.
     do_write = (count(emis_γ[1:n_photon_synch] > 1e-99) ≥ 1)
 
+    local j_unit
 
     # Do necessary unit conversions and write out results to file
     # TODO: maybe hold off on writing to file until IC has been done so that
@@ -101,8 +106,11 @@ function photon_synch(
 
 
             # Open the file and write the spectral data
-            inquire(file="./photon_synch_grid.dat", opened=lopen)
-            lopen || open(newunit=j_unit, status="unknown", file="./photon_synch_grid.dat")
+            # XXX Fortran holdover
+            lopen = inquire(:isopen, file="./photon_synch_grid.dat")
+            if !lopen
+                j_unit = open(status="unknown", file="./photon_synch_grid.dat")
+            end
 
             # Don't write out the last data point
             i == n_photon_synch && continue
@@ -118,7 +126,7 @@ function photon_synch(
 
         end # loop over n_photon_synch
 
-        print_plot_vals(j_unit)
+        ##print_plot_vals(j_unit)
 
     end # check on do_write
 

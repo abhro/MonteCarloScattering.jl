@@ -10,7 +10,8 @@ Physical Review D, 90(12), 123014. https://doi.org/10.1103/PhysRevD.90.123014
 """
 module KATV2014
 
-using ..constants: Tₜₕ
+using Unitful: mp
+using ..constants: Tₜₕ, M_res, Γ_res, E₀_π⁰
 
 """
     get_σ_π(Tₚ, i_data, s_ECM)

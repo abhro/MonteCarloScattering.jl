@@ -4,7 +4,7 @@ using PhysicalConstants.CODATA2018: σ_e as σ_T
 using Unitful, UnitfulAstro, UnitfulEquivalences
 using Unitful: g, K, s, erg, GeV
 using Unitful: mp, me, c, q, k as kB, h, ħ    # physical constants
-using UnitfulGaussian: Fr, G
+using UnitfulGaussian: G
 
 # Physical or arithmetic constants
 

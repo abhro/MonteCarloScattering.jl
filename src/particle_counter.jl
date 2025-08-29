@@ -1,7 +1,8 @@
 module particle_counter
 using Unitful, UnitfulAstro
-using Unitful: cm
-using UnitfulAstro: kpc
+using Unitful: cm, c, mp
+using UnitfulAstro: kpc, pc
+using OffsetArrays: OffsetVector
 
 using ..constants: E₀ₚ
 using ..parameters: psd_max, na_cr, num_therm_bins
@@ -105,20 +106,14 @@ function get_dNdp_cr(
             # Allocate the cos(θ) arrays based on those values, since particles
             # will be binned according to both cos(θ) and (coarse-grained) momentum.
             # Then zero them out.
-            i_ct_ptot_sk_min =   floor(Int, psd_mom_bounds[1])
-            i_ct_ptot_sk_max = ceiling(Int, psd_mom_bounds[num_psd_mom_bins+1])
+            i_ct_ptot_sk_min = floor(Int, psd_mom_bounds[1])
+            i_ct_ptot_sk_max =  ceil(Int, psd_mom_bounds[num_psd_mom_bins+1])
             cθ_sk_xw = zeros(0:psd_max, i_ct_ptot_sk_min:i_ct_ptot_sk_max)
+
+            i_ct_ptot_pf_min = floor(Int, minimum(transform_corner_pt[begin+1:end, :]))
+            i_ct_ptot_pf_max =  ceil(Int, maximum(transform_corner_pt[begin+1:end, :]))
             cθ_pf_xw = zeros(0:psd_max, i_ct_ptot_pf_min:i_ct_ptot_pf_max)
             cθ_ef_xw = zeros(0:psd_max, i_ct_ptot_pf_min:i_ct_ptot_pf_max)
-            fill!(cθ_sk_xw, 0)
-
-            i_ct_ptot_pf_min =   floor(Int, minimum(transform_corner_pt[begin+1:end, :]))
-            i_ct_ptot_pf_max = ceiling(Int, maximum(transform_corner_pt[begin+1:end, :]))
-            if m == 2
-                fill!(cθ_pf_xw, 0)
-            elseif m == 3
-                fill!(cθ_ef_xw, 0)
-            end
 
             # Note that dNdp_cr as calculated here is dN(p), *not* dN/dp.
             # That conversion happens at the end of this subroutine
@@ -338,7 +333,10 @@ function get_dNdp_2D(
         psd_lin_cos_bins, γ₀, β₀, psd, num_psd_θ_bins,
         psd_θ_bounds, num_psd_mom_bins, psd_mom_bounds, n_grid,
         γ_sf_grid, i_ion, num_crossings, n_cr_count, therm_grid,
-        therm_pₓ_sk, therm_ptot_sk, therm_weight)
+        therm_pₓ_sk, therm_ptot_sk, therm_weight,
+        psd_bins_per_dec_mom, psd_mom_min, psd_bins_per_dec_θ, psd_cos_fine,
+        Δcos, psd_θ_min,
+    )
 
     # Initialize d²N_dpdcos_sf to "zero"
     # Dimensions of d²N_dpdcos arrays (chosen for maximum speed during loops):
@@ -377,7 +375,7 @@ function get_dNdp_2D(
     # grid as we move through the data rather than filling a single zone at a time
     n_cross_fill = zeros(Int, n_grid)
 
-    rewind(nc_unit)
+    ##rewind(nc_unit) # XXX Fortran holdover
 
     # Handle crossings stored within the crossing arrays
     for i in 1:n_cr_count
@@ -394,7 +392,7 @@ function get_dNdp_2D(
 
         # Need to go into the scratch file for the remainder of the crossings
         for i in 1:ntot_crossings-na_cr
-            read(nc_unit, i_grid, idum, pₓ_sk, ptot_sk, cell_weight)
+            i_grid, _, pₓ_sk, ptot_sk, cell_weight = read(nc_unit)
 
             n_cross_fill[i_grid] += 1
 
@@ -565,7 +563,6 @@ function get_dNdp_2D(
                 ptot_sf   = ptot_center[k]
                 pₓ_sf   = ptot_sf * cos_θ_sf
                 etot_sf = hypot(ptot_sf*c, E₀)
-
                 # Get location of center in transformed d²N_dpdcos
                 pₓ_Xf = γᵤ * (pₓ_sf - βᵤ*etot_sf/c)
                 ptot_Xf = √(ptot_sf^2 - pₓ_sf^2 + pₓ_Xf^2)
@@ -647,6 +644,9 @@ function get_normalized_dNdp(
         i_iter,
         i_ion,
         γ_sf_grid,
+        therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight, num_crossings, n_cr_count,
+        psd, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
+        zone_vol, therm_energy_density, energy_density,
     )
 
     therm_temp = zeros(0:psd_max, 3)
@@ -663,16 +663,19 @@ function get_normalized_dNdp(
 
     # Get the non-normalized dN/dp's from the crossing arrays, scratch file (if necessary),
     # and the phase space distribution,
-    dNdp_therm = zeros(0:psd_max, n_grid, 3)
-    dNdp_therm_pvals = zeros(0:psd_max, n_grid, 3)
-    get_dNdp_therm(num_hist_bins, dNdp_therm, dNdp_therm_pvals, nc_unit)
+    dNdp_therm, dNdp_therm_pvals = get_dNdp_therm(
+        num_hist_bins, nc_unit, m_ion, γ₀, β₀, n_grid, γ_sf_grid, i_ion,
+        therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight, num_crossings, n_cr_count)
 
-    dNdp_cr = get_dNdp_cr()
+    dNdp_cr = get_dNdp_cr(
+        m_ion, psd_lin_cos_bins, γ₀, num_psd_θ_bins, psd_θ_bounds,
+        psd, psd_mom_bounds, num_psd_mom_bins, n_grid, γ_sf_grid, i_ion)
 
     # Now have non-normalized dN/dp for both thermal and CR populations.
     # Determine the total number of particles in each grid zone by using
     # shock frame flux, area, crossing time:
     #     #  =  flux * area * (distance/speed)
+    local i_shock
     for i in 1:n_grid
         if iszero(x_grid_cm[i]) || (x_grid_cm[i]*x_grid_cm[i+1] < 0)
             # Either current grid zone is exactly at shock, or current and next grid zones
@@ -1013,7 +1016,7 @@ function get_dNdp_therm(
     # Fill the arrays with data from the crossing arrays and (if needed) from the scratch file
     ntot_crossings = sum(num_crossings)
 
-    rewind(nc_unit)
+    ##rewind(nc_unit) # XXX Fortran holdover
 
     # n_cross_fill needs to be an array because we will be skipping around the grid
     # as we move through the data rather than filling a single zone at a time
@@ -1034,7 +1037,7 @@ function get_dNdp_therm(
     if ntot_crossings > na_cr
         # Need to go into the scratch file for the remainder of the crossings
         for i in 1:ntot_crossings-na_cr
-            read(nc_unit, i_grid, idum, pₓ_sk, ptot_sk, cell_weight)
+            i_grid, _, pₓ_sk, ptot_sk, cell_weight = read(nc_unit)
 
             n_cross_fill[i_grid] += 1
 
@@ -1253,12 +1256,12 @@ function get_dNdp_therm(
         # equation (17) from Ellison & Reynolds (1991) [1991ApJ...378..214E].
         #------------------------------------------------------------------------
         #num_skipped = 0
-        #∑psq       = 0.0
-        #∑psq_f     = 0.0
-        #∑psq_lnpsq = 0.0
-        #∑pfth      = 0.0
-        #∑f         = 0.0
-        #∑lnpsq     = 0.0
+        #∑p²      = 0.0
+        #∑p²_f    = 0.0
+        #∑p²_lnp² = 0.0
+        #∑pfth    = 0.0
+        #∑f       = 0.0
+        #∑lnp²    = 0.0
         #for k in 0:num_hist_bins-1 # now using shifted bins
         #    # Here, f is the natural logarithm of dN/dp because fitting occurs in log-log space
         #    if dNdp_therm(k, i, 2) > 0
@@ -1268,27 +1271,27 @@ function get_dNdp_therm(
         #        num_skipped += 1
         #        continue
         #    end
-        #    psq = dNdp_therm_pvals[k,i,2]^2
-        #    ∑psq       += psq
-        #    ∑psq_f     += psq * f
-        #    ∑psq_lnpsq += psq * log(psq)
-        #    ∑pfth      += psq^2
-        #    ∑f         += f
-        #    ∑lnpsq     += log(psq)
+        #    p² = dNdp_therm_pvals[k,i,2]^2
+        #    ∑p²      += p²
+        #    ∑p²_f    += p² * f
+        #    ∑p²_lnp² += p² * log(p²)
+        #    ∑pfth    += p²^2
+        #    ∑f       += f
+        #    ∑lnp²    += log(p²)
         #end
         #num_bins = num_hist_bins - num_skipped
-        #lnA    = (∑psq*∑psq_f - ∑psq*∑psq_lnpsq - ∑pfth*∑f + ∑pfth*∑lnpsq) / (∑psq^2 - num_bins*∑pfth)
-        #expfac = (-num_bins*∑psq_f + ∑f*∑psq - ∑psq*∑lnpsq + num_bins*∑psq_lnpsq) / (∑psq^2 - num_bins*∑pfth)
+        #lnA    = (∑p²*∑p²_f - ∑p²*∑p²_lnp² - ∑pfth*∑f + ∑pfth*∑lnp²) / (∑p²^2 - num_bins*∑pfth)
+        #expfac = (-num_bins*∑p²_f + ∑f*∑p² - ∑p²*∑lnp² + num_bins*∑p²_lnp²) / (∑p²^2 - num_bins*∑pfth)
         #temp   = - 1 / (2 * m_ion[numion] * kB * expfac)
         #n0     = exp(lnA) * (m_ion[numion]*kB*temp)^(3//2) * √(π/2)
 
         ## Generate values of fitted M-B distribution
         #mb_vals = zeros(num_hist_bins)
         #for k in 1:num_hist_bins
-        #    psq = dNdp_therm_pvals[k-1,i,2]^2
-        #    mb_vals[k] = exp(lnA + log(psq) + expfac*psq)
+        #    p² = dNdp_therm_pvals[k-1,i,2]^2
+        #    mb_vals[k] = exp(lnA + log(p²) + expfac*p²)
         #end
-        #mb_vals .= mb_vals ./ sum(mb_vals) # normalize
+        #mb_vals ./= sum(mb_vals) # normalize
 
         ## Calculate pressure using integral formula.
         ## Plot dN/dp, fitted M-B distribution, and pressure

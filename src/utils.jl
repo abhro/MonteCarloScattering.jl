@@ -2,13 +2,16 @@
 Functions that might be nice to have when the code base is refactored
 """
 
+using Unitful: g, K, cm
+using UnitfulGaussian: Fr
+
 """
     adjacent_apply(f, x)
 
 Return `f(x[i], x[i+1])` for each `i` in `x`'s index, excluding the last `i`.
 """
-function adjacent_apply(f, x)
-    y = Vector{eltype(x)}(undef, length(x) - 1)
+function adjacent_apply(f, x::AbstractVector{T}) where T
+    y = Vector{T}(undef, length(x) - 1)
     adjacent_apply!(f, y, x)
     return y
 end
@@ -46,6 +49,7 @@ function geometric_center(y)
     end
 end
 
+using Unitful
 lorentz(v::Unitful.Velocity) = lorentz(NoUnits(v/c))
 """
 Get Lorentz factor γ from velocity β (in units of c)
@@ -66,7 +70,7 @@ function RelativisticVelocity(u::Unitful.Velocity)
     u < c || throw(DomainError(u, "speed is greater than speed of light"))
 
     β = u/c
-    return RelativisticVelocity(u, β, γ(β))
+    return RelativisticVelocity(u, β, lorentz(β))
 end
 function Base.show(io::IO, v::RelativisticVelocity{T}) where T
     print(io, "RelativisticVelocity{", T, "}")
@@ -78,7 +82,7 @@ function Base.show(io::IO, v::RelativisticVelocity{T}) where T
 end
 
 function velocity_from_β(β::T) where T
-    return RelativisticVelocity{T}(β*c, β, γ(β))
+    return RelativisticVelocity{T}(β*c, β, lorentz(β))
 end
 
 function velocity_from_γ(γ::T) where T

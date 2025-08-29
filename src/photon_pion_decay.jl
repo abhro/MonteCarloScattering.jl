@@ -1,5 +1,5 @@
 using Unitful, UnitfulAstro
-using .constants: h
+using Unitful: MeV, h
 
 """
     photon_pion_decay(...)
@@ -87,6 +87,7 @@ function photon_pion_decay(
         end
     end
 
+    local j_unit
 
     # Now loop over all secondary species: photons, e-/e+, (anti-)neutrinos.
     # For now, just limit to photons
@@ -94,9 +95,9 @@ function photon_pion_decay(
 
         # Open the files to which we will write our spectral data
         if ID == 1
-            inquire(file="./photon_pion_decay_grid.dat", opened=lopen)
+            lopen = inquire(:isopen, file="./photon_pion_decay_grid.dat")
             if !lopen
-                open(newunit=j_unit, status="unknown", position="append", file="./photon_pion_decay_grid.dat")
+                j_unit = open(status="unknown", position="append", file="./photon_pion_decay_grid.dat")
             end
         end
 

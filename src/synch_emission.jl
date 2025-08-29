@@ -1,5 +1,9 @@
+using LinearAlgebra: dot
+using Unitful: ustrip, MeV, erg, c, ħ
+using UnitfulGaussian: qcgs
+using QuadGK: quadgk
 using SpecialFunctions: besselk
-using .constants: E₀ₚ, ħ, c
+using .constants: E₀ₚ, E₀ₑ
 
 """
     synch_emission(...)
@@ -65,9 +69,9 @@ function synch_emission(
     # Now loop over momenta (i.e. energy) of electrons and calculate the synchrotron emission.
     #-------------------------------------------------------------------------
     # First up, the thermal particles.
-    synch_emission_thermal_particles!(synch_emis)
+    synch_emission_thermal_particles!(synch_emis, num_hist_bins, dN_therm, p_pf_therm, bmag_curr, mc, n_photon_synch, energy_γ, nu, p_fac)
     # With the thermal particles finished, move on to the cosmic ray population
-    synch_emission_cosmic_ray!(synch_emis)
+    synch_emission_cosmic_ray!(synch_emis, num_psd_mom_bins, dN_cr, p_pf_cr, mc, bmag_curr, n_photon_synch, energy_γ, nu, p_fac)
     #-------------------------------------------------------------------------
     # Finished
 
@@ -77,8 +81,10 @@ function synch_emission(
     # isn't already open), and write d²N/dEdt to it.
     #-------------------------------------------------------------------------
     synch_unit = 62
-    inquire(unit=synch_unit, opened=lopen)
-    lopen || open(unit=synch_unit, status="scratch", form="unformatted")
+    lopen = inquire(:isopen, unit=synch_unit)
+    if !lopen
+        synch_unit = open(status="scratch", form="unformatted")
+    end
 
 
     # Only write to the scratch file if there actually was synchrotron emission
@@ -107,7 +113,10 @@ function synch_emission(
 end
 
 
-function synch_emission_thermal_particles!(synch_emis)
+function synch_emission_thermal_particles!(
+    synch_emis, num_hist_bins, dN_therm,
+    p_pf_therm, bmag_curr, mc, n_photon_synch, energy_γ, nu, p_fac
+)
     for iii in 0:num_hist_bins-1
 
         # Total number of electrons in Δp
@@ -160,7 +169,9 @@ function synch_emission_thermal_particles!(synch_emis)
     end
 end
 
-function synch_emission_cosmic_ray!(synch_emis)
+function synch_emission_cosmic_ray!(
+    synch_emis, num_psd_mom_bins, dN_cr, p_pf_cr, mc, bmag_curr, n_photon_synch, energy_γ, nu, p_fac
+)
     for iii in 0:num_psd_mom_bins
 
         # Total number of electrons in Δp

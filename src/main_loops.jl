@@ -8,14 +8,14 @@
    4. loop_pt:    i_prt    Individual particle number
 """
 function main_loops(
-        n_itrs, n_ions, n_pcuts, n_grid, n_pts_inj, species,
+        n_itrs, n_ions, n_pcuts, n_grid, n_pts_inj, n_tcuts, species,
         (u₀, β₀, γ₀), (u₂, β₂, γ₂),
         Emax, Emax_per_aa, energy_pcut_hi, pmax,
         pxx_flux, pxz_flux, energy_flux,
         pressure_psd_par, pressure_psd_perp, energy_density_psd,
         esc_spectra_feb_upstream, esc_spectra_feb_downstream,
         weight_coupled,
-        ε_target, γ_sf_grid, uₓ_sk_grid, uz_sk_grid, utot_grid, energy_transfer_frac,
+        ε_target, Γ₂_RH, εB_grid, Γ_grid, γ_sf_grid, uₓ_sk_grid, uz_sk_grid, utot_grid, energy_transfer_frac,
         energy_transfer_pool, energy_recv_pool, energy_density, therm_energy_density,
         num_crossings, therm_grid, therm_pₓ_sk, therm_ptot_sk,
         therm_weight, psd, esc_psd_feb_upstream, esc_psd_feb_downstream,
@@ -27,15 +27,20 @@ function main_loops(
         prp_x_cm_sav, prp_x_cm_new, acctime_sec_sav, acctime_sec_new, tcut_sav, tcut_new, φ_rad_sav, φ_rad_new,
         pcuts_in, pcuts_use, l_save, i_grid_feb, i_shock,
         n_pts_max, n_xspec, n_print_pt, num_psd_mom_bins, num_psd_θ_bins,
-        psd_cos_fine, Δcos, psd_θ_min,
+        psd_lin_cos_bins, psd_cos_fine, Δcos, psd_mom_bounds, psd_θ_bounds, psd_θ_min,
         psd_mom_min, psd_bins_per_dec_mom, psd_bins_per_dec_θ,
         bmag₂, zone_vol, pₑ_crit, γₑ_crit,
         x_spec, feb_upstream, feb_downstream, B_CMBz, use_custom_εB,
         γ_ef_grid, β_ef_grid, btot_grid, θ_grid, pₓ_esc_feb, energy_esc_feb,
         do_rad_losses, do_retro, do_tcuts, dont_DSA, dont_scatter, use_custom_frg,
         inj_fracs, spectra_pf, spectra_sf, tcuts, age_max, spectra_coupled,
-        esc_energy_eff, esc_num_eff, esc_flux,
-        n_pts_pcut, n_pts_pcut_hi, t_start, outfile,
+        esc_energy_eff, esc_num_eff, esc_flux, electron_weight_fac,
+        n_pts_pcut, n_pts_pcut_hi, t_start, weights_file, spectra_file, outfile,
+        pₓ_esc_flux_upstream, flux_px_upstream, flux_energy_upstream, energy_esc_flux_upstream,
+        Γ_downstream, q_esc_cal_pₓ, q_esc_cal_energy,
+        do_multi_dNdps, do_photons,
+        jet_rad_pc, jet_sph_frac, m_ion, aa_ion, zz_ion, T₀_ion, n₀_ion,
+        r_comp, r_RH, n_shell_endpoints,
     )
     # Start of loop over iterations
     for i_iter in 1:n_itrs # loop_itr
@@ -88,7 +93,7 @@ function main_loops(
             # At the start of each ion, print a glyph to the screen
             @info("Starting species iteration", i_iter, i_ion)
 
-            pmax_cutoff = get_pmax_cutoff(Emax, Emax_per_aa, pmax)
+            pmax_cutoff = get_pmax_cutoff(Emax, Emax_per_aa, pmax, aa)
 
             # Zero out the phase space distributions and set variables related to
             # tracking thermal particles
@@ -149,7 +154,7 @@ function main_loops(
             # dividing by particle mass the factor of aa is already present in the denominator.
             # Also set the maximum momentum cutoff based on the values given in keyword
             # "maximum-energy"
-            p_pcut_hi = pcut_hi(energy_pcut_hi, energy_rel_pt, mass(species[i_ion]))
+            p_pcut_hi = pcut_hi(energy_pcut_hi, E_rel_pt, mass(species[i_ion]))
 
             #----------------------------------------------------------------------
             #  Start of loop over pcuts
@@ -235,6 +240,7 @@ function main_loops(
                         inj_fracs, xn_per_fine, xn_per_coarse,
                         x_grid_cm, therm_grid, therm_ptot_sk, therm_pₓ_sk, therm_weight,
                         spectra_pf, spectra_sf, tcuts, pcuts_use, age_max,
+                        ε_target, energy_transfer_pool, electron_weight_fac,
                         weight_coupled, spectra_coupled, esc_energy_eff, esc_num_eff, esc_flux,
                         esc_psd_feb_upstream, esc_psd_feb_downstream,
                        )
@@ -287,7 +293,28 @@ function main_loops(
             #----------------------------------------------------------------------
             # Conclusion of pcuts loop
 
-            ion_finalize()
+            (;
+                dNdp_therm, dNdp_therm_pvals, dNdp_cr, zone_pop,
+                pressure_psd_par, pressure_psd_perp, energy_density_psd,
+            ) = ion_finalize(
+                outfile, nc_unit,
+                aa, esc_psd_feb_upstream, esc_psd_feb_downstream,
+                jet_rad_pc, jet_sph_frac, m_ion, aa_ion, zz_ion, T₀_ion, n₀_ion,
+                (u₀, β₀, γ₀), u₂, n_ions,
+                do_multi_dNdps, do_photons,
+                mc,
+                n_grid, x_grid_cm, uₓ_sk_grid,
+                i_iter,
+                i_ion,
+                γ_sf_grid,
+                therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight, num_crossings, n_cr_count,
+                num_psd_mom_bins, psd_mom_bounds,
+                psd, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
+                psd_bins_per_dec_mom, psd_mom_min, psd_bins_per_dec_θ, psd_cos_fine, Δcos, psd_θ_min,
+                n_shell_endpoints,
+                flux_px_upstream, flux_energy_upstream, btot_grid,
+                zone_vol, therm_energy_density, energy_density,
+            )
 
         end # loop_ion
         #------------------------------------------------------------------------
@@ -307,7 +334,25 @@ function main_loops(
         end
         #print_plot_vals(888)
 
-        iter_finalize()
+        iter_finalize(
+            i_iter, i_shock, n_grid, outfile, Γ₂_RH, x_grid_cm, x_grid_rg,
+            Γ_grid, uz_sk_grid, θ_grid,
+            pxx_flux, energy_flux, pₓ_esc_flux_upstream, pₓ_esc_upstream, flux_px_upstream,
+            energy_esc_flux_upstream, energy_esc_upstream, energy_density_psd,
+            flux_energy_upstream,
+            pressure_psd_par, pressure_psd_perp,
+            Γ_downstream, ∑P_downstream, ∑KEdensity_downstream,
+            q_esc_cal_pₓ, q_esc_cal_energy,
+            uₓ_sk_grid, γ_sf_grid, btot_grid, utot_grid,
+            γ_ef_grid, β_ef_grid, εB_grid,
+            r_comp, r_RH, u₀, β₀, γ₀, species, γ₂, β₂, u₂,
+        )
+        # If tcut tracking was enabled, print out the results here
+        if do_tcuts
+            tcut_print(weights_file, spectra_file, n_tcuts, tcuts, n_ions,
+                       num_psd_mom_bins, psd_mom_bounds,
+                       i_iter, weight_coupled, spectra_coupled)
+        end
 
     end # loop_itr
     #--------------------------------------------------------------------------

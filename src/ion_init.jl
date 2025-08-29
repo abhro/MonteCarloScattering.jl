@@ -42,7 +42,7 @@ function assign_particle_properties_to_population!(
     φ_rad_new[1:n_pts_use] .= 2π*Random.rand(n_pts_use)
 end
 
-function get_pmax_cutoff(Emax, Emax_per_aa, pmax)
+function get_pmax_cutoff(Emax, Emax_per_aa, pmax, aa)
     if Emax > 0keV
         γ = 1 + Emax/(aa*E₀ₚ)
         pmax_cutoff = aa*mp * c * √(γ^2 - 1)
@@ -59,9 +59,9 @@ function get_pmax_cutoff(Emax, Emax_per_aa, pmax)
     return pmax_cutoff
 end
 
-function pcut_hi(energy_pcut_hi, energy_rel_pt, m)
+function pcut_hi(energy_pcut_hi, E_rel_pt, m)
     E_pcut_hi_rmproton = energy_pcut_hi*keV / E₀ₚ # FIXME pick better name
-    if E_pcut_hi_rmproton < energy_rel_pt
+    if E_pcut_hi_rmproton < E_rel_pt
         p_pcut_hi = √(2 * E_pcut_hi_rmproton)
     else
         p_pcut_hi = m*c * √((E_pcut_hi_rmproton + 1)^2 - 1)
