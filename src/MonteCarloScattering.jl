@@ -149,7 +149,7 @@ function (@main)()
 
     r_comp, r_RH, Γ₂_RH = let
         r_comp = cfg_toml["target-compression-ratio"]
-        r_RH, Γ₂_RH = calc_rRH(u₀, β₀, γ₀, species)
+        r_RH, Γ₂_RH = calc_rRH((u₀, β₀, γ₀), species)
         if r_comp == -1
             r_comp = r_RH
         end
@@ -605,8 +605,11 @@ function (@main)()
     q_esc_cal_pₓ = zeros(n_itrs)
     q_esc_cal_energy = zeros(n_itrs)
 
+    # Adiabatic index of particles that were lost downstream
+    Γ_downstream = zeros(n_itrs)
+
     m_ion = mass.(species)
-    aa_ion = m_ion / mp |> NoUnits
+    aa_ion = m_ion / mp .|> NoUnits
     zz_ion = charge.(species)
     T₀_ion = temperature.(species)
     n₀_ion = density.(species)
