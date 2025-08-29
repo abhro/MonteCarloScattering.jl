@@ -1,3 +1,7 @@
+using Unitful: k as kB, c
+include("constants.jl"); using .constants: E₀ₚ
+include("parameters.jl"); using .parameters: na_cr
+
 """
     thermo_calcs(...)
 
@@ -28,6 +32,9 @@ function thermo_calcs(
         num_crossings, n_cr_count, therm_grid, therm_pₓ_sk, therm_ptot_sk,
         therm_weight, nc_unit, psd, zone_pop, aa_ion, zz_ion, T₀_ion, n₀_ion,
         psd_lin_cos_bins, γ₀, β₀,
+        n_grid, γ_sf_grid, uₓ_sk_grid, i_ion, mc,
+        num_psd_mom_bins, num_psd_θ_bins, psd_max, psd_θ_bounds, psd_mom_bounds,
+        psd_bins_per_dec_mom, psd_mom_min, psd_bins_per_dec_θ, psd_cos_fine, Δcos, psd_θ_min,
     )
 
     d²N_pf = fill(1e-99, (0:psd_max, 0:psd_max, n_grid))
@@ -86,7 +93,7 @@ function thermo_calcs(
     # as we move through the data rather than filling a single zone at a time
     n_cross_fill = zeros(Int, n_grid)
 
-    rewind(nc_unit)
+    ##rewind(nc_unit) # XXX Fortran holdover
 
 
     # Handle crossings stored within the crossing arrays
@@ -105,7 +112,7 @@ function thermo_calcs(
 
         # Need to go into the scratch file for the remainder of the crossings
         for i in 1:ntot_crossings-na_cr
-            read(nc_unit, i_grid, idum, pₓ_sk, ptot_sk, cell_weight)
+            i_grid, _, pₓ_sk, ptot_sk, cell_weight = read(nc_unit)
 
             n_cross_fill[i_grid] += 1
 
@@ -148,7 +155,6 @@ function thermo_calcs(
             # Get location of center in transformed d²N_pf
             kpt_Xf = get_psd_bin_momentum(pt_Xf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
             jθ_Xf = get_psd_bin_angle(pₓ_Xf, pt_Xf, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
-
 
             # And add particle count to the appropriate bin in d²N_pf
             d²N_pf[jθ_Xf, kpt_Xf, i] += therm_weight[n,i]

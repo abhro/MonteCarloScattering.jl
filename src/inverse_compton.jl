@@ -1,7 +1,11 @@
-# using Unitful, UnitfulAstro
-using .constants: E₀ₚ, E₀ₑ, T_CMB0, kB
-using .parameters: na_photons, energy_rel_pt
-using .io: print_plot_vals
+using OffsetArrays: OffsetMatrix
+using Unitful: ustrip, erg, MeV, c, k as kB, h
+using UnitfulGaussian: qcgs
+include("constants.jl")
+using .constants: E₀ₚ, E₀ₑ, T_CMB0
+include("parameters.jl")
+using .parameters: na_photons, E_rel_pt
+include("io.jl")
 
 """
     photon_IC(...)
@@ -34,6 +38,7 @@ function photon_IC(
         num_psd_θ_bins, d²Ndp_slice, n_photon_IC, photon_ic_min_MeV,
         bins_per_dec_photon, dist_lum, redshift,
         n_IC_specs, energy_IC_MeV, ic_photon_sum,
+        dp_pf_cr, jet_sph_frac, mc
     )
 
     energy_γ_MeV = zeros(na_photons)
@@ -53,6 +58,7 @@ function photon_IC(
         end
     end
 
+    local j_unit
 
     # Loop over the photon fields, creating an output file for each field's
     # contribution to IC emission.
@@ -122,8 +128,10 @@ function photon_IC(
 
             # Open the file to which we will write the spectral data.
             if j3 == 1
-                inquire(file="./photon_IC_grid.dat", opened=lopen)
-                lopen || open(newunit=j_unit, status="unknown", file="./photon_IC_grid.dat")
+                lopen = inquire(:isopen, file="./photon_IC_grid.dat")
+                if !lopen
+                    j_unit = open(status="unknown", file="./photon_IC_grid.dat")
+                end
             end
 
             # Don't write out the last data point
@@ -287,7 +295,7 @@ function IC_emission_FCJ(
         xnum_electron = sum(d²N_slice[begin:jθ_max,i_el])
 
         p1 = √(p_pf_cr[i_el] * p_pf_cr[i_el+1])
-        γ = p1/mc < energy_rel_pt ? 1.0 : hypot(p1/mc, 1)
+        γ = p1/mc < E_rel_pt ? 1.0 : hypot(p1/mc, 1)
 
         # Loop over incoming photons, then over outgoing photons, then over angle.
         # Fill d²N_o_dtdα as defined by equation (9) in the process.
@@ -296,7 +304,7 @@ function IC_emission_FCJ(
         for j_in in 1:n_freq
 
             # for Eq.(9), Jones, PhysRev. 1968, V.167, p.1159
-            #   d²N/dtdα ≈ 2πr₀²c/α₁γ² [2q″\ln q″ + (1+2q″)(1−q″) + ½(1-q″)(4α₁γq″)²/(1+4α₁γq″)]
+            #   d²N/dtdα ≈ 2πr₀²c/α₁γ² [2q″ ln q″ + (1+2q″)(1−q″) + ½(1-q″)(4α₁γq″)²/(1+4α₁γq″)]
             # where q″ = α/4α₁γ²(1−α/γ) and 1/4γ² < q″ ≤ 1
             α₁       = photon_energy_rm[j_in]
             norm_fac = xnum_photons_p_vol[j_in] * 2π* r_z^2 * c / (α₁ * γ^2)

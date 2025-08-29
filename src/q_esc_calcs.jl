@@ -1,4 +1,8 @@
+using Unitful: k as kB, c
+using LinearAlgebra: dot
+include("parameters.jl")
 using .parameters: β_rel_fl
+include("utils.jl")
 
 """
     q_esc_calcs(...)
@@ -6,8 +10,8 @@ using .parameters: β_rel_fl
 Use the Rankine-Hugoniot relations to calculate the escaping momentum & energy flux.
 """
 function q_esc_calcs(
-        Γ, r_comp, r_RH, u₀, β₀, γ₀, n_ions,
-        aa_ion, zz_ion, T₀_ion, n₀_ion, γ₂, β₂, u₂)
+        Γ, r_comp, r_RH, u₀, β₀, γ₀, species,
+        γ₂, β₂, u₂)
 
     # Quick test first. If r_comp = r_RH, we expect no escaping flux.
     r_comp == r_RH && return 0.0, 0.0
@@ -20,11 +24,14 @@ function q_esc_calcs(
     relativistic = (β₀ ≥ β_rel_fl)
 
     Γ_fac = Γ / (Γ - 1)
+    m_ion = mass.(species)
 
+    T₀_ion = temperature.(species)
+    n₀_ion = density.(species)
     if relativistic
-        return q_esc_calcs_relativistic()
+        return q_esc_calcs_relativistic(n₀_ion, T₀_ion, m_ion, (u₀, β₀, γ₀), (u₂, β₂, γ₂), Γ_fac)
     else
-        return q_esc_calcs_nonrelativistic()
+        return q_esc_calcs_nonrelativistic(n₀_ion, T₀_ion, m_ion, (u₀, β₀, γ₀), (u₂, β₂, γ₂), Γ_fac)
     end
 end
 
@@ -37,9 +44,9 @@ Note assumption of zero escaping momentum flux, which is good to
 within a couple percent for strong nonrelativistic shocks.
 #TODO: check how much of a difference this assumption makes
 """
-function q_esc_calcs_nonrelativistic()
+function q_esc_calcs_nonrelativistic(n₀_ion, T₀_ion, m_ion, (u₀, β₀, γ₀), (u₂, β₂, γ₂), Γ_fac)
     # Calculate thermal pressure of far upstream gas
-    P₀ = dot(n₀_ion, T₀_ion) * k    # pressure (thermal)
+    P₀ = dot(n₀_ion, T₀_ion) * kB   # pressure (thermal)
     ρ₀ = dot(n₀_ion, m_ion)         # mass density
 
     # Calculate upstream incoming energy flux   #assumecold
@@ -48,7 +55,7 @@ function q_esc_calcs_nonrelativistic()
 
     # Calculate far downstream density (Eq 8) and pressure (Eq 9)
     ρ₂ = ρ₀ * γ₀*β₀ / (γ₂*β₂)           # mass density
-    P₂ = F_pₓ_upstream_fl - ρ₂*u₂^2          # pressure
+    P₂ = F_pₓ_upstream_fl - ρ₂*u₂^2     # pressure
 
     # Calculate escaping energy flux using Eq (10)
     Q_en = F_energy_upstream_fl - ρ₀ * u₀ * u₂^2 / 2 - P₂ * u₂ * Γ_fac
@@ -87,12 +94,12 @@ i.e. the geometric mean of the arithmetic mean of u₀ and c. This allows the so
 smoothly join with the non-relativistic version. Use only fluid component of fluxes,
 not fluid+EM, for now.
 """
-function q_esc_calcs_relativistic()
+function q_esc_calcs_relativistic(n₀_ion, T₀_ion, m_ion, (u₀, β₀, γ₀), (u₂, β₂, γ₂), Γ_fac)
     # Factor relating Q_en and Q_px
     q_fac = c * √((1 + β₀)/2)
 
     # Calculate thermal pressure of far upstream gas
-    P₀ = dot(n₀_ion, T₀_ion) * k    # pressure (thermal)
+    P₀ = dot(n₀_ion, T₀_ion) * kB   # pressure (thermal)
     ρ₀ = dot(n₀_ion, m_ion)         # mass density
 
     # Two terms to simplify the calculation of pressure₂.   #assumecold

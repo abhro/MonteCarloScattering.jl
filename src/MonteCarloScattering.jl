@@ -602,16 +602,23 @@ function (@main)()
     end
 
     ε_target = zeros(n_grid)
+    q_esc_cal_pₓ = zeros(n_itrs)
+    q_esc_cal_energy = zeros(n_itrs)
 
+    m_ion = mass.(species)
+    aa_ion = m_ion / mp |> NoUnits
+    zz_ion = charge.(species)
+    T₀_ion = temperature.(species)
+    n₀_ion = density.(species)
     main_loops(
-        n_itrs, n_ions, n_pcuts, n_grid, n_pts_inj, species,
+        n_itrs, n_ions, n_pcuts, n_grid, n_pts_inj, n_tcuts, species,
         (u₀, β₀, γ₀), (u₂, β₂, γ₂),
         Emax, Emax_per_aa, energy_pcut_hi, pmax,
         pxx_flux, pxz_flux, energy_flux,
         pressure_psd_par, pressure_psd_perp, energy_density_psd,
         esc_spectra_feb_upstream, esc_spectra_feb_downstream,
         weight_coupled,
-        ε_target, γ_sf_grid, uₓ_sk_grid, uz_sk_grid, utot_grid, energy_transfer_frac,
+        ε_target, Γ₂_RH, εB_grid, Γ_grid, γ_sf_grid, uₓ_sk_grid, uz_sk_grid, utot_grid, energy_transfer_frac,
         energy_transfer_pool, energy_recv_pool, energy_density, therm_energy_density,
         num_crossings, therm_grid, therm_pₓ_sk, therm_ptot_sk,
         therm_weight, psd, esc_psd_feb_upstream, esc_psd_feb_downstream,
@@ -623,15 +630,20 @@ function (@main)()
         prp_x_cm_sav, prp_x_cm_new, acctime_sec_sav, acctime_sec_new, tcut_sav, tcut_new, φ_rad_sav, φ_rad_new,
         pcuts_in, pcuts_use, l_save, i_grid_feb, i_shock,
         n_pts_max, n_xspec, n_print_pt, num_psd_mom_bins, num_psd_θ_bins,
-        psd_cos_fine, Δcos, psd_θ_min,
+        psd_lin_cos_bins, psd_cos_fine, Δcos, psd_mom_bounds, psd_θ_bounds, psd_θ_min,
         psd_mom_min, psd_bins_per_dec_mom, psd_bins_per_dec_θ,
         bmag₂, zone_vol, pₑ_crit, γₑ_crit,
         x_spec, feb_upstream, feb_downstream, B_CMBz, use_custom_εB,
         γ_ef_grid, β_ef_grid, btot_grid, θ_grid, pₓ_esc_feb, energy_esc_feb,
         do_rad_losses, do_retro, do_tcuts, dont_DSA, dont_scatter, use_custom_frg,
         inj_fracs, spectra_pf, spectra_sf, tcuts, age_max, spectra_coupled,
-        esc_energy_eff, esc_num_eff, esc_flux,
-        n_pts_pcut, n_pts_pcut_hi, t_start, outfile,
+        esc_energy_eff, esc_num_eff, esc_flux, electron_weight_fac,
+        n_pts_pcut, n_pts_pcut_hi, t_start, weights_file, spectra_file, outfile,
+        pₓ_esc_flux_upstream, flux_px_upstream, flux_energy_upstream, energy_esc_flux_upstream,
+        Γ_downstream, q_esc_cal_pₓ, q_esc_cal_energy,
+        do_multi_dNdps, do_photons,
+        jet_rad_pc, jet_sph_frac, m_ion, aa_ion, zz_ion, T₀_ion, n₀_ion,
+        r_comp, r_RH, n_shell_endpoints,
     )
 
     close(weights_file)
