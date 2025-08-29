@@ -475,7 +475,7 @@ function particle_loop(
         # Downstream escape/return test; assume we'll call subroutine
         # prob_return unless told otherwise by particle location/info
         do_prob_ret, i_return = downstream_test(
-            feb_downstream, gyro_denom, gyro_rad_tot_cm, prp_x_cm, r_PT_cm, aa,
+            i_return, feb_downstream, gyro_denom, gyro_rad_tot_cm, prp_x_cm, r_PT_cm, aa,
             ptot_pf, pₑ_crit, γₚ_pf, γₑ_crit, u₂, η_mfp)
 
         if do_prob_ret
@@ -605,8 +605,12 @@ function electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, rad_loss_fac, p, Δt)
 end
 
 
-function downstream_test(feb_downstream, gyro_denom, gyro_rad_tot_cm, prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, γₚ_pf, γₑ_crit, u₂, η_mfp)
+function downstream_test(
+        i_return_orig, feb_downstream, gyro_denom, gyro_rad_tot_cm,
+        prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, γₚ_pf, γₑ_crit, u₂, η_mfp)
     do_prob_ret = true
+
+    local i_return = i_return_orig
 
     if feb_downstream > 0cm && r_PT_cm.x > feb_downstream
 
