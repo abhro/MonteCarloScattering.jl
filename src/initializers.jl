@@ -70,7 +70,7 @@ Shock must be parallel (not oblique)
 - `r_RH`: Rankine-Hugoniot compression ratio
 - `Γ₂_RH`: ratio of specific heats (adiabatic index) for downstream region, assuming `r_comp` = `r_RH`
 """
-function calc_rRH(u₀, β₀, γ₀, species, n₀_ion)
+function calc_rRH((_, β₀, γ₀), species)
 
     # Two possibilities for R-H relations: nonrelativistic/relativistic
     # Cutoff for (non-)relativistic is set in module 'parameters'
@@ -83,7 +83,7 @@ function calc_rRH(u₀, β₀, γ₀, species, n₀_ion)
     if !relativistic    #  Possibility 1: Nonrelativistic, parallel
         r_RH, Γ₂_RH = calc_rRH_nonrelativistic(P₀, ρ₀, β₀)
     else                #  Possibility 2: Relativistic, parallel
-        r_RH, Γ₂_RH = calc_rRH_relativistic(species, ρ₀, P₀, (β₀, γ₀), n₀_ion)
+        r_RH, Γ₂_RH = calc_rRH_relativistic(species, ρ₀, P₀, (β₀, γ₀))
     end
 
     return r_RH, Γ₂_RH
@@ -140,16 +140,17 @@ where
 Assumes that downstream particle distributions are δ-functions.
 Solves for `p₂` using Newton's method, then works backwards to `r_RH`.
 """
-function calc_rRH_relativistic(species, ρ₀, P₀, (β₀, γ₀), n₀_ion)
+function calc_rRH_relativistic(species, ρ₀, P₀, (β₀, γ₀))
 
+    n₀_ion = density.(species)
     # FIXME the comment refers to old version of variables
     # Calculate two quantities to be used during loop to find r_RH: the
     # rest mass-energy of each species, and the (number) density relative to protons
     relative_ion_energy = (
-        dot(mass.(species),     # rest energy of each species (to be multiplied by c²)
-            density.(species))  # density relative to protons (to be divided by n₀_proton)
-        * c^2                   # turn mass into rest energy of all species
-        / first(density.(species))) # turn densities into density relative to protons
+        dot(mass.(species), # rest energy of each species (to be multiplied by c²)
+            n₀_ion)         # density relative to protons (to be divided by n₀_proton)
+        * c^2               # turn mass into rest energy of all species
+        / first(n₀_ion))    # turn densities into density relative to protons
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal gas,
     # to calculate the far upstream enthalpy      #assumecold
@@ -370,15 +371,13 @@ function set_downstream_photon_shells!(
         if i == 1
             # Special case when i = 1, since our region starts at the shock.
             x_region_start = 0.0
-            x_region_end   = exp10(-1 + x_section_width)
-            x_region_mid   = exp10(-1 + x_section_width/2)
         else
             # In the general case, note that x_region_start should be the same as the previous
             # region's x_region_end. This can be checked with print statements at runtime.
             x_region_start = exp10(-1 + x_section_width * (i-1)  )
-            x_region_end   = exp10(-1 + x_section_width *  i     )
-            x_region_mid   = exp10(-1 + x_section_width * (i-1/2))
         end
+        x_region_mid = exp10(-1 + x_section_width * (i-1//2))
+        x_region_end = exp10(-1 + x_section_width *  i)
 
         # Update the arrays with the information. Less index juggling here
         x_shell_endpoints[num_upstream_shells + i]     = x_region_start
@@ -542,8 +541,8 @@ TODO
 """
 function upstream_momentum_flux_nonrelativistic(u₀, β₀, ρ₀, P₀, B_x, B_z, Γ_sph)
     flux_px_upstream = ρ₀ * u₀^2 * (1 + β₀^2) +
-                  P₀ * (1 + Γ_sph/(Γ_sph-1)*β₀^2) +
-                  B_z^2/8π
+                       P₀ * (1 + Γ_sph/(Γ_sph-1)*β₀^2) +
+                       B_z^2/8π
     flux_pz_upstream = - B_x * B_z / 4π
     return flux_px_upstream, flux_pz_upstream
 end
