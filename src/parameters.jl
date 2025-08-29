@@ -25,9 +25,9 @@ const na_cr = 10 * na_particles
 "Maximum size of photon array"
 const na_photons = 300
 
-export β_rel_fl, energy_rel_pt
+export β_rel_fl, E_rel_pt
 "Cutoff for nonrelativistic vs relativistic equations, for fluid"
 const β_rel_fl = 0.02
 "Cutoff for nonrelativistic vs relativistic equations, for particles"
-const energy_rel_pt = 0.005
+const E_rel_pt = 0.005
 end

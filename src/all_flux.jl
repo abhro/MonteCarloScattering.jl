@@ -1,5 +1,5 @@
 using .constants: E₀ₚ
-using .parameters: energy_rel_pt, na_cr
+using .parameters: E_rel_pt, na_cr
 
 const all_flux_spike_away = 1000.0 # Max value for 1/cosine
 
@@ -99,7 +99,7 @@ function all_flux!(
     pt_o_pₓ_pf = min(abs(ptot_pf/pb_pf), all_flux_spike_away)
 
     # Kinetic energy only; rest mass energy NOT included
-    if (γₚ_sk - 1) > energy_rel_pt
+    if (γₚ_sk - 1) > E_rel_pt
         energy_flux_add = (γₚ_sk - 1) * aa*E₀ₚ * weight
     else
         energy_flux_add = ptot_sk^2 / (2 * aa*mp) * weight

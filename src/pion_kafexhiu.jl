@@ -1,6 +1,8 @@
 using Unitful, UnitfulAstro
-using UnitfulAstro: GeV, erg
+using Unitful: MeV, GeV, erg, mp
+include("constants.jl")
 using .constants: E₀ₚ, T_th
+include("KATV2014.jl")
 using .KATV2014: get_σ_π, get_Ffunc, get_Amax
 
 """

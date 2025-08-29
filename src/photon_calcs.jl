@@ -1,7 +1,8 @@
 using Unitful, UnitfulAstro
-using Unitful: cm
+using Unitful: cm, MeV
 using UnitfulAstro: kpc
 
+include("parameters.jl")
 using .parameters: psd_max, na_photons
 
 # To make the resultant spectra easier to add, set min and max energies
@@ -29,7 +30,9 @@ function photon_calcs(
         jet_dist_kpc, redshift, psd_lin_cos_bins, n_ions,
         num_upstream_shells, num_downstream_shells,
         psd_mom_bounds, psd_θ_bounds, num_psd_mom_bins, num_psd_θ_bins,
-        i_ion,
+        i_ion, mc,
+        aa_ion, n₀_ion, u₀, γ₀, u₂,
+        flux_px_upstream, flux_energy_upstream, btot_grid,
     )
 
     # Before doing any photon calculations, calculate the luminosity distance
@@ -95,10 +98,15 @@ function photon_calcs(
 
             # Don't bother calculating photon production unless at least one
             # particle was present in this grid zone
-            if (count(>(1e-99), dNdp_pf_therm) + count(>(1e-99), dNdp_pf_cr)) ≥ 1
-                photon_synch(n, num_hist_bins, p_pf_therm, dNdp_pf_therm,
-                             num_psd_mom_bins, p_pf_cr, dNdp_pf_cr, n_photon_synch,
-                             E_photon_synch_min, bins_per_dec_photon, dist_lum, redshift)
+            min_count = count(>(1e-99), dNdp_pf_therm) + count(>(1e-99), dNdp_pf_cr)
+            if min_count ≥ 1
+                photon_synch(
+                    n, num_hist_bins, p_pf_therm, dNdp_pf_therm,
+                    num_psd_mom_bins, p_pf_cr, dNdp_pf_cr, n_photon_synch,
+                    E_photon_synch_min, bins_per_dec_photon, dist_lum, redshift,
+                    n_ions, aa_ion, n₀_ion, γ₀, u₀, flux_px_upstream, flux_energy_upstream, u₂, btot_grid,
+                    i_ion, mc,
+                )
             end
 
             # Take info from d²N_dpdcos_ef and prepare it for photon_IC

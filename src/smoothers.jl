@@ -1,12 +1,14 @@
 module smoothers
 
+using LinearAlgebra: dot
 using Roots
+using Unitful: c, mp
 
 using ..constants: kB, E₀ₚ
 using ..parameters: β_rel_fl
 import ..print_plot_vals
 
-export smooth_grid_part, smooth_profile!
+export smooth_grid_par, smooth_profile!
 
 const grid_smoothing_maxitrs = 10_000
 const grid_smoothing_target_err = 1e-6
@@ -90,6 +92,8 @@ function smooth_grid_par(
         prof_weight_fac *= i_iter < 6 ? 1.15 : 1.50
         prof_weight_fac = max(10.0, prof_weight_fac)
     end
+
+    local mc_grid_fileunit
 
     x_grid_log = zeros(n_grid)
     x_grid_log_cm = zeros(n_grid)
@@ -226,9 +230,10 @@ function smooth_grid_par(
         end
 
         # Write it all to file
-        inquire(file="./mc_grid.dat", opened=lopen)
+        lopen = false
+        #lopen = inquire(:isopen, file="./mc_grid.dat")
         if !lopen
-            open(newunit=mc_grid_fileunit, status="unknown", file="./mc_grid.dat")
+            mc_grid_fileunit = open(status="unknown", file="./mc_grid.dat")
         end
 
         # WARNING: these column numbers are reused in subroutine read_old_prof.
@@ -285,11 +290,24 @@ function smooth_grid_par(
 
     #-------------------------------------------------------------------------
     if β₀ < β_rel_fl    # Non-relativistic calculation of new velocity profile
-        nonrelativistic_velocity_profile()
+        nonrelativistic_velocity_profile(
+            (u₀, β₀, γ₀), (u₂, β₂, γ₂), n₀,
+            n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid, Γ_grid, btot_grid, θ_grid,
+            q_esc_cal_energy, pxx_flux, energy_flux, ω, pressure_tot_MC,
+            flux_px_upstream, flux_energy_upstream, uₓ_new_pₓ, uₓ_new_energy,
+            smooth_mom_energy_fac
+        )
     else                # Relativistic calculation of new velocity profile
         # CHECKTHIS: what happens if γ*u is used as a smoothing variable instead
         # of just u? At high speeds γ*u is much more variable than just u
-        relativistic_velocity_profile()
+        relativistic_velocity_profile(
+            n₀, (u₀, β₀, γ₀), (u₂, β₂, γ₂),
+            q_esc_cal_pₓ, pxx_flux,
+            q_esc_cal_energy, energy_flux,
+            n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid, Γ_grid, btot_grid, θ_grid,
+            ω, pressure_tot_MC, flux_px_upstream, flux_energy_upstream,
+            uₓ_new, uₓ_new_pₓ, uₓ_new_energy, smooth_mom_energy_fac,
+        )
     end  # check on shock speed
     #-------------------------------------------------------------------------
     # Relativistic/nonrelativistic shock smoothing complete
@@ -341,17 +359,24 @@ function smooth_grid_par(
     return
 end
 
-function relativistic_velocity_profile()
+function relativistic_velocity_profile(
+    n₀, (u₀, β₀, γ₀), (u₂, β₂, γ₂),
+    q_esc_cal_pₓ, pxx_flux,
+    q_esc_cal_energy, energy_flux,
+    n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid, Γ_grid, btot_grid, θ_grid,
+    ω, pressure_tot_MC, flux_px_upstream, flux_energy_upstream,
+    uₓ_new, uₓ_new_pₓ, uₓ_new_energy, smooth_mom_energy_fac,
+)
     avg_downstream_uₓ_pₓ = 0.0
     avg_downstream_uₓ_energy = 0.0
     Qpₓ = q_esc_cal_pₓ * pxx_flux[1]
     Qen = q_esc_cal_energy * energy_flux[1]
 
     for i in 1:n_grid
-        β_uₓ   = uₓ_sk_grid[i] / c
+        β_uₓ  = uₓ_sk_grid[i] / c
         γᵤ_sf = γ_sf_grid[i]
-        γ²     = γᵤ_sf^2
-        γβ     = γᵤ_sf * β_uₓ
+        γ²    = γᵤ_sf^2
+        γβ    = γᵤ_sf * β_uₓ
 
         density_loc = γ₀ * β₀ / (γᵤ_sf*β_uₓ) * n₀
 
@@ -439,7 +464,13 @@ function relativistic_velocity_profile()
     uₓ_new .= @. (1-smooth_mom_energy_fac)*uₓ_new_pₓ + smooth_mom_energy_fac*uₓ_new_energy
 end
 
-function nonrelativistic_velocity_profile()
+function nonrelativistic_velocity_profile(
+    (u₀, β₀, γ₀), (u₂, β₂, γ₂), n₀,
+    n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid, Γ_grid, btot_grid, θ_grid,
+    q_esc_cal_energy, pxx_flux, energy_flux, ω, pressure_tot_MC,
+    flux_px_upstream, flux_energy_upstream, uₓ_new_pₓ, uₓ_new_energy,
+    smooth_mom_energy_fac
+)
     avg_downstream_uₓ_pₓ = 0.0
     avg_downstream_uₓ_energy = 0.0
     Qpₓ = 0.0  # By default for nonrelativistic shocks

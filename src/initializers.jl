@@ -1,5 +1,8 @@
 module initializers
-export calc_downstream, calc_rRH, set_psd_mom_bins, init_pop, upstream_fluxes, upstream_machs, setup_profile, setup_grid, set_psd_angle_bins
+export calc_downstream, calc_rRH
+export upstream_fluxes, upstream_machs
+export set_psd_mom_bins, init_pop, setup_profile, setup_grid, set_psd_angle_bins
+
 using Random: rand
 using OffsetArrays: OffsetVector, Origin
 using LinearAlgebra: dot
@@ -10,9 +13,9 @@ using Unitful: g, cm, s, dyn, erg, keV
 using Unitful: mp, c, k as kB
 using Distributions: Uniform
 using ..constants: E₀ₚ
-using ..parameters
+using ..parameters: num_therm_bins, na_particles, E_rel_pt, β_rel_fl
 import ..density, ..temperature, ..mass, ..number_density
-using ..CGSTypes
+using ..CGSTypes: MomentumCGS, BFieldCGS, MomentumDensityFluxCGS, EnergyDensityFluxCGS
 
 """
     calc_downstream(...)
@@ -67,7 +70,7 @@ Shock must be parallel (not oblique)
 - `r_RH`: Rankine-Hugoniot compression ratio
 - `Γ₂_RH`: ratio of specific heats (adiabatic index) for downstream region, assuming `r_comp` = `r_RH`
 """
-function calc_rRH(u₀, β₀, γ₀, species)
+function calc_rRH(u₀, β₀, γ₀, species, n₀_ion)
 
     # Two possibilities for R-H relations: nonrelativistic/relativistic
     # Cutoff for (non-)relativistic is set in module 'parameters'
@@ -80,7 +83,7 @@ function calc_rRH(u₀, β₀, γ₀, species)
     if !relativistic    #  Possibility 1: Nonrelativistic, parallel
         r_RH, Γ₂_RH = calc_rRH_nonrelativistic(P₀, ρ₀, β₀)
     else                #  Possibility 2: Relativistic, parallel
-        r_RH, Γ₂_RH = calc_rRH_relativistic(species, ρ₀, P₀, β₀, n₀_ion)
+        r_RH, Γ₂_RH = calc_rRH_relativistic(species, ρ₀, P₀, (β₀, γ₀), n₀_ion)
     end
 
     return r_RH, Γ₂_RH
@@ -112,6 +115,7 @@ function calc_rRH_nonrelativistic(P₀, ρ₀, β₀)
 
     return r_RH, Γ₂_RH
 end
+
 """
     calc_rRH_relativistic(species, ρ₀, P₀, β₀, n₀_ion)
 
@@ -136,7 +140,7 @@ where
 Assumes that downstream particle distributions are δ-functions.
 Solves for `p₂` using Newton's method, then works backwards to `r_RH`.
 """
-function calc_rRH_relativistic(species, ρ₀, P₀, β₀, n₀_ion)
+function calc_rRH_relativistic(species, ρ₀, P₀, (β₀, γ₀), n₀_ion)
 
     # FIXME the comment refers to old version of variables
     # Calculate two quantities to be used during loop to find r_RH: the
@@ -349,11 +353,11 @@ function set_upstream_photon_shells!(
     end
 end
 """
-    set_downstream_photon_shells(...)
+    set_downstream_photon_shells!(...)
 
 TODO
 """
-function set_downstream_photon_shells(
+function set_downstream_photon_shells!(
         x_shell_midpoints, x_shell_endpoints,
         num_upstream_shells, num_downstream_shells, use_prp, feb_downstream, rg₀, x_grid_stop_rg,
     )
@@ -502,8 +506,8 @@ function upstream_fluxes(n₀_ion, T₀_ion, m_ion, B₀, θ_B₀, u₀, β₀, 
         # Non-relativistic version. Note that it's missing the ρc² flux present in the
         # relativistic forms above. It is also expanded to second order in β₀ (only in the
         # hydro terms, for now) to allow for more precise matching with the relativistic version
-        flux_px_upstream, flux_pz_upstream = upstream_momentum_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_x, B_z)
-        flux_energy_upstream = upstream_energy_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀)
+        flux_px_upstream, flux_pz_upstream = upstream_momentum_flux_nonrelativistic(u₀, β₀, ρ₀, P₀, B_x, B_z, Γ_sph)
+        flux_energy_upstream = upstream_energy_flux_nonrelativistic(u₀, β₀, ρ₀, P₀, Γ_sph, B_z)
     end
 
     return (flux_px_upstream, flux_pz_upstream, flux_energy_upstream)
@@ -536,7 +540,7 @@ end
 
 TODO
 """
-function upstream_momentum_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_x, B_z)
+function upstream_momentum_flux_nonrelativistic(u₀, β₀, ρ₀, P₀, B_x, B_z, Γ_sph)
     flux_px_upstream = ρ₀ * u₀^2 * (1 + β₀^2) +
                   P₀ * (1 + Γ_sph/(Γ_sph-1)*β₀^2) +
                   B_z^2/8π
@@ -549,7 +553,7 @@ end
 
 TODO
 """
-function upstream_energy_flux_nonrelativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀)
+function upstream_energy_flux_nonrelativistic(u₀, β₀, ρ₀, P₀, Γ_sph, B_z)
     return ρ₀ * u₀^3 * (1 + 1.25*β₀^2)/2 + P₀ * u₀ * Γ_sph/(Γ_sph-1) * (1+β₀^2) + u₀*B_z^2/4π
 end
 
@@ -923,7 +927,7 @@ function init_pop(
 
     temp_ratio = density_ratio^Γ_sph / density_ratio
 
-    if (kB * T₀_ion[i_ion] * temp_ratio) > (4 * m*c^2 * energy_rel_pt)
+    if (kB * T₀_ion[i_ion] * temp_ratio) > (4 * m*c^2 * E_rel_pt)
         error("Fast push cannot work because highest energy thermal particles become mildly relativistic. ",
               "Move fast push location upstream or disable entirely.")
     end
@@ -1122,7 +1126,7 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     kT_min  = 2e-3 * kT
     kT_max  = 10   * kT
 
-    kT_rel_div = energy_rel_pt
+    kT_rel_div = E_rel_pt
     relativistic = (kT/rm_energy ≥ kT_rel_div)
 
     # Find min and max momenta of M-B curve
@@ -1181,7 +1185,7 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
             ptot_out, weight_out, p_range, E_range, area_tot, n_pts_inj, Δp, n₀)
     else # Bins have equal weight
         set_inj_dist_bin_equal_weight!(
-            ptot_out, weight_out, p_range, E_range, area_tot, Δp, n₀)
+            ptot_out, weight_out, p_range, E_range, area_tot, Δp, n₀, n_per_bin)
     end  # test of inj_weight
 
     n_pts_use = n_pts_tot
@@ -1197,7 +1201,7 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
         rm_energy      = m * c^2
         energy_inj = ustrip(erg, T_or_E*keV)
 
-        if energy_inj/rm_energy < energy_rel_pt
+        if energy_inj/rm_energy < E_rel_pt
             p1 = √(2m * energy_inj)
         else
             p1 = √(energy_inj^2 - rm_energy^2) / c
@@ -1256,7 +1260,7 @@ end
 
 TODO
 """
-function set_inj_dist_bin_equal_weight!(ptot_out, weight_out, p_range, E_range, area_tot, Δp, n₀)
+function set_inj_dist_bin_equal_weight!(ptot_out, weight_out, p_range, E_range, area_tot, Δp, n₀, n_per_bin)
     for (i, p1) in enumerate(@view p_range[begin:end-1])
         p2 = p_range[i+1]
 

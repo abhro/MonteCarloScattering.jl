@@ -1,4 +1,16 @@
-function iter_finalize()
+function iter_finalize(
+    i_iter, i_shock, n_grid, outfile, Γ₂_RH, x_grid_cm, x_grid_rg,
+    Γ_grid, uz_sk_grid, θ_grid,
+    pxx_flux, energy_flux, pₓ_esc_flux_upstream, pₓ_esc_upstream, flux_px_upstream,
+    energy_esc_flux_upstream, energy_esc_upstream, energy_density_psd,
+    flux_energy_upstream,
+    pressure_psd_par, pressure_psd_perp,
+    Γ_downstream, ∑P_downstream, ∑KEdensity_downstream,
+    q_esc_cal_pₓ, q_esc_cal_energy,
+    uₓ_sk_grid, γ_sf_grid, btot_grid, utot_grid,
+    γ_ef_grid, β_ef_grid, εB_grid,
+    r_comp, r_RH, u₀, β₀, γ₀, species, γ₂, β₂, u₂,
+)
     # Compute the escaping flux for this iteration
     pₓ_esc_flux_upstream[i_iter] = pₓ_esc_upstream / flux_px_upstream
     energy_esc_flux_upstream[i_iter] = energy_esc_upstream / flux_energy_upstream
@@ -25,7 +37,9 @@ function iter_finalize()
     # Calculate expected escaping fluxes, now that adiabatic index is known
     # far downstream. Also average them so that the smoothing subroutine treats
     # calculated and actual escaping fluxes identically
-    q_esc_cal_pₓ[i_iter], q_esc_cal_energy[i_iter] = q_esc_calcs(Γ_downstream[i_iter],)
+    q_esc_cal_pₓ[i_iter], q_esc_cal_energy[i_iter] = q_esc_calcs(
+        Γ_downstream[i_iter],
+        r_comp, r_RH, u₀, β₀, γ₀, species, γ₂, β₂, u₂)
     n_avg = min(i_iter, 4)
     q_esc_cal_pₓ_avg = mean(q_esc_cal_pₓ[i_iter-n_avg+1:i_iter])
     q_esc_cal_energy_avg = mean(q_esc_cal_energy[i_iter-n_avg+1:i_iter])
@@ -43,11 +57,12 @@ function iter_finalize()
     # Output grid data for this iteration, and smooth the grid for the next iteration
     smooth_grid_par(i_iter, i_shock, n_grid, x_grid_rg, x_grid_cm,
                     Γ_grid, uz_sk_grid, θ_grid,
-                    pressure_psd_par, pressure_psd_perp, flux_px_upstream,
-                    flux_energy_upstream, Γ₂_RH, q_esc_cal_pₓ_avg,
-                    q_esc_cal_energy_avg, pxx_flux, energy_flux, uₓ_sk_grid,
-                    γ_sf_grid, btot_grid, utot_grid, γ_ef_grid,
-                    β_ef_grid, εB_grid)
+                    pressure_psd_par, pressure_psd_perp,
+                    flux_px_upstream, flux_energy_upstream,
+                    Γ₂_RH, q_esc_cal_pₓ_avg,
+                    q_esc_cal_energy_avg, pxx_flux, energy_flux,
+                    uₓ_sk_grid, γ_sf_grid, btot_grid, utot_grid,
+                    γ_ef_grid, β_ef_grid, εB_grid)
 
 
     # Compute average escaping flux over last four iterations and write to
@@ -95,11 +110,4 @@ function iter_finalize()
     println(outfile, "   Adiab index from R-H relations           = ", Γ₂_RH)
     println(outfile)
 
-
-    # If tcut tracking was enabled, print out the results here
-    if do_tcuts
-        tcut_print(weights_file, spectra_file, n_tcuts, tcuts, n_ions,
-                   num_psd_mom_bins, psd_mom_bounds,
-                   i_iter, weight_coupled, spectra_coupled)
-    end
 end

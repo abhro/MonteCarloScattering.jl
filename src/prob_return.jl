@@ -301,7 +301,7 @@ function retro_time(
         p_perp_b_pf = √(ptot_pf^2 - pb_pf^2)
 
         # Pitch-angle diffusion. Comment out large-angle scattering section above if using PAD.
-        #pitch_angle_diffusion()
+        #pitch_angle_diffusion(gyro_rad_tot, use_custom_frg, xn_per, sin_old_pitch, cos_old_pitch, ptot_pf, φ_rad, η_mfp)
 
 
         if do_rad_losses && aa < 1 # Radiative losses
@@ -342,7 +342,7 @@ function retro_time(
     return lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, gyro_denom, acctime_sec
 end
 
-function pitch_angle_diffusion()
+function pitch_angle_diffusion(gyro_rad_tot, use_custom_frg, xn_per, sin_old_pitch, cos_old_pitch, ptot_pf, φ_rad, η_mfp)
 
     # Compute maximum allowed pitch angle cosine
     vp_tg = 2π * gyro_rad_tot

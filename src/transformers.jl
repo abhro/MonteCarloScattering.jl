@@ -1,6 +1,7 @@
 module transformers
 using StaticArrays: SVector
 using LinearAlgebra: norm
+using OffsetArrays: OffsetMatrix
 using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
 using Unitful: mp, c    # physical constants
 
@@ -27,7 +28,7 @@ Calculate dN(p) (a 1-D array) for the passed slice of PSD in the specified inert
 """
 function get_transform_dN(
         psd, m, transform_corner_pt, transform_corner_ct, γᵤ, i_approx::Integer,
-        num_psd_mom_bins, psd_mom_bounds)
+        num_psd_mom_bins, psd_mom_bounds, psd_mom_axis)
 
     dN_out = zeros(psd_mom_axis)
 
@@ -96,7 +97,7 @@ function get_transform_dN(
         # If assuming uniform distribution of cell_weight between p_cell_lo and p_cell_hi
         #----------------------------------------------------------------------
         if i_approx == 0
-            uniform_cell_distribution!(dN_out, l_lo, l_hi, p_cell_lo, p_cell_hi)
+            uniform_cell_distribution!(dN_out, l_lo, l_hi, p_cell_lo, p_cell_hi, psd_mom_bounds, cell_weight)
         #----------------------------------------------------------------------
         # i_approx = 0 finished
 
@@ -108,7 +109,9 @@ function get_transform_dN(
         # Only difference is location of p_peak, so handle both with same block of code.
         #----------------------------------------------------------------------
         elseif i_approx == 1 || i_approx == 2
-            triangular_distribution!(dN_out)
+            triangular_distribution!(
+                dN_out, i_approx, p_cell_hi, p_cell_lo,
+                ct_lo_pt, ct_hi_pt, cell_weight, l_lo, l_hi, psd_mom_bounds)
         #----------------------------------------------------------------------
         # i_approx = 1, i_approx = 2 finished
 
@@ -143,7 +146,12 @@ function get_transform_dN(
         # many things are *slightly* different from the i_approx = 0 case for total momentum.
         # WARNING: this must be re-checked and re-tested since it was brought into new version of code
         #----------------------------------------------------------------------
-        #track_pitch_angles() # TODO figure out arguments
+        #track_pitch_angles(
+        #   m, i_ct_pt_sk_min, psd_mom_bounds, rest_mass, utsk_cm, cell_weight,
+        #   proton_num_density_upstream, cθ_sk_xw,
+        #   ct_bounds, cθ_ef_xw, cθ_pf_xw, i, j,
+        #   pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct,
+        #   pt_lo_pt, pt_hi_pt, ct_lo_pt, ct_hi_pt)
         # pitch angles tracked
 
     end # loop over phase-space momentum space cells
@@ -156,7 +164,7 @@ end
 
 TODO
 """
-function uniform_cell_distribution!(dN_out, l_lo, l_hi, p_cell_lo, p_cell_hi) # TODO fix arguments
+function uniform_cell_distribution!(dN_out, l_lo, l_hi, p_cell_lo, p_cell_hi, psd_mom_bounds, cell_weight)
     length_tot = 1 / (p_cell_hi - p_cell_lo)
     p_bottom   = p_cell_lo
 
@@ -188,7 +196,8 @@ end
 
 TODO
 """
-function triangular_distribution!(dN_out) # TODO fix arguments
+function triangular_distribution!(dN_out, i_approx, p_cell_hi, p_cell_lo,
+                                  ct_lo_pt, ct_hi_pt, cell_weight, l_lo, l_hi, psd_mom_bounds)
     length_tot = 1 / (p_cell_hi - p_cell_lo)
     ct_height  = 2 * cell_weight / length_tot # A = 1/2*b*h
 
@@ -295,7 +304,13 @@ end
 
 TODO
 """
-function track_pitch_angles() # TODO figure out arguments
+function track_pitch_angles(
+    m, i_ct_pt_sk_min, psd_mom_bounds, rest_mass, utsk_cm, cell_weight,
+    proton_num_density_upstream, cθ_sk_xw,
+    ct_bounds, cθ_ef_xw, cθ_pf_xw, i, j,
+    pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct,
+    pt_lo_pt, pt_hi_pt, ct_lo_pt, ct_hi_pt,
+)
     # Adjust cell_weight to remove the velocity-weighting applied in PSD
     if i == 0
         pt_sk = 0.0

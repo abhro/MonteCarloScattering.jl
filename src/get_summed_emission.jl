@@ -1,5 +1,4 @@
-include("constants.jl")
-using .constants: c
+using Unitful: c
 include("parameters.jl")
 using .parameters: na_photons
 include("io.jl")
@@ -94,7 +93,7 @@ function get_summed_emission(
         # boundary during the MC iterations)
         if k == 1 # Pion decay
             ##inquire(file="./photon_pion_decay_grid.dat", opened=lopen, number=j_unit)
-            ##lopen && close(unit=j_unit)
+            ##lopen && close(j_unit)
 
             ##open(newunit=grid_file_unit, status="unknown", file="./photon_pion_decay_grid.dat", position="append")
             ##read(grid_file_unit, i_grid_start[k])
@@ -102,7 +101,7 @@ function get_summed_emission(
 
         elseif k == 2 # Synchrotron
             ##inquire(file="./photon_synch_grid.dat",opened=lopen,number=j_unit)
-            ##lopen && close(unit=j_unit)
+            ##lopen && close(j_unit)
 
             ##open(newunit=grid_file_unit, status="unknown", file="./photon_synch_grid.dat", position="append")
             ##read(grid_file_unit, i_grid_start[k])
@@ -110,7 +109,7 @@ function get_summed_emission(
 
         elseif k == 3 # Inverse Compton, using CMB (or other) photon field
             ##inquire(file="./photon_IC_grid.dat",opened=lopen,number=j_unit)
-            ##lopen && close(unit=j_unit)
+            ##lopen && close(j_unit)
 
             ##open(newunit=grid_file_unit, status="unknown", file="./photon_IC_grid.dat", position="append")
             ##read(grid_file_unit, i_grid_start[k])
@@ -275,6 +274,7 @@ function get_summed_emission(
         kmax = 2
     end
 
+    local γ_pf_ISM
 
     # Set number of angular bins to use, as well as the fractional area array. The
     # orientation is chosen to be consistent with particle momenta, so that boundary 0
@@ -468,7 +468,6 @@ function get_summed_emission(
             end
         end
 
-
         # If electrons were included, add synchrotron and IC spectra as well
         if kmax > 1
             n_photon = n_photon_synch - 1
@@ -612,7 +611,7 @@ function get_summed_emission(
 
 
     # Create histogram for total emission
-    create_total_emission_histogram(n_pts_sum, ΔlogE, energy_MeV_out, photon_flux_tot, j_unit)
+    create_total_emission_histogram(n_pts_sum, ΔlogE, energy_MeV_out, photon_flux_tot, photon_energy_min_MeV)
 
     #-------------------------------------------------------------------------
     # Output written
@@ -753,12 +752,12 @@ function create_histograms(n_shells, n_pts_sum, photon_flux_out, energy_MeV_out)
     close(j_unit)
 end
 
-function create_total_emission_histogram(n_pts_sum, ΔlogE, energy_MeV_out, photon_flux_tot, j_unit, photon_energy_min_MeV)
+function create_total_emission_histogram(n_pts_sum, ΔlogE, energy_MeV_out, photon_flux_tot, photon_energy_min_MeV)
     energy_MeV_out[1:n_pts_sum] .= range(start = log10(photon_energy_min_MeV),
                                          step = ΔlogE,
                                          length = n_pts_sum)
 
-    open(newunit=j_unit, status="unknown", file="./photon_tot.dat")
+    j_unit = open(status="unknown", file="./photon_tot.dat")
 
     j_plot = 1
 
@@ -773,7 +772,7 @@ function create_total_emission_histogram(n_pts_sum, ΔlogE, energy_MeV_out, phot
         end
 
         write(j_unit,   # photon_tot.dat
-              n, j_plot,
+              j, j_plot,
               photon_flux,                      # 1 log10(photons/(cm²⋅sec))
               energy_MeV,                       # 2 log10(MeV)
               energy_flux_MeV)                  # 3 log10(MeV/(cm²⋅sec))
@@ -783,7 +782,7 @@ function create_total_emission_histogram(n_pts_sum, ΔlogE, energy_MeV_out, phot
 
         if j != n_pts_sum
             write(j_unit, # photon_tot.dat
-                  n, j_plot,
+                  j, j_plot,
                   photon_flux,                  # 1 log10(photons/(cm²⋅sec))
                   energy_MeV,                   # 2 log10(MeV)
                   energy_flux_MeV)              # 3 log10(MeV/(cm²⋅sec))

@@ -24,6 +24,7 @@ function particle_loop(
         inj_fracs, xn_per_fine, xn_per_coarse,
         x_grid_cm, therm_grid, therm_ptot_sk, therm_pₓ_sk, therm_weight,
         spectra_pf, spectra_sf, tcuts, pcuts_use, age_max,
+        ε_target, energy_transfer_pool, electron_weight_fac,
         weight_coupled, spectra_coupled, esc_energy_eff, esc_num_eff, esc_flux,
         esc_psd_feb_upstream, esc_psd_feb_downstream,
     )
@@ -466,13 +467,16 @@ function particle_loop(
             n_xspec, x_spec, feb_upstream, γ₀, u₀, mc,
             n_grid, x_grid_cm,
             therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight,
-            psd_bins_per_dec_mom, psd_bins_per_dec_θ, psd_mom_min, num_psd_mom_bins, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min,
+            psd_bins_per_dec_mom, psd_bins_per_dec_θ, psd_mom_min,
+            num_psd_mom_bins, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min,
         )
 
 
         # Downstream escape/return test; assume we'll call subroutine
         # prob_return unless told otherwise by particle location/info
-        do_prob_ret, i_return = downstream_test(feb_downstream, prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, i_return)
+        do_prob_ret, i_return = downstream_test(
+            feb_downstream, gyro_denom, gyro_rad_tot_cm, prp_x_cm, r_PT_cm, aa,
+            ptot_pf, pₑ_crit, γₚ_pf, γₑ_crit, u₂, η_mfp)
 
         if do_prob_ret
             (
@@ -494,7 +498,7 @@ function particle_loop(
         if i_return == 0
 
             vel = ptot_pf / (aa*mp) |> cm/s
-            if (γₚ_pf - 1) ≥ energy_rel_pt
+            if (γₚ_pf - 1) ≥ E_rel_pt
                 vel /= γₚ_pf
             end
 
@@ -601,7 +605,7 @@ function electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, rad_loss_fac, p, Δt)
 end
 
 
-function downstream_test(feb_downstream, prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, i_return)
+function downstream_test(feb_downstream, gyro_denom, gyro_rad_tot_cm, prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, γₚ_pf, γₑ_crit, u₂, η_mfp)
     do_prob_ret = true
 
     if feb_downstream > 0cm && r_PT_cm.x > feb_downstream
