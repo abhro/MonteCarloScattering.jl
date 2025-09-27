@@ -290,7 +290,9 @@ function retro_time(
 
         # If tcut tracking is enabled, it should continue even during retro_time
         if do_tcuts && acctime_sec ≥ tcuts[tcut_curr]
-            tcut_track!(weight_coupled, spectra_coupled, tcut_curr, weight, ptot_pf, i_ion, num_psd_mom_bins, psd_mom_min, psd_bins_per_dec_mom)
+            tcut_track!(weight_coupled, spectra_coupled, tcut_curr, weight,
+                        ptot_pf, i_ion, num_psd_mom_bins, psd_mom_min,
+                        psd_bins_per_dec_mom)
             tcut_curr += 1
         end
 
@@ -342,7 +344,10 @@ function retro_time(
     return lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, gyro_denom, acctime_sec
 end
 
-function pitch_angle_diffusion(gyro_rad_tot, use_custom_frg, xn_per, sin_old_pitch, cos_old_pitch, ptot_pf, φ_rad, η_mfp)
+function pitch_angle_diffusion(
+        gyro_rad_tot, use_custom_frg, xn_per,
+        sin_old_pitch, cos_old_pitch, ptot_pf, φ_rad, η_mfp,
+    )
 
     # Compute maximum allowed pitch angle cosine
     vp_tg = 2π * gyro_rad_tot
