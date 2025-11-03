@@ -52,12 +52,17 @@ end
 using Unitful
 lorentz(v::Unitful.Velocity) = lorentz(NoUnits(v/c))
 """
-Get Lorentz factor γ from velocity β (in units of c)
+    γ = lorentz(v)
+    γ = lorentz(β)
+
+Get Lorentz factor γ from velocity v or β (in units of c).
 """
 lorentz(β::Real) = 1 / √(1 - β^2)
 
 """
-Get velocity β (in units of c) from Lorentz factor γ
+    β(γ)
+
+Get velocity β (in units of c) from Lorentz factor γ.
 """
 β(γ) = √(1 - 1/γ^2)
 
