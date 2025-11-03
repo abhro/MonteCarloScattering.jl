@@ -448,7 +448,7 @@ function particle_loop(
             L_diff = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp*γₚ_pf * u₂) |> cm
 
             @info("Particle crossing shock going upstream → downstream",
-                  prp_x_cm, r_PT_old, r_PT_cm, L_diff)
+                  prp_x_cm, r_PT_old.x, r_PT_cm.x, L_diff)
             prp_x_cm = max(prp_x_cm, L_diff)
         end
 
