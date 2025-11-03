@@ -125,19 +125,16 @@ function print_input(
 
     @info("Gyroperiod divisions", "N_g(coarse)" = xn_per_coarse, "N_g(fine)" = xn_per_fine)
 
-
-    # FEB info and max age
-    feb_str = ("""
+    feb_str = ("""Free escape boundary
 upstream FEB   = $(feb_upstream/rg₀) rg₀ = $(uconvert(pc, feb_upstream))
 downstream FEB = $(feb_downstream/rg₀) rg₀ = $(uconvert(pc, feb_downstream))
-
-Max CR age[s] = $(age_max)
 """)
     @info(feb_str)
 
+    @info("Max CR age", age_max)
 
     # Test-particle index from Keshet & Waxman (2005) [2005PhRvL..94k1102K] Eq 23
-    kw_idx_str = @sprintf("  Keshet & Waxman (2005) index = %f",
+    kw_idx_str = @sprintf("Keshet & Waxman (2005) index = %f",
                           (3β₀ - 2*β₀*β₂^2 + β₂^3) / (β₀ - β₂))
     @info(kw_idx_str)
 
@@ -149,9 +146,8 @@ Max CR age[s] = $(age_max)
 
     # Finally a warning about possible complications later
     if do_fast_push && bturb_comp_frac > 0
-        fast_push_warn_str = ("Both fast push and amplified B-field turbulence in use. "*
-                              "Check flux equations in 'init_pop' for consistency")
-        @warn(fast_push_warn_str)
+        @warn("Both fast push and amplified B-field turbulence in use. "*
+              "Check flux equations in 'init_pop' for consistency")
     end
 end
 
