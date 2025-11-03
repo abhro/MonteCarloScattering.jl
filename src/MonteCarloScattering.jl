@@ -507,8 +507,8 @@ function @main(args)
     pressure_psd_perp  = Vector{Float64}(undef, n_grid)
     energy_density_psd = Vector{Float64}(undef, n_grid)
 
-    energy_transfer_pool = Vector{Float64}(undef, n_grid)
-    energy_recv_pool     = Vector{Float64}(undef, n_grid)
+    energy_transfer_pool = Vector{EnergyCGS}(undef, n_grid)
+    energy_recv_pool     = Vector{EnergyCGS}(undef, n_grid)
 
     energy_density       = Matrix{Float64}(undef, na_c, n_ions)
     therm_energy_density = Matrix{Float64}(undef, na_c, n_ions)
