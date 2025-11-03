@@ -73,7 +73,7 @@ function main_loops(
         z_max = γ₀ * β₀ / (γ₂ * β₂)
         populate_ε_target!(ε_target, z_max, γ_sf_grid, uₓ_sk_grid, u₀, γ₀, energy_transfer_frac)
 
-        fill!((energy_transfer_pool, energy_recv_pool), 0.0)
+        fill!((energy_transfer_pool, energy_recv_pool), 0.0erg)
         fill!((energy_density, therm_energy_density), 0.0)
 
         #------------------------------------------------------------------------

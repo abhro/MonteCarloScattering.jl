@@ -246,7 +246,7 @@ function particle_loop(
                     ptot_pf = ptot_pf_f
                     γₚ_pf = γ_pf_f
 
-                elseif maximum(energy_recv_pool[i_start+1:i_stop], init=0) > 0
+                elseif maximum(energy_recv_pool[i_start+1:i_stop], init=0erg) > 0erg
 
                     # For electrons, add pooled energy. Include energy from all cells electron
                     # crossed in this scattering step. Also modify the amount of energy to reflect
