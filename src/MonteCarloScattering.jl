@@ -13,6 +13,7 @@ using StaticArrays
 using OffsetArrays
 using JuliaInterpreter
 using TOML
+using Logging
 
 module CGSTypes
 using Unitful: g, K, cm, s, dyn, erg, keV, GeV
@@ -66,6 +67,8 @@ include("main_loops.jl")
 function @main(args)
     # Start the wall clock for this run
     t_start = now()
+
+    global_logger(ConsoleLogger(show_limited=false))
 
     # Get input, control variables, etc.
     cfg_toml = TOML.parsefile("mc_in.toml")
