@@ -39,6 +39,7 @@ function new_pcut(
 
     # Determine multiplicity of splitting; perhaps none needed
     i_mult = max(n_pts_target ÷ n_saved, 1) # In case n_pts_target drops between pcuts
+    @debug("Determined multiplicity of splitting", i_mult)
 
     grid_new        = zeros(Int,        n_pts_use*i_mult)
     tcut_new        = zeros(Int,        n_pts_use*i_mult)
