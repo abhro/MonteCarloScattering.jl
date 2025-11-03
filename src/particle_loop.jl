@@ -276,7 +276,12 @@ function particle_loop(
                 # Store previous ptot_pf value
                 ptot_pf_old = ptot_pf
 
-                ptot_pf = electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, ptot_pf, t_step)
+                # Compute effective magnetic field for radiative losses. When squared to get
+                # energy density, one factor of γᵤ_ef in B_CMB_loc represents increased number
+                # density, while the other is increased energy per photon.
+                B_CMB_loc = B_CMBz * γᵤ_ef
+
+                ptot_pf = radiation_loss(bmag^2 + B_CMB_loc^2, ptot_pf, t_step)
 
                 # Catch electrons that have somehow lost all their energy in a single time step
                 if ptot_pf ≤ 0g*cm/s
@@ -531,20 +536,16 @@ function no_DSA_loop(
 end
 
 """
-    electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, p, Δt)
+    radiation_loss(B², p, Δt)
 
 TODO
 """
-function electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, p, Δt)
-    # Compute effective magnetic field for radiative losses. When squared to get
-    # energy density, one factor of γᵤ_ef in B_CMB_loc represents increased number
-    # density, while the other is increased energy per photon.
-    B_CMB_loc = B_CMBz * γᵤ_ef
+function radiation_loss(B², p, Δt)
 
     # Note that here Δln_p_synch = Δp/p. If this value is too large we will
     # directly integrate from p_i to get p_f, since the discrete approach would
     # result in too high a loss in a single time step
-    Δln_p_synch = rad_loss_fac * (bmag^2 + B_CMB_loc^2) * p * Δt |> NoUnits
+    Δln_p_synch = rad_loss_fac * B² * p * Δt |> NoUnits
 
     # Correction to make sure electrons don't lose too much energy in a single time step
     if Δln_p_synch > 1e-2
