@@ -238,7 +238,7 @@ function particle_loop(
 
                     # Calculate the new momentum based on the new energy,
                     # and rescale components accordingly
-                    ptot_pf_f = aa*mp*c * √(γ_pf_f^2 - 1)
+                    ptot_pf_f = aa*mp*c * √(γ_pf_f^2 - 1) |> (g*cm/s)
                     scale_fac = ptot_pf_f / ptot_pf
 
                     pb_pf *= scale_fac
@@ -445,7 +445,7 @@ function particle_loop(
             #    particles in the downstream frame, ⟨u⟩ = u₂ since the average thermal *velocity* of
             #    the population is 0.
             #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
-            L_diff = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp*γₚ_pf * u₂)
+            L_diff = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp*γₚ_pf * u₂) |> cm
 
             @info("Particle crossing shock going upstream → downstream",
                   prp_x_cm, r_PT_old, r_PT_cm, L_diff)
