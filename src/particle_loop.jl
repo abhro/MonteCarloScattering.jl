@@ -597,17 +597,17 @@ function downstream_test(
     return do_prob_ret, i_return
 end
 
-function perpendicular_momentum(ptot_pf, pb_pf)
-    if ptot_pf < abs(pb_pf)
-        p_perp_b_pf = 1e-6 * ptot_pf
-        pb_pf = copysign(√(ptot_pf^2 - p_perp_b_pf^2), pb_pf)
+function perpendicular_momentum(ptot, pb; warn_str="ptot < pb at top of loop_helix")
+    if ptot < abs(pb)
+        p_perp = 1e-6 * ptot
+        pb = copysign(√(ptot^2 - p_perp^2), pb)
         # XXX CHECKTHIS: does this *ever* happen?!
-        @warn("ptot_pf < pb_pf at top of loop_helix", ptot_pf, pb_pf)
+        @warn(warn_str, ptot, pb)
     else
-        p_perp_b_pf = √(ptot_pf^2 - pb_pf^2)
+        p_perp = √(ptot^2 - pb^2)
     end
 
-    return p_perp_b_pf
+    return p_perp
 end
 
 function do_energy_transfer(
