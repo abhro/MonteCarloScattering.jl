@@ -127,24 +127,20 @@ function @main(args)
 
     do_prof_fac_damp = get(cfg_toml, "increase-old-profile-weighting", false)
 
-    begin
-        smooth_mom_energy_fac = get(cfg_toml, "SMMOE", 0.0)
-        if smooth_mom_energy_fac < 0 || smooth_mom_energy_fac > 1
-            throw(DomainError(smooth_mom_energy_fac, "smooth_mom_energy_fac/SMMOE must be in [0, 1]"))
-        end
+    smooth_mom_energy_fac = get(cfg_toml, "SMMOE", 0.0)
+    if smooth_mom_energy_fac < 0 || smooth_mom_energy_fac > 1
+        throw(DomainError(smooth_mom_energy_fac, "smooth_mom_energy_fac/SMMOE must be in [0, 1]"))
     end
 
-    begin
-        smooth_pressure_flux_psd_fac = get(cfg_toml, "SMPFP", 0)
-        if smooth_pressure_flux_psd_fac < 0 || smooth_pressure_flux_psd_fac > 1
-            throw(DomainError(smooth_pressure_flux_psd_fac,
-                              "smooth_pressure_flux_psd_fac/SMPFP must be in [0, 1]"))
-        end
-        # TODO: actually get pressure calculation working properly
-        if smooth_pressure_flux_psd_fac > 0
-            error("SMPFP: code does not properly calculate pressure from PSD. ",
-                  "Set to 0 or get this code working")
-        end
+    smooth_pressure_flux_psd_fac = get(cfg_toml, "SMPFP", 0)
+    if smooth_pressure_flux_psd_fac < 0 || smooth_pressure_flux_psd_fac > 1
+        throw(DomainError(smooth_pressure_flux_psd_fac,
+                          "smooth_pressure_flux_psd_fac/SMPFP must be in [0, 1]"))
+    end
+    # TODO: actually get pressure calculation working properly
+    if smooth_pressure_flux_psd_fac > 0
+        error("SMPFP: code does not properly calculate pressure from PSD. ",
+              "Set to 0 or get this code working")
     end
 
     r_comp, r_RH, Γ₂_RH = let
@@ -184,15 +180,7 @@ function @main(args)
     do_fast_push = get(cfg_toml, "fast-upstream-transport", false)
     x_fast_stop_rg = do_fast_push ? cfg_toml["proton-fast-transport-stop"] : 0.0
 
-    x_art_start_rg, x_art_scale = let
-        art = get(cfg_toml, "artificial-smoothing", nothing)
-        if isnothing(art)
-            x_art_start_rg = x_art_scale = 0.0
-        else
-            x_art_start_rg, x_art_scale = art
-        end
-        (x_art_start_rg, x_art_scale)
-    end
+    x_art_start_rg, x_art_scale = get(cfg_toml, "artificial-smoothing", (0.0, 0.0))
 
     pₑ_crit, γₑ_crit = parse_electron_critical_energy(get(cfg_toml, "electron-energy-mfp-threshold", nothing))
 
@@ -204,33 +192,26 @@ function @main(args)
 
     jet_sph_frac, jet_open_ang_deg = parse_jet_frac(get(cfg_toml, "JETFR", nothing), do_photons)
 
-    begin
-        jet_dist_kpc = get(cfg_toml, "jet-distance", 1.0)
-        redshift = get(cfg_toml, "RDSHF", 0.0)
-        if jet_dist_kpc > 0 && redshift > 0
-            error("jet-distance: At most one of 'jet-distance' and 'RDSHF' may be non-zero.")
-        end
-    end
-    begin
-        # The following option is not in the Fortran program
-        cosmo_var = cfg_toml["COSMO_VAR"]
-        cosmo_var ≠ 1 && cosmo_var ≠ 2 && error("Invalid value for cosmo_var")
+    jet_dist_kpc = get(cfg_toml, "jet-distance", 1.0)
+    redshift = get(cfg_toml, "RDSHF", 0.0)
+    if jet_dist_kpc > 0 && redshift > 0
+        error("jet-distance: At most one of 'jet-distance' and 'RDSHF' may be non-zero.")
     end
 
-    begin
-        energy_transfer_frac = float(get(cfg_toml, "energy-transfer-frac", 0.0))
-        0 ≤ energy_transfer_frac ≤ 1 || error("energy_transfer_frac must be in [0,1]")
-    end
+    # The following option is not in the Fortran program
+    cosmo_var = cfg_toml["COSMO_VAR"]
+    cosmo_var ≠ 1 && cosmo_var ≠ 2 && error("Invalid value for cosmo_var")
+
+    energy_transfer_frac = float(get(cfg_toml, "energy-transfer-frac", 0.0))
+    0 ≤ energy_transfer_frac ≤ 1 || error("energy_transfer_frac must be in [0,1]")
 
     num_upstream_shells, num_downstream_shells = cfg_toml["num-shells"]
 
-    begin
-        bturb_comp_frac = get(cfg_toml, "b-field-turbulence", 0.0)
-        bfield_amp = get(cfg_toml, "b-field-amplify", 1.0)
-        bfield_amp < 1 && error("b-field-amplify: must be ≥ 1")
-        if bfield_amp > 1 && iszero(bturb_comp_frac)
-            error("b-field-turbulence: bfield_amp > 1 has no effect if b-field-turbulence = 0")
-        end
+    bturb_comp_frac = get(cfg_toml, "b-field-turbulence", 0.0)
+    bfield_amp = get(cfg_toml, "b-field-amplify", 1.0)
+    bfield_amp < 1 && error("b-field-amplify: must be ≥ 1")
+    if bfield_amp > 1 && iszero(bturb_comp_frac)
+        error("b-field-turbulence: bfield_amp > 1 has no effect if b-field-turbulence = 0")
     end
 
     psd_bins_per_dec_mom, psd_bins_per_dec_θ = let
@@ -532,40 +513,40 @@ function @main(args)
 
     psd = OffsetArray{Float64}(undef, (psd_mom_axis, psd_θ_axis, n_grid))
 
-    begin # "module" species_vars
-        # Arrays will hold crossing data for thermal particles; pₓ and pt are shock frame values
-        num_crossings = zeros(Int, n_grid)
-        therm_grid = zeros(Int, na_cr)
-        therm_pₓ_sk = zeros(MomentumCGS, na_cr)
-        therm_ptot_sk = zeros(MomentumCGS, na_cr)
-        therm_weight = zeros(typeof(1.0s/cm), na_cr)
+    # "module" species_vars
+    # Arrays will hold crossing data for thermal particles; pₓ and pt are shock frame values
+    num_crossings = zeros(Int, n_grid)
+    therm_grid = zeros(Int, na_cr)
+    therm_pₓ_sk = zeros(MomentumCGS, na_cr)
+    therm_ptot_sk = zeros(MomentumCGS, na_cr)
+    therm_weight = zeros(typeof(1.0s/cm), na_cr)
 
-        # Spectra at x_spec locations
-        spectra_sf = zeros(0:psd_max, n_grid)
-        spectra_pf = zeros(0:psd_max, n_grid)
+    # Spectra at x_spec locations
+    spectra_sf = zeros(0:psd_max, n_grid)
+    spectra_pf = zeros(0:psd_max, n_grid)
 
-        # Escaping spectra upstream and downstream from shock; 2-D arrays store angular information
-        esc_spectra_feb_upstream = zeros(0:psd_max)
-        esc_spectra_feb_downstream = zeros(0:psd_max)
-        # should these be inverse velocity?
-        esc_psd_feb_upstream = zeros(0:psd_max, 0:psd_max)
-        esc_psd_feb_downstream = zeros(0:psd_max, 0:psd_max)
-    end # "module" species_vars
+    # Escaping spectra upstream and downstream from shock; 2-D arrays store angular information
+    esc_spectra_feb_upstream = zeros(0:psd_max)
+    esc_spectra_feb_downstream = zeros(0:psd_max)
+    # should these be inverse velocity?
+    esc_psd_feb_upstream = zeros(0:psd_max, 0:psd_max)
+    esc_psd_feb_downstream = zeros(0:psd_max, 0:psd_max)
+    # end "module" species_vars
 
-    begin # "module" photons
-        # Number of different sources for emission mechanism (i.e. ion species for
-        # pion decay, photon fields for IC)
-        #integer :: n_pion_specs, n_IC_specs
+    # "module" photons
+    # Number of different sources for emission mechanism (i.e. ion species for
+    # pion decay, photon fields for IC)
+    #integer :: n_pion_specs, n_IC_specs
 
-        # Energy bins for photon production by a specific mechanism to ensure
-        # uniformity across different sources, in units of MeV
-        energy_pion_MeV = zeros(na_photons)
-        energy_IC_MeV = zeros(na_photons)
+    # Energy bins for photon production by a specific mechanism to ensure
+    # uniformity across different sources, in units of MeV
+    energy_pion_MeV = zeros(na_photons)
+    energy_IC_MeV = zeros(na_photons)
 
-        # Arrays to hold summed spectra due to the various sources
-        pion_photon_sum = zeros(na_photons, n_grid)
-        ic_photon_sum = zeros(na_photons, n_grid)
-    end # "module" photons
+    # Arrays to hold summed spectra due to the various sources
+    pion_photon_sum = zeros(na_photons, n_grid)
+    ic_photon_sum = zeros(na_photons, n_grid)
+    # end "module" photons
 
     weight_new = zeros(na_particles)
     ptot_pf_new = zeros(MomentumCGS, na_particles)
@@ -574,32 +555,32 @@ function @main(args)
 
     pcuts_use = zeros(MomentumCGS, na_c)
 
-    begin # "module" pcut_vars
-        l_save = zeros(Bool, na_particles) # Whether or not to save particle for next pcut
-        grid_sav        = zeros(Int, na_particles)
-        tcut_sav        = zeros(Int, na_particles)
-        downstream_sav  = zeros(Bool, na_particles)
-        inj_sav         = zeros(Bool, na_particles)
-        weight_sav      = zeros(na_particles)
-        ptot_pf_sav     = zeros(MomentumCGS, na_particles)
-        pb_pf_sav       = zeros(MomentumCGS, na_particles)
-        x_PT_cm_sav     = zeros(LengthCGS, na_particles)
-        xn_per_sav      = zeros(na_particles)
-        #zz_sav         = zeros(na_particles)
-        prp_x_cm_sav    = zeros(LengthCGS, na_particles)
-        acctime_sec_sav = zeros(TimeCGS, na_particles)
-        φ_rad_sav       = zeros(na_particles)
+    # "module" pcut_vars
+    l_save = zeros(Bool, na_particles) # Whether or not to save particle for next pcut
+    grid_sav        = zeros(Int, na_particles)
+    tcut_sav        = zeros(Int, na_particles)
+    downstream_sav  = zeros(Bool, na_particles)
+    inj_sav         = zeros(Bool, na_particles)
+    weight_sav      = zeros(na_particles)
+    ptot_pf_sav     = zeros(MomentumCGS, na_particles)
+    pb_pf_sav       = zeros(MomentumCGS, na_particles)
+    x_PT_cm_sav     = zeros(LengthCGS, na_particles)
+    xn_per_sav      = zeros(na_particles)
+    #zz_sav         = zeros(na_particles)
+    prp_x_cm_sav    = zeros(LengthCGS, na_particles)
+    acctime_sec_sav = zeros(TimeCGS, na_particles)
+    φ_rad_sav       = zeros(na_particles)
 
-        grid_new        = zeros(Int, na_particles)
-        tcut_new        = zeros(Int, na_particles)
-        downstream_new  = zeros(Bool, na_particles)
-        inj_new         = zeros(Bool, na_particles)
-        xn_per_new      = zeros(na_particles)
-        #zz_new         = zeros(na_particles)
-        prp_x_cm_new    = zeros(LengthCGS, na_particles)
-        acctime_sec_new = zeros(TimeCGS, na_particles)
-        φ_rad_new       = zeros(na_particles)
-    end
+    grid_new        = zeros(Int, na_particles)
+    tcut_new        = zeros(Int, na_particles)
+    downstream_new  = zeros(Bool, na_particles)
+    inj_new         = zeros(Bool, na_particles)
+    xn_per_new      = zeros(na_particles)
+    #zz_new         = zeros(na_particles)
+    prp_x_cm_new    = zeros(LengthCGS, na_particles)
+    acctime_sec_new = zeros(TimeCGS, na_particles)
+    φ_rad_new       = zeros(na_particles)
+    # end "module" pcut_vars
 
     ε_target = zeros(n_grid)
     q_esc_cal_pₓ = zeros(n_itrs)
