@@ -63,7 +63,7 @@ include("smoothers.jl")
 include("data_input.jl")
 include("main_loops.jl")
 
-function (@main)()
+function @main(args)
     # Start the wall clock for this run
     t_start = now()
 
