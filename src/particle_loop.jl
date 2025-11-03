@@ -210,71 +210,15 @@ function particle_loop(
             #  1. Electrons are a separate species and energy transfer is enabled
             #  2. Particles are still on their first trip to the downstream region of the shock structure
             #  3. Particles have entered a new grid zone, and energy should be either subtracted or added
-            # TODO factor this out
             if energy_transfer_frac > 0 && !inj && r_PT_old.x ≤ 0cm && i_grid_old != i_grid
-                i_start = i_grid_old
-                i_stop  = min(i_grid, i_shock)
-
-                # Subtract energy from the ions and add it to the pool of energy for this grid zone.
-                #@debug "" i_start i_stop i_grid i_shock
-                if aa ≥ 1 && maximum(ε_target[i_start+1:i_stop]) > 0
-
-                    # Subtract energy based on the difference between current
-                    # and previous values of ε_electron
-                    γ_pf_i = hypot(1, ptot_pf/mc)
-                    γ_pf_f = 1 + (γ_pf_i - 1) * (1-ε_target[i_stop])/(1-ε_target[i_start])
-
-                    # Split the energy equally among all grid zones crossed during
-                    # this scattering step; the donated energy is weighted by weight.
-                    n_split = count(ε_target[i_start+1:i_stop] .> 0)
-                    #$omp critical
-                    energy_increment = (γ_pf_i - γ_pf_f) * aa * E₀ₚ * weight / n_split
-                    for i in i_start+1:i_stop
-                        if ε_target[i] > 0
-                            energy_transfer_pool[i] += energy_increment
-                        end
-                    end
-                    #$omp end critical
-
-                    # Calculate the new momentum based on the new energy,
-                    # and rescale components accordingly
-                    ptot_pf_f = aa*mp*c * √(γ_pf_f^2 - 1) |> (g*cm/s)
-                    scale_fac = ptot_pf_f / ptot_pf
-
-                    pb_pf *= scale_fac
-                    p_perp_b_pf *= scale_fac
-                    ptot_pf = ptot_pf_f
-                    γₚ_pf = γ_pf_f
-
-                elseif maximum(energy_recv_pool[i_start+1:i_stop], init=0erg) > 0erg
-
-                    # For electrons, add pooled energy. Include energy from all cells electron
-                    # crossed in this scattering step. Also modify the amount of energy to reflect
-                    # the number of electrons each MC particle represents
-                    energy_to_transfer = sum(@view(energy_recv_pool[i_start+1:i_stop])) * electron_weight_fac
-
-                    γ_pf_i = hypot(1, ptot_pf/mc)
-                    γ_pf_f = γ_pf_i + energy_to_transfer/(aa*E₀ₚ)
-
-                    # Calculate the new momentum based on the new energy, and
-                    # rescale components accordingly
-                    ptot_pf_f = aa*mp*c * √(γ_pf_f^2 - 1) |> (g*cm/s)
-                    scale_fac = ptot_pf_f / ptot_pf
-
-                    pb_pf *= scale_fac
-                    p_perp_b_pf *= scale_fac
-                    ptot_pf = ptot_pf_f
-                    γₚ_pf = γ_pf_f
-
-                end  # check on particle species
-
-                # Since the plasma-frame momenta have changed,
-                # recalculate the shock-frame momenta
-                ptot_sk, p_sk, γₚ_sk = transform_p_PS(aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                                                      uₓ_sk, uz_sk, utot, γᵤ_sf,
-                                                      b_cosθ, b_sinθ, mc)
-                pₓ_sk = p_sk.x
-                pz_sk = p_sk.z
+                (;
+                 pb_pf, p_perp_b_pf, ptot_pf, γₚ_pf, ptot_sk, p_sk, γₚ_sk, pₓ_sk, pz_sk,
+                ) = do_energy_transfer(energy_transfer_pool, energy_recv_pool,
+                                       i_grid, i_grid_old, i_shock,
+                                       ε_target, ptot_pf, pb_pf, p_perp_b_pf,
+                                       γₚ_pf, φ_rad,
+                                       uₓ_sk, uz_sk, utot, γᵤ_sf,
+                                       b_cosθ, b_sinθ, weight, mc, aa)
             end
             # check on grid zone
             # end check on whether particles are thermal and upstream
@@ -664,4 +608,73 @@ function perpendicular_momentum(ptot_pf, pb_pf)
     end
 
     return p_perp_b_pf
+end
+
+function do_energy_transfer(
+        energy_transfer_pool, energy_recv_pool, i_grid, i_grid_old, i_shock,
+        ε_target, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
+        uₓ_sk, uz_sk, utot, γᵤ_sf,
+        b_cosθ, b_sinθ, weight, mc, aa)
+    i_start = i_grid_old
+    i_stop  = min(i_grid, i_shock)
+
+    scale_momenta = false
+
+    # Subtract energy from the ions and add it to the pool of energy for this grid zone.
+    #@debug "" i_start i_stop i_grid i_shock
+    if aa ≥ 1 && maximum(ε_target[i_start+1:i_stop]) > 0
+
+        # Subtract energy based on the difference between current
+        # and previous values of ε_electron
+        γ_pf_i = hypot(1, ptot_pf/mc)
+        γ_pf_f = 1 + (γ_pf_i - 1) * (1-ε_target[i_stop])/(1-ε_target[i_start])
+
+        # Split the energy equally among all grid zones crossed during
+        # this scattering step; the donated energy is weighted by weight.
+        n_split = count(ε_target[i_start+1:i_stop] .> 0)
+        #$omp critical
+        energy_increment = (γ_pf_i - γ_pf_f) * aa * E₀ₚ * weight / n_split
+        for i in i_start+1:i_stop
+            if ε_target[i] > 0
+                energy_transfer_pool[i] += energy_increment
+            end
+        end
+        #$omp end critical
+
+        scale_momenta = true
+
+    elseif maximum(energy_recv_pool[i_start+1:i_stop], init=0erg) > 0erg
+
+        # For electrons, add pooled energy. Include energy from all cells electron
+        # crossed in this scattering step. Also modify the amount of energy to reflect
+        # the number of electrons each MC particle represents
+        energy_to_transfer = sum(@view(energy_recv_pool[i_start+1:i_stop])) * electron_weight_fac
+
+        γ_pf_i = hypot(1, ptot_pf/mc)
+        γ_pf_f = γ_pf_i + energy_to_transfer/(aa*E₀ₚ)
+
+        scale_momenta = true
+    end  # check on particle species
+
+    if scale_momenta
+        # Calculate the new momentum based on the new energy, and
+        # rescale components accordingly
+        ptot_pf_f = aa*mp*c * √(γ_pf_f^2 - 1) |> (g*cm/s)
+        scale_fac = ptot_pf_f / ptot_pf
+
+        pb_pf *= scale_fac
+        p_perp_b_pf *= scale_fac
+        ptot_pf = ptot_pf_f
+        γₚ_pf = γ_pf_f
+    end
+
+    # Since the plasma-frame momenta have changed,
+    # recalculate the shock-frame momenta
+    ptot_sk, p_sk, γₚ_sk = transform_p_PS(aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
+                                          uₓ_sk, uz_sk, utot, γᵤ_sf,
+                                          b_cosθ, b_sinθ, mc)
+    pₓ_sk = p_sk.x
+    pz_sk = p_sk.z
+
+    return (; pb_pf, p_perp_b_pf, ptot_pf, γₚ_pf, ptot_sk, p_sk, γₚ_sk, pₓ_sk, pz_sk)
 end
