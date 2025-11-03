@@ -258,7 +258,7 @@ function particle_loop(
 
                     # Calculate the new momentum based on the new energy, and
                     # rescale components accordingly
-                    ptot_pf_f = aa*mp*c * √(γ_pf_f^2 - 1)
+                    ptot_pf_f = aa*mp*c * √(γ_pf_f^2 - 1) |> (g*cm/s)
                     scale_fac = ptot_pf_f / ptot_pf
 
                     pb_pf *= scale_fac
