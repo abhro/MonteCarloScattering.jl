@@ -100,12 +100,8 @@ function pcut_finalize(
     run_time = t_end - t_start
 
     @info("Finalizing pcut", i_iter, i_ion, i_cut,
-          pcuts_in[i_cut], pcuts_use[i_cut]/(mp*c)|>NoUnits,
+          pcuts_in[i_cut], "pcuts_use[i_cut]"=NoUnits(pcuts_use[i_cut]/(mp*c)),
           n_saved, n_pts_use, weight_running, run_time)
-    println(outfile, " itr=$i_iter ion=$i_ion icut=$i_cut ",
-            pcuts_in[i_cut], pcuts_use[i_cut]/(mp*c)|>NoUnits,
-            "  n_sav=$n_saved/$n_pts_use ", weight_running, run_time)
-
 
     # If no particles saved, don't bother with remaining pcuts
     if n_saved == 0
