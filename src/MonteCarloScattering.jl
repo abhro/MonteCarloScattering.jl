@@ -25,6 +25,7 @@ const TimeCGS                = typeof(1.0 * s)
 const MomentumCGS            = typeof(1.0 * g*cm/s)
 const BFieldCGS              = typeof(1.0 * G)
 const EnergyCGS              = typeof(1.0 * erg)
+const EnergyDensityCGS       = typeof(1.0 * erg/cm^3)
 const MomentumFluxCGS        = typeof(1.0 * g*cm^2/s^2) # (g*cm/s) * cm/s
 const MomentumDensityFluxCGS = typeof(1.0 * erg/cm^3)
 const EnergyFluxCGS          = typeof(1.0 * erg*cm/s)
