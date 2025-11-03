@@ -305,19 +305,8 @@ function retro_time(
 
 
         if do_rad_losses && aa < 1 # Radiative losses
-            # Note that here dp_synch is actually dp/p. If this value is too large we will
-            # directly integrate from p_i to get p_f, since the discrete approach would
-            # result in too high a loss in a single time step
-            dp_synch = rad_loss_fac * B²_tot * ptot_pf * t_step
-
-            # Correction to make sure electrons don't lose too much energy in a single time step
-            if dp_synch > 1e-2
-                ptot_pf /= 1 + dp_synch
-            else
-                ptot_pf *= 1 - dp_synch # Put second factor of ptot_pf back into dp_synch
-            end
-
-        end  # check on radiative losses
+            ptot_pf = radiation_loss(B²_tot, ptot_pf, t_step)
+        end
 
         # Catch electrons that have somehow lost all their energy in a single time step,
         # and update the pitch angle of particles that remain
