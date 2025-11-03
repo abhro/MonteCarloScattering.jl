@@ -124,9 +124,12 @@ function main_loops(
                 ptot_inj, weight_inj, n_pts_MB,
             )
             @info("Finished init_pop on",
-                  i_iter, i_ion,
-                  n_pts_use, i_grid_in, weight_in, ptot_pf_in,
-                  pb_pf_in, x_PT_cm_in, pxx_flux, pxz_flux, energy_flux)
+                  i_iter, i_ion, n_pts_use,
+                  length(i_grid_in), length(weight_in),
+                  length(ptot_pf_in), length(pb_pf_in), length(x_PT_cm_in),
+                  length(pxx_flux), length(pxz_flux), length(energy_flux),
+                  i_grid_in, weight_in, ptot_pf_in, pb_pf_in,
+                  x_PT_cm_in, pxx_flux, pxz_flux, energy_flux)
 
             # Assign the various particle properties to the population
             assign_particle_properties_to_population!(
