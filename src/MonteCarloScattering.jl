@@ -156,7 +156,7 @@ function @main(args)
     end
 
     β₂, γ₂, bmag₂, θ_B₂, θᵤ₂ = calc_downstream(bmag₀, r_comp, β₀)
-    u₂ = β₂*c
+    u₂ = β₂*c |> cm/s
     @debug("Results from calc_downstream()", u₂, β₂, γ₂, bmag₂, θ_B₂, θᵤ₂)
 
 
