@@ -6,7 +6,6 @@ of tests to determine whether it will be culled from the simulation.
 
 ### Arguments
 
-- `rad_loss_fac`: constant related to radiative losses; only used to pass to `retro_time` when needed
 - `B_CMBz`: effective magnetic field due to CMB at redshift of source;
   only used to pass to function retro_time when needed
 - `x_PT_old`: particle position before most recent move
@@ -35,7 +34,7 @@ of tests to determine whether it will be culled from the simulation.
 - `tcut_curr`: current tcut for particle tracking; passed to `retro_time` if called
 """
 function prob_return(
-        i_ion, num_psd_mom_bins, rad_loss_fac, B_CMBz, x_PT_old, aa, zz, gyro_denom,
+        i_ion, num_psd_mom_bins, B_CMBz, x_PT_old, aa, zz, gyro_denom,
         x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf, pb_pf, p_perp_b_pf,
         acctime_sec, φ_rad, helix_count::Integer, pcut_prev, weight, tcut_curr,
         x_grid_stop, u₂, use_custom_εB, η_mfp, do_retro, B₂, mc,
@@ -107,7 +106,7 @@ function prob_return(
             if do_retro
                 (lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf,
                  gyro_denom, acctime_sec) = retro_time(
-                    i_ion, num_psd_mom_bins, rad_loss_fac, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
+                    i_ion, num_psd_mom_bins, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
                     ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, acctime_sec, weight,
                     tcut_curr,
                     use_custom_εB, x_grid_stop, do_rad_losses, do_tcuts, tcuts,
@@ -188,7 +187,6 @@ particle (its PRP1→downstream→PRP2 path) resembles on average its backwards 
 
 ### Arguments
 
-- `rad_loss_fac`: constant related to radiative losses
 - `B_CMBz`: effective magnetic field due to CMB at redshift of source
 - `aa`: atomic mass number of ion species
 - `zz`: charge of ion species
@@ -211,7 +209,7 @@ particle (its PRP1→downstream→PRP2 path) resembles on average its backwards 
 - `tcut_curr`: current tcut for particle tracking
 """
 function retro_time(
-        i_ion::Int, num_psd_mom_bins::Int, rad_loss_fac, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
+        i_ion::Int, num_psd_mom_bins::Int, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
         ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, acctime_sec, weight,
         tcut_curr,
         use_custom_εB, x_grid_stop, do_rad_losses, do_tcuts, tcuts,

@@ -332,7 +332,7 @@ function particle_loop(
                 # Store previous ptot_pf value
                 ptot_pf_old = ptot_pf
 
-                ptot_pf = electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, rad_loss_fac, ptot_pf, t_step)
+                ptot_pf = electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, ptot_pf, t_step)
 
                 # Catch electrons that have somehow lost all their energy in a single time step
                 if ptot_pf ≤ 0g*cm/s
@@ -486,7 +486,7 @@ function particle_loop(
              i_return, lose_pt, tcut_curr, _x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf,
              gyro_denom, pb_pf, p_perp_b_pf, acctime_sec, φ_rad
             ) = prob_return(
-                            i_ion, num_psd_mom_bins, rad_loss_fac, B_CMBz, r_PT_old.x, aa, zz, gyro_denom,
+                            i_ion, num_psd_mom_bins, B_CMBz, r_PT_old.x, aa, zz, gyro_denom,
                             r_PT_cm.x, prp_x_cm, ptot_pf, γₚ_pf, pb_pf, p_perp_b_pf,
                             acctime_sec, φ_rad, helix_count, pcut_prev, weight, tcut_curr,
                             x_grid_stop, u₂, use_custom_εB, η_mfp, do_retro, bmag₂, mc,
@@ -586,7 +586,12 @@ function no_DSA_loop(
     return (; pb_pf, φ_rad, x_move_bpar, r_PT_cm)
 end
 
-function electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, rad_loss_fac, p, Δt)
+"""
+    electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, p, Δt)
+
+TODO
+"""
+function electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, p, Δt)
     # Compute effective magnetic field for radiative losses. When squared to get
     # energy density, one factor of γᵤ_ef in B_CMB_loc represents increased number
     # density, while the other is increased energy per photon.
