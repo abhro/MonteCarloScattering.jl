@@ -597,17 +597,16 @@ function electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, p, Δt)
     # density, while the other is increased energy per photon.
     B_CMB_loc = B_CMBz * γᵤ_ef
 
-    # Note that here dp_synch is actually dp/p. If this value is too large we will
+    # Note that here Δln_p_synch = Δp/p. If this value is too large we will
     # directly integrate from p_i to get p_f, since the discrete approach would
     # result in too high a loss in a single time step
-    # FIXME unit shenanigans here. Confirm that the unit in ustrip is equal to 1.
-    dp_synch = rad_loss_fac * (bmag^2 + B_CMB_loc^2) * p * Δt |> NoUnits
+    Δln_p_synch = rad_loss_fac * (bmag^2 + B_CMB_loc^2) * p * Δt |> NoUnits
 
     # Correction to make sure electrons don't lose too much energy in a single time step
-    if dp_synch > 1e-2
-        p /= 1 + dp_synch
+    if Δlnp_synch > 1e-2
+        p /= 1 + Δln_p_synch
     else
-        p *= 1 - dp_synch # Put second factor of ptot_pf back into dp_synch
+        p *= 1 - Δln_p_synch # Put second factor of ptot_pf back into dp_synch
     end
     return p
 end
