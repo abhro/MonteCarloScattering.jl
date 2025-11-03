@@ -56,7 +56,7 @@ function prob_return(
         # Do nothing
 
     # Particle has just crossed end of shock region as initially defined in input file
-    elseif (x_PT_old < x_grid_stop) && (x_PT_cm ≥ x_grid_stop)
+    elseif x_PT_old < x_grid_stop ≤ x_PT_cm
 
         # The following simple equation is decidedly non-trivial, and comes from
         # two assumptions:
@@ -104,8 +104,10 @@ function prob_return(
 
             # Track particle histories "explicitly" (see note in subroutine)
             if do_retro
-                (lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf,
-                 gyro_denom, acctime_sec) = retro_time(
+                (;
+                 lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf,
+                 gyro_denom, acctime_sec
+                ) = retro_time(
                     i_ion, num_psd_mom_bins, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
                     ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, acctime_sec, weight,
                     tcut_curr,
@@ -328,7 +330,8 @@ function retro_time(
 
     end  # retro time loop
 
-    return lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, gyro_denom, acctime_sec
+    return (; lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf,
+            gyro_denom, acctime_sec)
 end
 
 function pitch_angle_diffusion(
