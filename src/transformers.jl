@@ -433,33 +433,25 @@ function transform_p_PS(
 
     p_p_cos = p_perp_b_pf * cos(φ_p)
 
-
     # xyz plasma frame components
     #CHECKTHIS: θ in shock frame may be different from θ in plasma frame because of lorentz
     # transformation between the two. Are the next lines correct in light of this?
-    #@debug "" pb_pf p_perp_b_pf p_p_cos φ_p b_cosθ b_sinθ
+    #@debug("Momenta and mag fields", pb_pf, p_perp_b_pf, p_p_cos, φ_p, b_cosθ, b_sinθ)
     p_pf = SVector(pb_pf*b_cosθ - p_p_cos*b_sinθ,
                    p_perp_b_pf * sin(φ_p),
                    pb_pf*b_sinθ + p_p_cos*b_cosθ)
 
+    Δpₓ = (γᵤ_sf - 1) * p_pf.x + γᵤ_sf * γₚ_pf * aa*mp * uₓ_sk
     # xyz shock frame components
-    p_sk = SVector(γᵤ_sf * (p_pf.x + γₚ_pf * aa*mp * uₓ_sk),
-                   p_pf.y,
-                   p_pf.z)
+    p_sk = SVector(p_pf.x + Δpₓ, p_pf.y, p_pf.z)
 
     # Parallel/perpendicular (new) shock frame components
     ptot_sk = norm(p_sk)
-    pb_sk = p_sk.x*b_cosθ + p_sk.z*b_sinθ
+    #pb_sk = p_sk.x*b_cosθ + p_sk.z*b_sinθ
     #@debug "" ptot_sk pb_sk
 
-    if ptot_sk < abs(pb_sk)
-        p_perp_b_sk = 1e-6 * ptot_sk
-        pb_sk       = copysign(√(ptot_sk^2 - p_perp_b_sk^2), pb_sk)
-        #CHECKTHIS: does this *ever* happen?!
-        @warn("ptot_sk < pb_sk in transform_p_PS")
-    else
-        p_perp_b_sk = √(ptot_sk^2 - pb_sk^2)
-    end
+    #p_perp_b_sk = perpendicular_momentum(ptot_sk, pb_sk;
+    #                                     warn_str="ptot_sk < pb_sk in transform_p_PS")
 
     γₚ_sk = hypot(ptot_sk/mc, 1)
 
@@ -519,6 +511,8 @@ function transform_p_PSP(
 
     φ_p = φ_rad + π/2
 
+    m = aa * mp
+
     p_p_cos = p_perp_b_pf * cos(φ_p)
 
     # xyz (old) plasma frame components
@@ -530,11 +524,11 @@ function transform_p_PSP(
     p_sk = SVector(
         (((γᵤ_sf_old-1) * (uₓ_sk_old/utot_old)^2 + 1) * p_pf.x +
          (γᵤ_sf_old-1) * (uₓ_sk_old*uz_sk_old/utot_old^2) * p_pf.z +
-         γᵤ_sf_old * γₚ_pf * aa*mp * uₓ_sk_old),
+         γᵤ_sf_old * γₚ_pf * m * uₓ_sk_old),
         p_pf.y,
         ((γᵤ_sf_old-1) * (uₓ_sk_old*uz_sk_old/utot_old^2) * p_pf.x +
          ((γᵤ_sf_old-1) * (uz_sk_old/utot_old)^2 + 1) * p_pf.z +
-         γᵤ_sf_old * γₚ_pf * aa*mp * uz_sk_old)
+         γᵤ_sf_old * γₚ_pf * m * uz_sk_old)
     )
 
     # Parallel/perpendicular (new) shock frame components
@@ -554,13 +548,15 @@ function transform_p_PSP(
 
     # xyz (new) plasma frame components
     p_pf = SVector(( # x-component
-                    ((γᵤ_sf - 1) * (uₓ_sk/utot)^2 + 1) * p_sk.x + (γᵤ_sf - 1) *
-                    (uₓ_sk*uz_sk/utot^2) * p_sk.z - γᵤ_sf * γₚ_sk * aa*mp * uₓ_sk
+                    ((γᵤ_sf - 1) * (uₓ_sk/utot)^2 + 1) * p_sk.x
+                    + (γᵤ_sf - 1) * (uₓ_sk*uz_sk/utot^2) * p_sk.z
+                    - γᵤ_sf * γₚ_sk * m * uₓ_sk
                    ),
                    p_sk.y,
                    ( # z-component
-                    (γᵤ_sf - 1) * (uₓ_sk*uz_sk/utot^2) * p_sk.x +
-                    ((γᵤ_sf - 1) * (uz_sk/utot)^2 + 1) * p_sk.z - γᵤ_sf * γₚ_sk * aa*mp * uz_sk
+                    (γᵤ_sf - 1) * (uₓ_sk*uz_sk/utot^2) * p_sk.x
+                    + ((γᵤ_sf - 1) * (uz_sk/utot)^2 + 1) * p_sk.z
+                    - γᵤ_sf * γₚ_sk * m * uz_sk
                    ))
 
 
