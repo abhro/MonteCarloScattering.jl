@@ -46,7 +46,7 @@ function tcut_print(
     # Write out the particle counts at each tcut, as a histogram
     j_plot = 0
     weights_fileunit["i_iter"] = i_iter
-    weights_fileunit["tcuts_log"] = log10.(tcuts)           # 1     tcut times
+    weights_fileunit["tcuts_log"] = log10.(tcuts)                   # 1     tcut times
     weights_fileunit["weight_coupled_log"] = log10.(weight_coupled) # 2-?   weights by species
 
     print_plot_vals(weights_fileunit)
