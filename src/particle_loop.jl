@@ -603,7 +603,7 @@ function electron_radiation_loss(B_CMBz, γᵤ_ef, bmag, p, Δt)
     Δln_p_synch = rad_loss_fac * (bmag^2 + B_CMB_loc^2) * p * Δt |> NoUnits
 
     # Correction to make sure electrons don't lose too much energy in a single time step
-    if Δlnp_synch > 1e-2
+    if Δln_p_synch > 1e-2
         p /= 1 + Δln_p_synch
     else
         p *= 1 - Δln_p_synch # Put second factor of ptot_pf back into dp_synch
