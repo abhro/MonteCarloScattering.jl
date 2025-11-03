@@ -492,11 +492,10 @@ function @main(args)
 
     # Print a bunch of data about the run to screen/file
     print_input(n_pts_inj, n_pts_pcut, n_pts_pcut_hi, n_ions,
-                NaN, NaN, n_xspec, n_pcuts, n_grid, r_RH, r_comp,
+                num_psd_mom_bins, num_psd_θ_bins, n_xspec, n_pcuts, n_grid, r_RH, r_comp,
                 u₀, β₀, γ₀, u₂, β₂, γ₂, species, bmag₀, bmag₂, θ_B₀, θ_B₂, θᵤ₂,
                 mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine,
-                feb_upstream, feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac,
-                outfile)
+                feb_upstream, feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac)
 
     weights_file = jldopen("mc_coupled_weights.hdf5", "a+")
     spectra_file = jldopen("mc_coupled_spectra.hdf5", "a+")
