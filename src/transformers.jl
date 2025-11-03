@@ -407,9 +407,9 @@ original xyz frame by taking scalar products along the xyz axes.
 ### Arguments
 
 - `aa`: particle atomic mass
-- `pb_pf`: component of ptot_pf parallel to magnetic field
-- `p_perp_b_pf`: component of ptot_pf perpendicular to magnetic field
-- `γₚ_pf`: Lorentz factor associated with ptot_pf
+- `pb_pf`: component of `ptot_pf` parallel to magnetic field
+- `p_perp_b_pf`: component of `ptot_pf` perpendicular to magnetic field
+- `γₚ_pf`: Lorentz factor associated with `ptot_pf`
 - `φ_rad`: phase angle of gyration; looking upstream, counts clockwise from +z axis
 - `uₓ_sk`: bulk flow speed along x axis
 - `uz_sk`: bulk flow speed along z axis
@@ -506,9 +506,9 @@ scalar products along the xyz axes.
 
 ### Modifies
 
-- `pb_pf`: component of ptot_pf parallel to magnetic field
-- `p_perp_b_pf`: component of ptot_pf perpendicular to magnetic field
-- `γₚ_pf`: Lorentz factor associated with ptot_pf
+- `pb_pf`: component of `ptot_pf` parallel to magnetic field
+- `p_perp_b_pf`: component of `ptot_pf` perpendicular to magnetic field
+- `γₚ_pf`: Lorentz factor associated with `ptot_pf`
 - `φ_rad`: phase angle of gyration; looking upstream, counts clockwise from +z axis
 """
 function transform_p_PSP(
