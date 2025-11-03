@@ -44,13 +44,13 @@ include("scattering.jl")
 include("cuts.jl")
 include("get_psd_bins.jl")
 include("particle_finish.jl")
-begin
-    include("iter_init.jl")
-    include("iter_finalize.jl")
-    include("particle_loop.jl")
-    include("ion_init.jl")
-    include("ion_finalize.jl")
-end
+
+include("iter_init.jl")
+include("iter_finalize.jl")
+include("particle_loop.jl")
+include("ion_init.jl")
+include("ion_finalize.jl")
+
 # to shut the linter up
 using .parameters: na_c, na_photons, psd_max
 using .constants: B_CMB0, E₀ₑ
