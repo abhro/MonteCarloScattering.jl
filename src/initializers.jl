@@ -642,21 +642,36 @@ end
 
 sound_speed_nonrelativistic(P, ρ, Γ) = √(Γ * P / ρ) # cₛ = √(K/ρ), where K = ΓP is the bulk modulus
 
+"""
+    alfven_speed_relativistic(P, ρ, Γ, B)
+
+Calculate the Alfvén speed for a relativistic plasma with pressure `P`,
+density `ρ`, Lorentz factor `Γ`, and ambient magnetic field `B`.
+
+It uses the Equation (46) given by Gedalin (1993), where we assume an
+equation of state ``e = ρc^2 + P/(Γ-1)``.
+```math
+\\begin{align*}
+    v_A &= c \\sqrt{\\frac{B^2/4π}{ε + p + B^2/4π}} \\\\
+    &= \\frac{c}{\\sqrt{1 + \\frac{4πw}{B^2}}}
+\\end{align*}
+```
+where ``w = \\frac{Γ}{Γ-1} P + ρ c^2`` is the enthalpy density, ``ε`` is ??,
+``p`` is ??, ``e`` is the (total internal) energy density,
+``ρc^2`` is the rest energy density, and
+``P/(Γ-1)`` is the thermal component (internal kinetic energy).
+"""
 function alfven_speed_relativistic(P, ρ, Γ, B)
-    # And into Gedalin (1993)'s Equation (46); note assumption that
-    # equation of state is    e = ρc² + P/(Γ-1)
-    #     v_A² = (B²/4π) / (ε + p + B²/4π)                  Gedalin Eq. 46
     enthalpy = Γ/(Γ-1) * P + ρ * c^2
     v_A = c / √(1 + 4π * enthalpy / B^2)
-    # more on equation of state
-    #    e = ρc² + P/(Γ-1)
-    # where
-    # - e is the (total internal) energy density
-    # - ρc² is the rest energy density
-    # - P/(Γ-1) is the thermal component (internal kinetic energy)
     return v_A
 end
-alfven_speed_nonrelativistic(ρ, B) = B / √(4π * ρ) # Alfvén wave group velocity
+"""
+    alfven_speed_nonrelativistic(ρ, B)
+
+Alfvén wave group velocity.
+"""
+alfven_speed_nonrelativistic(ρ, B) = B / √(4π * ρ)
 
 """
     setup_profile(...)
