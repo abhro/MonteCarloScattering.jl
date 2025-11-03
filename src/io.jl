@@ -101,126 +101,50 @@ function print_input(
         r_comp, u₀, β₀, γ₀, u₂, β₂, γ₂, species, bmag₀,
         bmag₂, θ_B₀, θ_B₂, θ_u₂,
         mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine, feb_upstream,
-        feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac,
-        outfileunit)
+        feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac)
 
-
-    # Print array parameters & usage
     n_pts_max = max(n_pts_inj, n_pts_pcut, n_pts_pcut_hi)
-    parameter_str = @sprintf("""
+    @info("Array parameters/usage",
+          na_particles, psd_max, n_pts_max, n_ions,
+          num_psd_mom_bins, num_psd_θ_bins, na_c, n_xspec, n_pcuts, n_grid)
 
-Array parameters/usage:
-   na_particles = %i
-        psd_max = %i
-      n_pts_max = %i
-         n_ions = %i
-        psd_mom = %i
-         θ_bins = %i
+    @info("Compression ratios", r_RH, r_comp)
+    @info("Shock speeds", u₀, u₂, β₀, β₂, γ₀, γ₂)
+    @info("Particle densities",
+          ρ₀ = density(species[1]),
+          ρ₂ = density(species[1])*γ₀*β₀/(γ₂*β₂))
 
-           na_c = %i
-        n_xpsec = %i
-        n_pcuts = %i
-         n_grid = %i
+    @info("Upstream magnetic field", bmag₀, θ_B₀)
+    @info("Downstream magnetic field", bmag₂, θ_B₂, θ_u₂)
 
-""",
-        na_particles, psd_max, n_pts_max, n_ions, num_psd_mom_bins, num_psd_θ_bins,
-        na_c, n_xspec, n_pcuts, n_grid)
+    @info("Temperatures",
+          "T₀(proton)" = temperature(species[begin]),
+          "T₀(electron)" = temperature(species[end]))
 
-    @info(parameter_str)
-    println(outfileunit, parameter_str)
+    @info("Mach numbers", "Mach(sonic)" = mach_sonic, "Mach(Alfven)" = mach_alfven)
 
-
-    # Shock speeds, escaping fluxes, and key densities
-    shock_speeds_str = @sprintf("""
-
-  r_RH = %f
-r_comp = %f
-
-""", r_RH, r_comp)
-
-    @info(shock_speeds_str)
-    println(outfileunit, shock_speeds_str)
-
-    fluxes_str = ("""
-
-u₀ = $u₀                 u₂ = $u₂
-β₀ = $β₀                 β₂ = $β₂
-γ₀ = $γ₀                 γ₂ = $γ₂
-ρ₀ = $(density(species[1])) prot/cm³        ρ₂ = $(density(species[1])*γ₀*β₀/(γ₂*β₂)) prot/cm³
-
-""")
-
-    @info(fluxes_str)
-    println(outfileunit, fluxes_str)
-
-    # Relevant angles and field strengths
-    magfield_str = ("""
-
-bmag₀ = $(bmag₀)              bmag₂ = $(bmag₂)
-θ_B₀ = $(θ_B₀)°          θ_B₂(calc) = $(θ_B₂)°
-                     θ_u₂(calc) = $(θ_u₂)°
-
-""")
-    @info(magfield_str)
-    println(outfileunit, magfield_str)
-
-    # Temperatures and Mach numbers
-    temp_str = ("""
-
-T₀(proton)   = $(temperature(species[begin]))
-T₀(electron) = $(temperature(species[end]))
-
-""")
-
-    @info(temp_str)
-    println(outfileunit, temp_str)
-
-    mach_str = @sprintf("""
-
-Mach(sonic)  = %.3f
-Mach(Alfven) = %.3f
-
-""", mach_sonic, mach_alfven)
-
-    @info(mach_str)
-    println(outfileunit, mach_str)
-
-
-    # Divisions of gyroperiod
-    gyroperiod_str = @sprintf("""
-
-N_g(coarse) = %i
-N_g(fine)   = %i
-
-""", xn_per_coarse, xn_per_fine)
-    @info(gyroperiod_str)
-    println(outfileunit, gyroperiod_str)
+    @info("Gyroperiod divisions", "N_g(coarse)" = xn_per_coarse, "N_g(fine)" = xn_per_fine)
 
 
     # FEB info and max age
     feb_str = ("""
-
 upstream FEB   = $(feb_upstream/rg₀) rg₀ = $(uconvert(pc, feb_upstream))
 downstream FEB = $(feb_downstream/rg₀) rg₀ = $(uconvert(pc, feb_downstream))
 
 Max CR age[s] = $(age_max)
-
 """)
     @info(feb_str)
-    println(outfileunit, feb_str)
 
 
     # Test-particle index from Keshet & Waxman (2005) [2005PhRvL..94k1102K] Eq 23
     kw_idx_str = @sprintf("  Keshet & Waxman (2005) index = %f",
                           (3β₀ - 2*β₀*β₂^2 + β₂^3) / (β₀ - β₂))
     @info(kw_idx_str)
-    println(outfileunit, kw_idx_str)
 
 
     # Energy to switch between low- and high-pcut particle counts
     pcut_str = @sprintf("  High pcut energy = %f keV/aa", energy_pcut_hi)
     @info(pcut_str)
-    println(outfileunit, pcut_str)
 
 
     # Finally a warning about possible complications later
@@ -228,7 +152,6 @@ Max CR age[s] = $(age_max)
         fast_push_warn_str = ("Both fast push and amplified B-field turbulence in use. "*
                               "Check flux equations in 'init_pop' for consistency")
         @warn(fast_push_warn_str)
-        println(outfileunit, " WARNING: ", fast_push_warn_str)
     end
 end
 
