@@ -382,7 +382,8 @@ function particle_loop(
 
                 # Remove ions at splitting momentum
                 if ptot_pf > pcuts_use[i_cut]
-                    @info("Removing ions at splitting momentum")
+                    @info("Removing ions at splitting momentum",
+                          pcuts_use[i_cut], i_cut, ptot_pf)
                     l_save[i_prt] = true
 
                     weight_sav[i_prt]       = weight
@@ -446,7 +447,8 @@ function particle_loop(
             #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
             L_diff = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp*γₚ_pf * u₂)
 
-            @info "Particle crossing shock going upstream → downstream" prp_x_cm
+            @info("Particle crossing shock going upstream → downstream",
+                  prp_x_cm, r_PT_old, r_PT_cm, L_diff)
             prp_x_cm = max(prp_x_cm, L_diff)
         end
 
@@ -651,8 +653,8 @@ function perpendicular_momentum(ptot_pf, pb_pf)
     if ptot_pf < abs(pb_pf)
         p_perp_b_pf = 1e-6 * ptot_pf
         pb_pf = copysign(√(ptot_pf^2 - p_perp_b_pf^2), pb_pf)
-        #CHECKTHIS: does this *ever* happen?!
-        @warn("ptot_pf < pb_pf at top of loop_helix")
+        # XXX CHECKTHIS: does this *ever* happen?!
+        @warn("ptot_pf < pb_pf at top of loop_helix", ptot_pf, pb_pf)
     else
         p_perp_b_pf = √(ptot_pf^2 - pb_pf^2)
     end
