@@ -65,7 +65,6 @@ function main_loops(
         energy_esc_upstream    = 1e-99
         pₓ_esc_upstream        = 1e-99
 
-
         # To facilitate energy transfer from ions to electrons, calculate here the target energy
         # density fraction for electrons at each grid zone, and zero out the pool of
         # plasma-frame energy that will be taken from ions and donated to electrons
@@ -75,8 +74,10 @@ function main_loops(
         z_max = γ₀ * β₀ / (γ₂ * β₂)
         populate_ε_target!(ε_target, z_max, γ_sf_grid, uₓ_sk_grid, u₀, γ₀, energy_transfer_frac)
 
-        fill!((energy_transfer_pool, energy_recv_pool), 0.0erg)
-        fill!((energy_density, therm_energy_density), 0.0)
+        zero!(energy_transfer_pool)
+        zero!(energy_recv_pool)
+        zero!(energy_density)
+        zero!(therm_energy_density)
 
         #------------------------------------------------------------------------
         #  Start of loop over particle species
@@ -245,7 +246,7 @@ function main_loops(
                         ε_target, energy_transfer_pool, electron_weight_fac,
                         weight_coupled, spectra_coupled, esc_energy_eff, esc_num_eff, esc_flux,
                         esc_psd_feb_upstream, esc_psd_feb_downstream,
-                       )
+                    )
 
                     if !l_save[i_prt]
                         particle_finish!(pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
