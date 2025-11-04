@@ -94,7 +94,7 @@ end
 
 function pcut_finalize(
         i_iter, i_ion, i_cut, p_pcut_hi, n_pts_pcut, n_pts_pcut_hi, n_pts_use,
-        weight_running, l_save, t_start, pcuts_in, pcuts_use, outfile)
+        weight_running, l_save, t_start, pcuts, outfile)
     break_pcut = false
     n_saved = count(l_save)
 
@@ -102,17 +102,16 @@ function pcut_finalize(
     run_time = t_end - t_start
 
     @info("Finalizing pcut", i_iter, i_ion, i_cut,
-          pcuts_in[i_cut], "pcuts_use[i_cut]"=NoUnits(pcuts_use[i_cut]/(mp*c)),
-          n_saved, n_pts_use, weight_running, run_time)
+          pcuts[i_cut], n_saved, n_pts_use, weight_running, run_time)
 
     # If no particles saved, don't bother with remaining pcuts
     if n_saved == 0
         break_pcut = true
-        return break_pcut
+        return break_pcut, 0, 0
     end
 
     # Prepare population for next pcut
-    n_pts_target = pcuts_use[i_cut] < p_pcut_hi ? n_pts_pcut : n_pts_pcut_hi
+    n_pts_target = pcuts[i_cut] < p_pcut_hi ? n_pts_pcut : n_pts_pcut_hi
     return break_pcut, n_pts_target, n_saved
 end
 

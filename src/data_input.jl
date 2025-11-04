@@ -78,13 +78,12 @@ function check_x_grid_limits(x_grid_start_rg, x_grid_stop_rg)
     x_grid_stop_rg  ≤ 0 && error("x_grid_limits: x_grid_stop must be positive.")
 end
 
-function check_pcuts_in(pcuts_in, Emax, Emax_per_aa, pmax)
-    n_pcuts = length(pcuts_in)
-    n_pcuts+1 > na_c && error("momentum-cutoffs: parameter na_c smaller than desired number of pcuts.")
+function check_pcuts(pcuts, Emax, Emax_per_aa, pmax)
+    length(pcuts) > na_c && error("momentum-cutoffs: parameter na_c smaller than desired number of pcuts.")
 
     if Emax > 0keV
         # Convert from momentum[mₚc/aa] to energy[keV]
-        Emax_eff = 56 * pcuts_in[n_pcuts-1] * ustrip(keV, E₀ₚ*erg)
+        Emax_eff = 56 * pcuts[end] * c
 
         if Emax > Emax_eff
             error("PCUTS: max energy exceeds highest pcut. Add more pcuts or lower Emax. ",
@@ -92,18 +91,18 @@ function check_pcuts_in(pcuts_in, Emax, Emax_per_aa, pmax)
         end
     elseif Emax_per_aa > 0keV   # Limit was on energy per nucleon
         # Convert from momentum[mₚc/aa] to energy[keV/aa]
-        Emax_eff_per_aa = pcuts_in[n_pcuts-1] * ustrip(keV, E₀ₚ*erg)
+        Emax_eff_per_aa = pcuts[end]*c
 
         if Emax_per_aa > Emax_eff_per_aa
             error("PCUTS: max energy per aa exceeds highest pcut. Add more pcuts or lower Emax_per_aa. ",
                   "Emax_per_aa = $Emax_per_aa; Emax_eff/aa = $Emax_eff_per_aa")
         end
 
-    elseif pmax > 0mp*c # Limit was on total momentum. Assume Fe for strictest limit on mom/nuc.
-        pmax_eff = 56mp*c * pcuts_in[n_pcuts-1]
+    elseif pmax > 0g*c # Limit was on total momentum. Assume Fe for strictest limit on mom/nuc.
+        pmax_eff = 56 * pcuts[end]
         if pmax > pmax_eff
             error("PCUTS: max momentum exceeds highest pcut. Add more pcuts or lower pmax. ",
-                  "pmax[m_pc] = $pmax; pmax_eff (for Fe) = $pmax_eff")
+                  "pmax = $pmax; pmax_eff (for Fe) = $pmax_eff")
         end
     else   # Something unexpected has happened
         error("Unexpected result when comparing pcut max to energy/momentum max")

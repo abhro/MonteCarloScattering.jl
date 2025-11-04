@@ -10,7 +10,7 @@
    4. loop_pt:    i_prt    Individual particle number
 """
 function main_loops(
-        n_itrs, n_ions, n_pcuts, n_grid, n_pts_inj, n_tcuts, species,
+        n_itrs, n_ions, n_grid, n_pts_inj, n_tcuts, species,
         (u₀, β₀, γ₀), (u₂, β₂, γ₂),
         Emax, Emax_per_aa, energy_pcut_hi, pmax,
         pxx_flux, pxz_flux, energy_flux,
@@ -27,7 +27,7 @@ function main_loops(
         weight_sav, weight_new, ptot_pf_sav, ptot_pf_new, pb_pf_sav, pb_pf_new,
         x_PT_cm_sav, x_PT_cm_new, grid_sav, grid_new, inj_sav, inj_new, downstream_sav, downstream_new,
         prp_x_cm_sav, prp_x_cm_new, acctime_sec_sav, acctime_sec_new, tcut_sav, tcut_new, φ_rad_sav, φ_rad_new,
-        pcuts_in, pcuts_use, l_save, i_grid_feb, i_shock,
+        pcuts, l_save, i_grid_feb, i_shock,
         n_pts_max, n_xspec, n_print_pt, num_psd_mom_bins, num_psd_θ_bins,
         psd_lin_cos_bins, psd_cos_fine, Δcos, psd_mom_bounds, psd_θ_bounds, psd_θ_min,
         psd_mom_min, psd_bins_per_dec_mom, psd_bins_per_dec_θ,
@@ -149,11 +149,6 @@ function main_loops(
             # the received energy.
             energy_recv_pool .= energy_transfer_pool
 
-
-            # The array of pcuts read in by data_input has units momentum/mc.
-            # Convert to momentum for this species
-            pcuts_use[1:n_pcuts] .= pcuts_in[1:n_pcuts] * aa*mp*c
-
             # Determine the pcut at which to switch from low-E particle counts to high-E
             # particle counts. Recall that energy_pcut_hi has units of keV per aa, so when
             # dividing by particle mass the factor of aa is already present in the denominator.
@@ -167,7 +162,9 @@ function main_loops(
             #  Particle splitting and resetting of n_pts_use is handled by the call
             #  to "new_pcut" at the end of each iteration of loop_pcut.
             #----------------------------------------------------------------------
-            for i_cut in 1:n_pcuts # loop_pcut
+            for i_cut in eachindex(pcuts) # loop_pcut
+
+                @debug("Starting pcut loop", i_cut, pcuts[i_cut])
 
                 # Initialize all of the *_sav arrays to help prevent bleeding over between pcuts or ion species
                 l_save .= false  # Whole array must be initialized in case number of particles changes from pcut to pcut
@@ -191,7 +188,7 @@ function main_loops(
 
                 # For high-energy electrons in a strong magnetic field, need to know
                 # previous cutoff momentum for calculating new PRP downstream
-                pcut_prev = i_cut > 1 ? pcuts_use[i_cut-1] : 0.0
+                pcut_prev = i_cut > 1 ? pcuts[i_cut-1] : 0.0g*c
 
                 #--------------------------------------------------------------------
                 #  Start of loop over particles
@@ -220,7 +217,7 @@ function main_loops(
                      uₓ_sk, uz_sk, utot, φ_rad,
                      ∑P_downstream, ∑KEdensity_downstream) = particle_loop(
                         i_iter, i_ion, i_cut, i_prt, i_grid_feb, i_shock,
-                        n_ions, n_pcuts, n_pts_max, n_xspec, n_grid, n_print_pt, num_psd_mom_bins, num_psd_θ_bins,
+                        n_ions, n_pts_max, n_xspec, n_grid, n_print_pt, num_psd_mom_bins, num_psd_θ_bins,
                         psd_cos_fine, Δcos, psd_θ_min,
                         species,
                         γ₀, β₀, u₀, u₂, bmag₂,
@@ -244,7 +241,7 @@ function main_loops(
                         do_rad_losses, do_retro, do_tcuts, dont_DSA, dont_scatter, use_custom_frg,
                         inj_fracs, xn_per_fine, xn_per_coarse,
                         x_grid_cm, therm_grid, therm_ptot_sk, therm_pₓ_sk, therm_weight,
-                        spectra_pf, spectra_sf, tcuts, pcuts_use, age_max,
+                        spectra_pf, spectra_sf, tcuts, pcuts, age_max,
                         ε_target, energy_transfer_pool, electron_weight_fac,
                         weight_coupled, spectra_coupled, esc_energy_eff, esc_num_eff, esc_flux,
                         esc_psd_feb_upstream, esc_psd_feb_downstream,
@@ -279,7 +276,7 @@ function main_loops(
 
                 break_pcut, n_pts_target, n_saved = pcut_finalize(
                      i_iter, i_ion, i_cut, p_pcut_hi, n_pts_pcut, n_pts_pcut_hi, n_pts_use,
-                     weight_running, l_save, t_start, pcuts_in, pcuts_use, outfile)
+                     weight_running, l_save, t_start, pcuts, outfile)
                 if break_pcut
                     break
                 end
