@@ -331,8 +331,8 @@ function particle_loop(
 
                 # Remove ions at splitting momentum
                 if ptot_pf > pcuts_use[i_cut]
-                    @info("Removing ions at splitting momentum",
-                          pcuts_use[i_cut], i_cut, ptot_pf)
+                    @debug("Removing ions at splitting momentum",
+                           pcuts_use[i_cut], i_cut, ptot_pf)
                     l_save[i_prt] = true
 
                     weight_sav[i_prt]       = weight
@@ -396,8 +396,8 @@ function particle_loop(
             #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
             L_diff = η_mfp/3 * gyro_rad_tot_cm * ptot_pf/(aa*mp*γₚ_pf * u₂) |> cm
 
-            @info("Particle crossing shock going upstream → downstream",
-                  prp_x_cm, r_PT_old.x, r_PT_cm.x, L_diff)
+            @debug("Particle crossing shock going upstream → downstream",
+                   prp_x_cm, r_PT_old.x, r_PT_cm.x, L_diff)
             prp_x_cm = max(prp_x_cm, L_diff)
         end
 
