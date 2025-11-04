@@ -274,6 +274,8 @@ function set_psd_angle_bins(psd_bins_per_dec_θ, psd_lin_cos_bins, psd_cos_fine,
     Δcos = (psd_cos_fine + 1) / psd_lin_cos_bins
     append!(psd_θ_bounds, range(start=psd_cos_fine, step=-Δcos, length=psd_lin_cos_bins+1))
 
+    sort!(psd_θ_bounds)
+
     #return num_psd_θ_bins, Δcos, psd_θ_bounds
     return Δcos, psd_θ_bounds
 end
