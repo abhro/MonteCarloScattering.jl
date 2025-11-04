@@ -114,7 +114,7 @@ function Base.getproperty(s::Species, sym::Symbol)
     end
     return getfield(s, sym)
 end
-Base.show(io, s::Species) =
+Base.show(io::IO, s::Species) =
     print(io, "Species(m = ", s.m, ", q = ", s.q, ", T = ", s.T, ", n = ", s.n, ")")
 mass(s::Species) = s.mass
 charge(s::Species) = s.charge
