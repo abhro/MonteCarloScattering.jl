@@ -331,11 +331,12 @@ function @main(args)
     psd_mom_max *= 2γ₀
     num_psd_mom_bins, psd_mom_bounds = set_psd_mom_bins(psd_mom_min, psd_mom_max, psd_bins_per_dec_mom)
     psd_mom_axis = axes(psd_mom_bounds, 1)
+    @debug("Setting PSD momentum parameters",
+           psd_mom_max, num_psd_mom_bins, psd_mom_axis, psd_mom_bounds)
     Δcos, psd_θ_bounds = set_psd_angle_bins(psd_bins_per_dec_θ, psd_lin_cos_bins, psd_cos_fine, psd_θ_min)
     num_psd_θ_bins = length(psd_θ_bounds)-2
     psd_θ_axis = axes(psd_θ_bounds, 1)
-    @debug("Setting PSD parameters",
-           psd_mom_max, num_psd_mom_bins, psd_mom_axis, psd_mom_bounds,
+    @debug("Setting PSD angle parameters",
            Δcos, num_psd_θ_bins, psd_θ_axis, psd_θ_bounds)
 
     # Set the boundaries of the shells to use for photon calculation
