@@ -63,7 +63,7 @@ function get_transform_dN(
 
         # Error check to make sure that Lorentz transformations give reasonable results for l_lo
         if p_cell_lo > psd_mom_bounds[end]
-            @info(" In get_dNdp_cr, p_cell_lo > psd_mom_max!",
+            @warn("In get_dNdp_cr, p_cell_lo > psd_mom_max!",
                   m, j, i, p_cell_lo, psd_mom_bounds[end])
             l_lo = num_psd_mom_bins
         end
@@ -77,7 +77,7 @@ function get_transform_dN(
         # Error check to make sure that Lorentz transformations give reasonable results
         # for l_hi
         if p_cell_hi > psd_mom_bounds[num_psd_mom_bins+1]
-            @info(" In get_dNdp_cr, p_cell_hi > psd_mom_max!",
+            @warn("In get_dNdp_cr, p_cell_hi > psd_mom_max!",
                   m, j, i, p_cell_hi, psd_mom_bounds[num_psd_mom_bins+1])
             l_hi = num_psd_mom_bins
         end
