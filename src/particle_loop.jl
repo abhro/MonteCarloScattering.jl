@@ -1,6 +1,6 @@
 function particle_loop(
         i_iter::Int, i_ion::Int, i_cut::Int, i_prt::Int, i_grid_feb::Int, i_shock::Int,
-        n_ions::Int, n_pcuts::Int, n_pts_max::Int, n_xspec::Int, n_grid::Int,
+        n_ions::Int, n_pts_max::Int, n_xspec::Int, n_grid::Int,
         n_print_pt::Int, num_psd_mom_bins::Int, num_psd_θ_bins::Int,
         psd_cos_fine, Δcos, psd_θ_min,
         species,
@@ -24,13 +24,14 @@ function particle_loop(
         do_rad_losses, do_retro, do_tcuts, dont_DSA, dont_scatter, use_custom_frg,
         inj_fracs, xn_per_fine, xn_per_coarse,
         x_grid_cm, therm_grid, therm_ptot_sk, therm_pₓ_sk, therm_weight,
-        spectra_pf, spectra_sf, tcuts, pcuts_use, age_max,
+        spectra_pf, spectra_sf, tcuts, pcuts, age_max,
         ε_target, energy_transfer_pool, electron_weight_fac,
         weight_coupled, spectra_coupled, esc_energy_eff, esc_num_eff, esc_flux,
         esc_psd_feb_upstream, esc_psd_feb_downstream,
     )
     # To maintain identical results between OpenMP and serial versions,
     # set RNG seed based on current iteration/ion/pcut/particle number
+    n_pcuts = length(pcuts)
     iseed_mod =  (  (i_iter - 1)*n_ions*n_pcuts*n_pts_max
                   + (i_ion - 1)        *n_pcuts*n_pts_max
                   + (i_cut - 1)                *n_pts_max
@@ -330,9 +331,9 @@ function particle_loop(
                 end
 
                 # Remove ions at splitting momentum
-                if ptot_pf > pcuts_use[i_cut]
+                if ptot_pf > pcuts[i_cut]
                     @debug("Removing ions at splitting momentum",
-                           pcuts_use[i_cut], i_cut, ptot_pf)
+                           pcuts[i_cut], i_cut, ptot_pf)
                     l_save[i_prt] = true
 
                     weight_sav[i_prt]       = weight

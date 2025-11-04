@@ -118,9 +118,8 @@ function @main(args)
     energy_pcut_hi = cfg_toml["EN_PCUT_HI"]
     n_pts_pcut_hi > na_particles && error("Array size na_particles too small.")
 
-    pcuts_in = cfg_toml["momentum-cutoffs"]
-    n_pcuts = length(pcuts_in)
-    check_pcuts_in(pcuts_in, Emax, Emax_per_aa, pmax)
+    pcuts = cfg_toml["momentum-cutoffs"] * mp * c .|> (g*cm/s)
+    check_pcuts(pcuts, Emax, Emax_per_aa, pmax)
 
     dont_shock = get(cfg_toml, "no-shock", false)
     dont_scatter = get(cfg_toml, "no-scatter", false)
@@ -496,7 +495,7 @@ function @main(args)
 
     # Print a bunch of data about the run to screen/file
     print_input(n_pts_inj, n_pts_pcut, n_pts_pcut_hi, n_ions,
-                num_psd_mom_bins, num_psd_θ_bins, n_xspec, n_pcuts, n_grid, r_RH, r_comp,
+                num_psd_mom_bins, num_psd_θ_bins, n_xspec, length(pcuts), n_grid, r_RH, r_comp,
                 u₀, β₀, γ₀, u₂, β₂, γ₂, species, bmag₀, bmag₂, θ_B₀, θ_B₂, θᵤ₂,
                 mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine,
                 feb_upstream, feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac)
@@ -556,8 +555,6 @@ function @main(args)
     pb_pf_new = zeros(MomentumCGS, na_particles)
     x_PT_cm_new = zeros(LengthCGS, na_particles)
 
-    pcuts_use = zeros(MomentumCGS, na_c)
-
     # "module" pcut_vars
     l_save = zeros(Bool, na_particles) # Whether or not to save particle for next pcut
     grid_sav        = zeros(Int, na_particles)
@@ -598,7 +595,7 @@ function @main(args)
     T₀_ion = temperature.(species)
     n₀_ion = density.(species)
     main_loops(
-        n_itrs, n_ions, n_pcuts, n_grid, n_pts_inj, n_tcuts, species,
+        n_itrs, n_ions, n_grid, n_pts_inj, n_tcuts, species,
         (u₀, β₀, γ₀), (u₂, β₂, γ₂),
         Emax, Emax_per_aa, energy_pcut_hi, pmax,
         pxx_flux, pxz_flux, energy_flux,
@@ -615,7 +612,7 @@ function @main(args)
         weight_sav, weight_new, ptot_pf_sav, ptot_pf_new, pb_pf_sav, pb_pf_new,
         x_PT_cm_sav, x_PT_cm_new, grid_sav, grid_new, inj_sav, inj_new, downstream_sav, downstream_new,
         prp_x_cm_sav, prp_x_cm_new, acctime_sec_sav, acctime_sec_new, tcut_sav, tcut_new, φ_rad_sav, φ_rad_new,
-        pcuts_in, pcuts_use, l_save, i_grid_feb, i_shock,
+        pcuts, l_save, i_grid_feb, i_shock,
         n_pts_max, n_xspec, n_print_pt, num_psd_mom_bins, num_psd_θ_bins,
         psd_lin_cos_bins, psd_cos_fine, Δcos, psd_mom_bounds, psd_θ_bounds, psd_θ_min,
         psd_mom_min, psd_bins_per_dec_mom, psd_bins_per_dec_θ,
