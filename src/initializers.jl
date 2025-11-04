@@ -586,7 +586,9 @@ Calculates the sonic and Alfvén mach numbers for the shock.
 
 ### Arguments
 
-TODO
+- `β₀`: Far upstream plasma speed
+- `species`: Vector of species in the plasma (of type `Species`)
+- `B₀`: Far upstream magnetic field
 
 ### Returns
 - `mach_sonic`: sonic Mach number of upstream flow
@@ -614,9 +616,8 @@ end
 Return sonic mach number (ratio of speed to local speed of sound)
 """
 function mach_sonic_func(u, P, ρ, Γ, relativistic)
-    cₛ = relativistic ?
-            sound_speed_relativistic(P, ρ, Γ) :
-            sound_speed_nonrelativistic(P, ρ, Γ)
+    method = relativistic ? Val(:relativistic) : Val(:classical)
+    cₛ = sound_speed(method, P, ρ, Γ)
     return u / cₛ |> NoUnits
 end
 
@@ -627,12 +628,24 @@ Return Alfvénic mach number (ratio of speed to Alfvén wave group velocity)
 """
 function mach_alfven_func(u, P, ρ, Γ, B, relativistic)
     v_A = relativistic ?
-            alfven_speed_relativistic(P, ρ, Γ, B) :
-            alfven_speed_nonrelativistic(ρ, B)
+            alfven_speed(Val(:relativistic), ρ, B, P, Γ) :
+            alfven_speed(Val(:classical), ρ, B)
     return u / v_A |> NoUnits
 end
 
-function sound_speed_relativistic(P, ρ, Γ)
+"""
+    sound_speed(regime, P, ρ, Γ)
+
+Return the speed of sound in a plasma.
+
+### Arguments
+- `regime`: Must be one of `Val(:classical)` or `Val(:relativistic)`
+- `P`: plasma pressure
+- `ρ`: plasma number density
+- `Γ`: plasma Lorentz factor
+"""
+function sound_speed end
+function sound_speed(::Val{:relativistic}, P, ρ, Γ)
     # Find FK1979's R factor, the ratio of pressure to rest mass energy density
     R = P / (ρ * c^2) |> NoUnits # dimensionless auxiliary variable
 
@@ -641,11 +654,10 @@ function sound_speed_relativistic(P, ρ, Γ)
     a = Γ / (Γ - 1)     # defined near FK1979 Equation (6)
     return c * √(Γ * R / (a*R + 1))
 end
-
-sound_speed_nonrelativistic(P, ρ, Γ) = √(Γ * P / ρ) # cₛ = √(K/ρ), where K = ΓP is the bulk modulus
+sound_speed(::Val{:classical}, P, ρ, Γ) = √(Γ * P / ρ) # cₛ = √(K/ρ), where K = ΓP is the bulk modulus
 
 """
-    alfven_speed_relativistic(P, ρ, Γ, B)
+    alfven_speed(Val(:relativistic), ρ, B, P, Γ)
 
 Calculate the Alfvén speed for a relativistic plasma with pressure `P`,
 density `ρ`, Lorentz factor `Γ`, and ambient magnetic field `B`.
@@ -663,17 +675,17 @@ where ``w = \\frac{Γ}{Γ-1} P + ρ c^2`` is the enthalpy density, ``ε`` is ??,
 ``ρc^2`` is the rest energy density, and
 ``P/(Γ-1)`` is the thermal component (internal kinetic energy).
 """
-function alfven_speed_relativistic(P, ρ, Γ, B)
+function alfven_speed(::Val{:relativistic}, ρ, B, P, Γ)
     enthalpy = Γ/(Γ-1) * P + ρ * c^2
     v_A = c / √(1 + 4π * enthalpy / B^2)
     return v_A
 end
 """
-    alfven_speed_nonrelativistic(ρ, B)
+    alfven_speed(Val(:classical), ρ, B)
 
 Alfvén wave group velocity.
 """
-alfven_speed_nonrelativistic(ρ, B) = B / √(4π * ρ)
+alfven_speed(::Val{:classical}, ρ, B) = B / √(4π * ρ)
 
 """
     setup_profile(...)
