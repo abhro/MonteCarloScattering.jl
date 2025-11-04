@@ -275,9 +275,9 @@ function retro_time(
         # Update φ_rad
         φ_rad = mod2pi(φ_rad_old + φ_step)
 
-        # Calculate time step and movement distance; note that x_move_bpar =
-        # pb_pf*t_step*m_pt/γₚ_pf, but t_step = t_step_fac*γₚ_pf, so the
-        # factors of γₚ_pf divide out
+        # Calculate time step and movement distance; note that
+        # x_move_bpar = pb_pf*t_step*m_pt/γₚ_pf, but t_step = t_step_fac*γₚ_pf,
+        # so the factors of γₚ_pf divide out
         t_step = t_step_fac * γₚ_pf
         x_move_bpar = pb_pf * t_step_fac / (aa*mp) |> cm    # FIXME confirm formula
 
@@ -287,6 +287,7 @@ function retro_time(
         # definition above the loop
         x_PT = x_PT_old + γᵤ_sf * (x_move_bpar*b_cosθ - gyro_rad*b_sinθ*(cos(φ_rad)-cos(φ_rad_old)) + uₓ_sk*t_step)
         acctime_sec += t_step * γᵤ_ef
+        @info("Moved particle in retro_time", x_PT, acctime_sec, prp_x_cm, ptot_pf)
 
         # If tcut tracking is enabled, it should continue even during retro_time
         if do_tcuts && acctime_sec ≥ tcuts[tcut_curr]
@@ -301,10 +302,10 @@ function retro_time(
 
         pb_pf = (2Random.rand() - 1) * ptot_pf  # Completely randomize pb_pf
         p_perp_b_pf = √(ptot_pf^2 - pb_pf^2)
+        @info("Generated angles for scattering", φ_rad, pb_pf, p_perp_b_pf, ptot_pf)
 
         # Pitch-angle diffusion. Comment out large-angle scattering section above if using PAD.
         #pitch_angle_diffusion(gyro_rad_tot, use_custom_frg, xn_per, sin_old_pitch, cos_old_pitch, ptot_pf, φ_rad, η_mfp)
-
 
         if do_rad_losses && aa < 1 # Radiative losses
             ptot_pf = radiation_loss(B²_tot, ptot_pf, t_step)
