@@ -34,7 +34,7 @@ of tests to determine whether it will be culled from the simulation.
 - `tcut_curr`: current tcut for particle tracking; passed to `retro_time` if called
 """
 function prob_return(
-        i_ion, num_psd_mom_bins, B_CMBz, x_PT_old, aa, zz, gyro_denom,
+        rng, i_ion, num_psd_mom_bins, B_CMBz, x_PT_old, aa, zz, gyro_denom,
         x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf, pb_pf, p_perp_b_pf,
         acctime_sec, φ_rad, helix_count::Integer, pcut_prev, weight, tcut_curr,
         x_grid_stop, u₂, use_custom_εB, η_mfp, do_retro, B₂, mc,
@@ -92,7 +92,7 @@ function prob_return(
         # If the particle's plasma frame velocity is less than u₂, or if the probability
         # of return calculation (see Jones & Ellison 1991 [1991SSRv...58..259J]) fails,
         # the particle will not return from the downstream region.
-        if vt_pf < u₂ || Random.rand() > prob_ret
+        if vt_pf < u₂ || Random.rand(rng) > prob_ret
 
             i_return = 0
 
@@ -108,7 +108,7 @@ function prob_return(
                  lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf,
                  gyro_denom, acctime_sec
                 ) = retro_time(
-                    i_ion, num_psd_mom_bins, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
+                    rng, i_ion, num_psd_mom_bins, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
                     ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, acctime_sec, weight,
                     tcut_curr,
                     use_custom_εB, x_grid_stop, do_rad_losses, do_tcuts, tcuts,
@@ -211,7 +211,7 @@ particle (its PRP1→downstream→PRP2 path) resembles on average its backwards 
 - `tcut_curr`: current tcut for particle tracking
 """
 function retro_time(
-        i_ion::Int, num_psd_mom_bins::Int, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
+        rng, i_ion::Int, num_psd_mom_bins::Int, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
         ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, acctime_sec, weight,
         tcut_curr,
         use_custom_εB, x_grid_stop, do_rad_losses, do_tcuts, tcuts,
@@ -245,7 +245,7 @@ function retro_time(
     # Initialize position, and phase angle
     x_PT = prp_x_cm
 
-    φ_rad = Random.rand() * 2π
+    φ_rad = Random.rand(rng) * 2π
 
 
     # Main loop; note similarity to main loop of code, as it's doing most of
@@ -298,14 +298,14 @@ function retro_time(
         end
 
         # Large-angle scattering. Comment out pitch-angle diffusion section below if using LAS.
-        φ_rad = 2π * Random.rand()   # Completely randomize phase angle
+        φ_rad = 2π * Random.rand(rng)   # Completely randomize phase angle
 
-        pb_pf = (2Random.rand() - 1) * ptot_pf  # Completely randomize pb_pf
+        pb_pf = (2Random.rand(rng) - 1) * ptot_pf  # Completely randomize pb_pf
         p_perp_b_pf = √(ptot_pf^2 - pb_pf^2)
         @debug("Generated angles for scattering", φ_rad, pb_pf, p_perp_b_pf, ptot_pf)
 
         # Pitch-angle diffusion. Comment out large-angle scattering section above if using PAD.
-        #pitch_angle_diffusion(gyro_rad_tot, use_custom_frg, xn_per, sin_old_pitch, cos_old_pitch, ptot_pf, φ_rad, η_mfp)
+        #pitch_angle_diffusion(rng, gyro_rad_tot, use_custom_frg, xn_per, sin_old_pitch, cos_old_pitch, ptot_pf, φ_rad, η_mfp)
 
         if do_rad_losses && aa < 1 # Radiative losses
             ptot_pf = radiation_loss(B²_tot, ptot_pf, t_step)
@@ -336,7 +336,7 @@ function retro_time(
 end
 
 function pitch_angle_diffusion(
-        gyro_rad_tot, use_custom_frg, xn_per,
+        rng, gyro_rad_tot, use_custom_frg, xn_per,
         sin_old_pitch, cos_old_pitch, ptot_pf, φ_rad, η_mfp,
     )
 
@@ -347,10 +347,10 @@ function pitch_angle_diffusion(
     cos_max = cos(√(6vp_tg / (xn_per*λ_mfp)))
 
     # Compute change to pitch angle and roll
-    Δcos = 1 - Random.rand()*(1 - cos_max)
+    Δcos = 1 - Random.rand(rng)*(1 - cos_max)
     Δθ_scat = acos(Δcos)
     Δsin = sin(Δθ_scat)
-    φ_scat = Random.rand()*2π - π
+    φ_scat = Random.rand(rng)*2π - π
 
     # New pitch angle
     cos_new_pitch = cos_old_pitch * Δcos + sin_old_pitch * Δsin * cos(φ_scat)
