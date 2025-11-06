@@ -27,7 +27,7 @@ Randomly moves the particle's momentum vector along the surface of the unit sphe
 - `φ_rad`: phase angle of gyration
 """
 function scattering(
-        aa, gyro_denom, ptot_pf, γₚ_pf, xn_per,
+        rng, aa, gyro_denom, ptot_pf, γₚ_pf, xn_per,
         pb_pf, p_perp_b_pf, φ_rad,
         use_custom_frg, pₑ_crit, γₑ_crit, η_mfp)
 
@@ -63,10 +63,10 @@ function scattering(
     cos_old_pitch = pb_pf / ptot_pf
     sin_old_pitch = p_perp_b_pf / ptot_pf
 
-    cos_Δθ = 1 - Random.rand()*(1 - cos_max)  # Change of cos between [0, cos_max]
+    cos_Δθ = 1 - Random.rand(rng)*(1 - cos_max)  # Change of cos between [0, cos_max]
     sin_Δθ = √(1 - cos_Δθ^2)
 
-    φ_scat = Random.rand()*2π - π
+    φ_scat = Random.rand(rng)*2π - π
 
     # Spherical law of cosines
     cos_new_pitch = cos_old_pitch*cos_Δθ + sin_old_pitch*sin_Δθ*cos(φ_scat)

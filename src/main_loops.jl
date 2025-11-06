@@ -110,14 +110,14 @@ function main_loops(
             # To maintain identical results between OpenMP and serial versions,
             # set RNG seed based on current iteration/ion/pcut/particle number
             iseed_mod = (i_iter - 1)*n_ions + (i_ion - 1)
-            Random.seed!(iseed_mod)
+            rng = Random.Xoshiro(iseed_mod)
 
 
             # Initialize the particle populations that will be propagated through
             # the shock structure
             (n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in, x_PT_cm_in,
              pxx_flux, pxz_flux, energy_flux) = init_pop(
-                do_fast_push, inp_distr, i_ion, m,
+                do_fast_push, inp_distr, i_ion, m, rng,
                 temperature.(species), energy_inj, inj_weight, n_pts_inj,
                 density.(species), x_grid_start, rg₀, η_mfp, x_fast_stop_rg,
                 β₀, γ₀, u₀, n_ions, mass.(species),
@@ -134,7 +134,7 @@ function main_loops(
 
             # Assign the various particle properties to the population
             assign_particle_properties_to_population!(
-                n_pts_use, xn_per_fine, x_grid_stop,
+                rng, n_pts_use, xn_per_fine, x_grid_stop,
                 weight_new, weight_in, ptot_pf_new, ptot_pf_in,
                 pb_pf_new, pb_pf_in, x_PT_cm_new, x_PT_cm_in, grid_new, i_grid_in,
                 downstream_new, inj_new, xn_per_new, prp_x_cm_new, acctime_sec_new, tcut_new, φ_rad_new)
