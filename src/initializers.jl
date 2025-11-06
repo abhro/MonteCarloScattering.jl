@@ -888,7 +888,7 @@ TODO
 - `energy_flux`
 """
 function init_pop(
-        do_fast_push, inp_distr, i_ion, m,
+        do_fast_push, inp_distr, i_ion, m, rng,
         # from controls module
         T₀_ion, energy_inj, inj_weight, n_pts_inj, n₀_ion, x_grid_start, rg₀, η_mfp,
         x_fast_stop_rg, β₀, γ₀, u₀, n_ions, m_ion,
@@ -915,7 +915,7 @@ function init_pop(
         n_pts_use = n_pts_MB[i_ion]
         weight_in = weight_inj[1:n_pts_use, i_ion]
         ptot_pf_in = ptot_inj[1:n_pts_use, i_ion]
-        pb_pf_in = ptot_pf_in[1:n_pts_use] * 2*(rand(n_pts_use) .- 0.5)
+        pb_pf_in = ptot_pf_in[1:n_pts_use] * 2*(rand(rng, n_pts_use) .- 0.5)
         x_PT_cm_in = fill(x_grid_start - 10*rg₀*η_mfp, n_pts_use)
         pxx_flux = zeros(MomentumDensityFluxCGS, n_grid)
         pxz_flux = zeros(MomentumDensityFluxCGS, n_grid)
@@ -1005,7 +1005,7 @@ function init_pop(
             # Unitful distributions not yet supported :(
             dist_v_sf = Uniform(ustrip(cm^2/s^2, vmin²), ustrip(cm^2/s^2, vmax²))
 
-            vx_sf = cm/s * √(rand(dist_v_sf))
+            vx_sf = cm/s * √(rand(rng, dist_v_sf))
             vx_pf = (vx_sf - uₓ_sk_grid[i_stop]) / (1 - vx_sf*uₓ_sk_grid[i_stop]/c^2)
         else
             γₚ_pf = 1.0
@@ -1016,7 +1016,7 @@ function init_pop(
             # Unitful distributions not yet supported :(
             dist_v_sf = Uniform(ustrip(cm^2/s^2, vmin²), ustrip(cm^2/s^2, vmax²))
 
-            vx_sf = cm/s * √(rand(dist_v_sf))
+            vx_sf = cm/s * √(rand(rng, dist_v_sf))
             vx_pf = vx_sf - uₓ_sk_grid[i_stop]
         end
 

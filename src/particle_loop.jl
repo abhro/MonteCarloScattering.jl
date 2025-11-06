@@ -36,7 +36,7 @@ function particle_loop(
                   + (i_ion - 1)        *n_pcuts*n_pts_max
                   + (i_cut - 1)                *n_pts_max
                   +  i_prt)
-    Random.seed!(iseed_mod)
+    rng = Random.Xoshiro(iseed_mod)
 
     # Reset the counter for number of times through the main loop
     helix_count = 0
@@ -313,7 +313,7 @@ function particle_loop(
             #---------------------------------------------
             if !dont_scatter
                 gyro_period_sec, pb_pf, p_perp_b_pf, φ_rad = scattering(
-                    aa, gyro_denom, ptot_pf, γₚ_pf, xn_per, pb_pf, p_perp_b_pf, φ_rad,
+                    rng, aa, gyro_denom, ptot_pf, γₚ_pf, xn_per, pb_pf, p_perp_b_pf, φ_rad,
                     use_custom_frg, pₑ_crit, γₑ_crit, η_mfp,
                 )
             end
@@ -377,7 +377,7 @@ function particle_loop(
         #------------------------------------------------------------------------------
         (; pb_pf, φ_rad, x_move_bpar, r_PT_cm) = no_DSA_loop(
             φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA, inj_fracs,
-            r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion, gyro_rad_cm)
+            r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion, gyro_rad_cm, rng)
         #----------------------------------------------------------------
         # DSA injection prevented if specified
 
@@ -436,7 +436,7 @@ function particle_loop(
              i_return, lose_pt, tcut_curr, _x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf,
              gyro_denom, pb_pf, p_perp_b_pf, acctime_sec, φ_rad
             ) = prob_return(
-                            i_ion, num_psd_mom_bins, B_CMBz, r_PT_old.x, aa, zz, gyro_denom,
+                            rng, i_ion, num_psd_mom_bins, B_CMBz, r_PT_old.x, aa, zz, gyro_denom,
                             r_PT_cm.x, prp_x_cm, ptot_pf, γₚ_pf, pb_pf, p_perp_b_pf,
                             acctime_sec, φ_rad, helix_count, pcut_prev, weight, tcut_curr,
                             x_grid_stop, u₂, use_custom_εB, η_mfp, do_retro, bmag₂, mc,
@@ -480,7 +480,7 @@ end
 function no_DSA_loop(
         φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA,
         inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion,
-        gyro_rad_cm)
+        gyro_rad_cm, rng)
     local x_move_bpar
     while true # loop_no_DSA
 
@@ -519,12 +519,12 @@ function no_DSA_loop(
       #  2. Either DSA is disabled or they fail an injection check
       # continue again if particles get reflected
       if r_PT_cm.x ≤ 0cm && r_PT_old.x > 0cm && !inj && (dont_DSA || inj_fracs[i_ion] < 1)
-          if dont_DSA || (Random.rand() > inj_fracs[i_ion])
+          if dont_DSA || (Random.rand(rng) > inj_fracs[i_ion])
               # Reflect particles with negative pb_pf; randomize phase of the rest
               if pb_pf < 0g*cm/s
                   pb_pf = -pb_pf
               else
-                  φ_rad = Random.rand() * 2π
+                  φ_rad = Random.rand(rng) * 2π
               end
           else
               break

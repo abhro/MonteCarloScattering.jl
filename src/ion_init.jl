@@ -23,7 +23,7 @@ function assign_slice!(recv_array::AbstractArray{T}, send_array::AbstractArray{T
 end
 
 function assign_particle_properties_to_population!(
-        n_pts_use, xn_per_fine, x_grid_stop,
+        rng, n_pts_use, xn_per_fine, x_grid_stop,
         weight_new, weight_in, ptot_pf_new, ptot_pf_in,
         pb_pf_new, pb_pf_in, x_PT_cm_new, x_PT_cm_in, grid_new, i_grid_in,
         downstream_new, inj_new, xn_per_new, prp_x_cm_new, acctime_sec_new, tcut_new, φ_rad_new)
@@ -39,7 +39,7 @@ function assign_particle_properties_to_population!(
     acctime_sec_new[1:n_pts_use] .= 0.0s
     tcut_new[1:n_pts_use]        .= 1
 
-    φ_rad_new[1:n_pts_use] .= 2π*Random.rand(n_pts_use)
+    φ_rad_new[1:n_pts_use] .= 2π*Random.rand(rng, n_pts_use)
 end
 
 function get_pmax_cutoff(Emax, Emax_per_aa, pmax, aa)
