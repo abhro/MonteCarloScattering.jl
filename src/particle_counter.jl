@@ -463,6 +463,7 @@ function get_dNdp_2D(
 
     # Can convert from dN to dN/dp now
     for k in 0:psd_max-1, jθ in 0:psd_max
+        # FIXME use of i as an index variable
         if d²N_dpdcos_sf[jθ,k,i] > 1e-66
             d²N_dpdcos_sf[jθ,k,i] /= Δp[k]
         end
