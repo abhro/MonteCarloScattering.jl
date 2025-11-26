@@ -3,7 +3,7 @@ import Random
 using Dates
 using JLD2
 using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
-using Unitful: g, K, cm, s, dyn, erg, keV, GeV
+using Unitful: g, K, km, cm, s, dyn, erg, keV, GeV
 using Unitful: mp, me, c, q, k as kB, h, ħ    # physical constants
 using UnitfulAstro: Mpc
 using UnitfulGaussian: Fr, G, qcgs
