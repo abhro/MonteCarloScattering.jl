@@ -220,7 +220,7 @@ function smooth_grid_par(
         # particle limit. No escaping flux to worry about here, but still need to add in the
         # rest mass-energy flux
         if i == 1
-            pₓ_numer = flux_px_upstream - γ₂*β₂ * γ₀*Β₀ * n₀*E₀ₚ
+            pₓ_numer = flux_px_upstream - γ₂*β₂ * γ₀*B₀ * n₀*E₀ₚ
             pₓ_denom = 1 + (γ₂*β₂)^2 * Γ₂/(Γ₂ - 1)
             pressure_pₓ_tp = pₓ_numer / pₓ_denom
 
