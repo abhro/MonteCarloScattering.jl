@@ -516,13 +516,12 @@ function nonrelativistic_velocity_profile(
         # cubic/quartic. Instead of solving the equations analytically, use
         # Newton's method.
 
-        function p(u) # momentum
-            β = u / c
+        function p(β) # momentum
             p_term_1 = n₀*mp * u₀ * uₓ_guess * (1 + β^2)
             p_term_2 = (1 + β^2 * Γ_post/(Γ_post - 1)) * pressure_loc
             return flux_px_upstream - Qpₓ - pxx_EM - p_term_1 - p_term_2
         end
-        uₓ_new_pₓ[i] = Roots.find_zero(p, u₀ * 1e-4, Roots.Newton())
+        uₓ_new_pₓ[i] = Roots.find_zero(p, u₀/c * 1e-4, Roots.Newton())*c
 
         function E(u) # energy
             β = u / c
