@@ -139,17 +139,16 @@ function get_feb(febup, febdw, x_grid_start_rg, rg₀)
     return (feb_upstream, feb_downstream, use_prp)
 end
 
-function parse_jet_frac(jetfr, do_photons=false)
-    if isnothing(jetfr) # default behavior, handled differently based on PHOTNS
-        do_photons && error("If calculating photons, 'JETFR' must be specified manually.")
-        jet_sph_frac     = 0.0
-        jet_open_ang_deg = 0.0
-    elseif 0 < jetfr[1] ≤ 1
-        jet_sph_frac     = jetfr[1]
+function parse_jet_frac(::Nothing, do_photons=false)
+    do_photons && error("If calculating photons, 'JETFR' must be specified manually.")
+    return (0.0, 0.0)
+end
+
+function parse_jet_frac((jet_sph_frac,  jet_open_ang_deg), do_photons=false)
+    if 0 < jet_sph_frac ≤ 1
         jet_open_ang_deg = acosd(1 - 2jet_sph_frac)
-    elseif 0 < jetfr[2] ≤ 180
-        jet_open_ang_deg = jetfr[2]
-        jet_sph_frac     = (1 - cosd(jet_open_ang_deg)) / 2
+    elseif 0 < jet_open_ang_deg ≤ 180
+        jet_sph_frac = (1 - cosd(jet_open_ang_deg)) / 2
     else
         error("JETFR: Unphysical values entered.")
     end
