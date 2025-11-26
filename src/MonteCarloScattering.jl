@@ -46,6 +46,8 @@ include("scattering.jl")
 include("cuts.jl")
 include("get_psd_bins.jl")
 include("particle_finish.jl")
+include("q_esc_calcs.jl")
+include("particle_counter.jl")
 
 include("iter_init.jl")
 include("iter_finalize.jl")
@@ -60,7 +62,6 @@ using .initializers: set_photon_shells
 
 zero!(A::AbstractArray{T}) where T = fill!(A, zero(T))
 
-include("particle_counter.jl")
 include("smoothers.jl")
 include("data_input.jl")
 include("main_loops.jl")
