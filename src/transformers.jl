@@ -5,6 +5,7 @@ using OffsetArrays: OffsetMatrix
 using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
 using Unitful: mp, c    # physical constants
 
+using MonteCarloScattering: identify_corners
 using ..parameters: psd_max
 using ..constants: E₀ₚ
 
