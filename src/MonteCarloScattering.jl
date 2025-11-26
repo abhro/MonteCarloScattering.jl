@@ -291,6 +291,8 @@ function @main(args)
         # Set minimum PSD energy using δ-function dist for upstream plasma;
         # allow for a few extra zones below the location of the distribution
         Emin = energy_inj/5
+    else
+        error("Unknown input distribution ", inp_distr)
     end
 
     # Determine minimum momentum associated with the given energy, which will occur for
