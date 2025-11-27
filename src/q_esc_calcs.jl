@@ -2,7 +2,6 @@ using Unitful: k as kB, c
 using LinearAlgebra: dot
 include("parameters.jl")
 using .parameters: β_rel_fl
-include("utils.jl")
 
 """
     q_esc_calcs(...)
