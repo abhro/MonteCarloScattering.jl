@@ -38,6 +38,7 @@ include("constants.jl"); using .constants
 include("utils.jl")
 include("initializers.jl"); using .initializers
 include("io.jl")
+include("identify_corners.jl")
 include("transformers.jl"); using .transformers
 include("cosmo_calc.jl"); using .cosmo_calc
 include("all_flux.jl")
