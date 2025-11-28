@@ -60,6 +60,7 @@ include("ion_finalize.jl")
 using .parameters: na_c, na_photons, psd_max
 using .constants: B_CMB0, E₀ₑ
 using .initializers: set_photon_shells
+using .particle_counter: get_normalized_dNdp
 
 zero!(A::AbstractArray{T}) where T = fill!(A, zero(T))
 
@@ -347,6 +348,8 @@ function @main(args)
     if do_photons
         x_shell_midpoints, x_shell_endpoints = set_photon_shells(num_upstream_shells, num_downstream_shells, use_prp,
                                                                  feb_upstream, feb_downstream, rg₀, x_grid_stop_rg)
+    else
+        x_shell_midpoints, x_shell_endpoints = nothing, nothing
     end
 
     begin # "module" iteration_vars
