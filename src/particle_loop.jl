@@ -125,7 +125,6 @@ function particle_loop(
     # combination of logical choices should result in the same path through the two loops.
     #------------------------------------------------------------------
     keep_looping = true
-    first_iter   = true
     # Control variable for "condition 1":
     #  -1: default
     #   0: particle escapes
@@ -136,6 +135,16 @@ function particle_loop(
     lose_pt  = false
 
     local t_step, p_perp_b_pf, gyro_rad_cm
+
+    # Code Block 1: start of helix loop; minor setup
+    #--------------------------------------------------------------
+    # Calculate momentum perpendicular to magnetic field...
+    p_perp_b_pf = perpendicular_momentum(ptot_pf, pb_pf)
+
+    # ...and turn that into a gyroradius
+    gyro_rad_cm = p_perp_b_pf * c * gyro_denom |> cm
+    #--------------------------------------------------------------
+    # End of Code Block 1
     r_PT_old = SVector{3,LengthCGS}(0cm, 0cm, 0cm)
     while keep_looping # loop_helix
 
@@ -143,8 +152,7 @@ function particle_loop(
         # needed for electrons at high energies when using radiative losses
         helix_count += 1
 
-        if first_iter || i_return == 1
-            first_iter = false
+        if i_return == 1
 
             # Code Block 1: start of helix loop; minor setup
             #--------------------------------------------------------------
@@ -219,7 +227,7 @@ function particle_loop(
                                        ε_target, ptot_pf, pb_pf, p_perp_b_pf,
                                        γₚ_pf, φ_rad,
                                        uₓ_sk, uz_sk, utot, γᵤ_sf,
-                                       b_cosθ, b_sinθ, weight, mc, aa)
+                                       b_cosθ, b_sinθ, weight, mc, aa, electron_weight_fac)
             end
             # check on grid zone
             # end check on whether particles are thermal and upstream
@@ -616,7 +624,7 @@ function do_energy_transfer(
         energy_transfer_pool, energy_recv_pool, i_grid, i_grid_old, i_shock,
         ε_target, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
         uₓ_sk, uz_sk, utot, γᵤ_sf,
-        b_cosθ, b_sinθ, weight, mc, aa)
+        b_cosθ, b_sinθ, weight, mc, aa, electron_weight_fac)
     i_start = i_grid_old
     i_stop  = min(i_grid, i_shock)
 

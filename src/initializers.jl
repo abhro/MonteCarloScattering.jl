@@ -1133,6 +1133,8 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     if inj_weight
         # Can't say anything about total number of particles in this case, b/c
         # haven't split them into M-B distribution yet
+        n_per_bin = -1
+        n_pts_tot = -1
     else
         n_per_bin = n_pts_inj ÷ num_therm_bins  # Integer math loses excess particles, but that's intended behavior
         n_pts_tot = n_per_bin * num_therm_bins

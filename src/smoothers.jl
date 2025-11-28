@@ -93,7 +93,7 @@ function smooth_grid_par(
         prof_weight_fac = max(10.0, prof_weight_fac)
     end
 
-    local mc_grid_fileunit
+    local mc_grid_fileunit = open("./mc_grid.dat", status="unknown")
 
     x_grid_log = zeros(n_grid)
     x_grid_log_cm = zeros(n_grid)
@@ -233,7 +233,7 @@ function smooth_grid_par(
         lopen = false
         #lopen = inquire(:isopen, file="./mc_grid.dat")
         if !lopen
-            mc_grid_fileunit = open(status="unknown", file="./mc_grid.dat")
+            mc_grid_fileunit = open("./mc_grid.dat", status="unknown")
         end
 
         # WARNING: these column numbers are reused in subroutine read_old_prof.
