@@ -209,6 +209,9 @@ function flux_stream!(
     if inj
         i_pt = get_psd_bin_momentum(ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
         jθ = get_psd_bin_angle(p_sk.x, ptot_sk, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
+    else
+        i_pt = nothing
+        jθ = nothing
     end
 
     # Loop over grid zones boundaries that the particle has crossed
