@@ -13,7 +13,7 @@ Binning is done by the value of `ptot_sk` in code units. All binning is logarith
 ### Returns
 Bin in momentum into which particle falls
 """
-function get_psd_bin_momentum(ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
+function get_psd_bin_momentum(ptot_sk, psd_bins_per_dec_mom::Integer, psd_mom_min, num_psd_mom_bins::Integer)
 
     # Bin in total momentum (bin)
     if ptot_sk < psd_mom_min
@@ -64,7 +64,7 @@ the parameter `bins_per_decade_***` determines the fineness of the bins.
 ### Returns
 Bin in angle into which particle falls
 """
-function get_psd_bin_angle(pₓ_sk, ptot_sk, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
+function get_psd_bin_angle(pₓ_sk, ptot_sk, psd_bins_per_dec_θ::Integer, num_psd_θ_bins::Integer, psd_cos_fine, Δcos, psd_θ_min)
     # Bin in angle (bin); note that we negate the pitch angle to provide the
     # finest resolution (i.e. the logarithmically-spaced angle bins rather than
     # the linearly-spaced cosine bins) for particles that are directed upstream
