@@ -50,7 +50,7 @@ function geometric_center(y)
 end
 
 using Unitful
-lorentz(v::Unitful.Velocity) = lorentz(NoUnits(v/c))
+lorentz(v::Unitful.Velocity) = lorentz(v/c)
 """
     γ = lorentz(v)
     γ = lorentz(β)
@@ -65,35 +65,6 @@ lorentz(β::Real) = 1 / √(1 - β^2)
 Get velocity β (in units of c) from Lorentz factor γ.
 """
 β(γ) = √(1 - 1/γ^2)
-
-struct RelativisticVelocity{V<:Unitful.Velocity,T}
-    u::V
-    β::T # TODO get rid of this
-    γ::T
-end
-function RelativisticVelocity(u::Unitful.Velocity)
-    u < c || throw(DomainError(u, "speed is greater than speed of light"))
-
-    β = u/c
-    return RelativisticVelocity(u, β, lorentz(β))
-end
-function Base.show(io::IO, v::RelativisticVelocity{T}) where T
-    print(io, "RelativisticVelocity{", T, "}")
-    print(io, "(")
-    print(io, "u=", v.u, ", ")
-    print(io, "β=", v.β, ", ")
-    print(io, "γ=", v.γ)
-    print(io, ")")
-end
-
-function velocity_from_β(β::T) where T
-    return RelativisticVelocity{T}(β*c, β, lorentz(β))
-end
-
-function velocity_from_γ(γ::T) where T
-    β_from_γ = β(γ)
-    return RelativisticVelocity{T}(β_from_γ*c, β_from_γ, γ)
-end
 
 
 @kwdef struct Species
