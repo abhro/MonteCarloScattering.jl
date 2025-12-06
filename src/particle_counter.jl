@@ -98,7 +98,10 @@ function get_dNdp_cr(
                 error("ERROR with frame selection in get_dNdp_cr")
             end
 
-            transform_corner_pt, transform_corner_ct = transform_psd_corners(γᵤ)
+            transform_corner_pt, transform_corner_ct = transform_psd_corners(
+                γᵤ,
+                aa_ion, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
+                num_psd_mom_bins, psd_mom_bounds, i_ion)
             #----------------------------------------------------------------------
             # corners transformed
 
