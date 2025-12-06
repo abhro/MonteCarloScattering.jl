@@ -1336,6 +1336,8 @@ function get_dNdp_therm(
         # End of tests/checks section
 
     end # loop over grid zones
+
+    return dNdp_therm, dNdp_therm_pvals
 end # get_dNdp_therm
 
 """
