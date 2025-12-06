@@ -42,6 +42,7 @@ include("io.jl")
 include("identify_corners.jl")
 include("transformers.jl"); using .transformers
 include("cosmo_calc.jl"); using .cosmo_calc
+include("smoothers.jl"); using .smoothers
 include("all_flux.jl")
 include("prob_return.jl")
 include("scattering.jl")
@@ -65,7 +66,6 @@ using .particle_counter: get_normalized_dNdp
 
 zero!(A::AbstractArray{T}) where T = fill!(A, zero(T))
 
-include("smoothers.jl")
 include("data_input.jl")
 include("main_loops.jl")
 
