@@ -913,7 +913,7 @@ function get_normalized_dNdp(
                       i, j_plot,
                       i_ion,                                            # 1
                       psd_mom_bounds[j],                                # 2 (cgs units)
-                      psd_mom_bounds[j] - log10(mp*c),                  # 3 (natural units)
+                      log10(psd_mom_bounds[j]/(mp*c)),                  # 3 (natural units)
                       # Shock frame, Plasma frame, ISM frame
                       log10.(dNdp_cr[j, i, 1:3]),                       # 4-6
                       # Summed therm+CR dN/dps in all three frames
@@ -925,7 +925,7 @@ function get_normalized_dNdp(
                       i, j_plot,
                       i_ion,                                            # 1
                       psd_mom_bounds[j+1],                              # 2 (cgs)
-                      psd_mom_bounds[j+1] - log10(mp*c),                # 3 (nat.)
+                      log10(psd_mom_bounds[j+1]/(mp*c)),                # 3 (nat.)
                       # Shock frame, Plasma frame, ISM frame
                       log10.(dNdp_cr[j, i, 1:3]),                       # 4-6
                       # Summed therm+CR dN/dps in all three frames
