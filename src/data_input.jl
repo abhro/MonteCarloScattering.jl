@@ -144,7 +144,7 @@ function parse_jet_frac(::Nothing, do_photons=false)
     return (0.0, 0.0)
 end
 
-function parse_jet_frac((jet_sph_frac,  jet_open_ang_deg), do_photons=false)
+function parse_jet_frac((jet_sph_frac, jet_open_ang_deg), do_photons=false)
     if 0 < jet_sph_frac ≤ 1
         jet_open_ang_deg = acosd(1 - 2jet_sph_frac)
     elseif 0 < jet_open_ang_deg ≤ 180
