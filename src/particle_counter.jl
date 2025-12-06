@@ -28,7 +28,7 @@ None, but does use PSD information from module psd_vars
 """
 function get_dNdp_cr(
         m_ion, psd_lin_cos_bins, γ₀, num_psd_θ_bins, psd_θ_bounds,
-        psd, psd_mom_bounds, num_psd_mom_bins, n_grid, γ_sf_grid, i_ion)
+        psd, psd_mom_bounds, num_psd_mom_bins, n_grid::Integer, γ_sf_grid, i_ion)
 
     # Zero out the output array before summing in loops to follow
     # Note on dNdp_cr's third dimension:
@@ -332,7 +332,7 @@ comparison against the results of the original dN/dp subroutines.
 function get_dNdp_2D(
         nc_unit, zone_pop, m_ion, n_ions, n₀_ion,
         psd_lin_cos_bins, γ₀, β₀, psd, num_psd_θ_bins,
-        psd_θ_bounds, num_psd_mom_bins, psd_mom_bounds, n_grid,
+        psd_θ_bounds, num_psd_mom_bins, psd_mom_bounds, n_grid::Integer,
         γ_sf_grid, i_ion, num_crossings, n_cr_count, therm_grid,
         therm_pₓ_sk, therm_ptot_sk, therm_weight,
         psd_bins_per_dec_mom, psd_mom_min, psd_bins_per_dec_θ, psd_cos_fine,
@@ -642,7 +642,7 @@ function get_normalized_dNdp(
         nc_unit,
         jet_rad_pc, jet_sph_frac, m_ion, n₀_ion, β₀, γ₀, n_ions, do_multi_dNdps,
         num_psd_mom_bins, psd_mom_bounds,
-        n_grid, x_grid_cm, uₓ_sk_grid,
+        n_grid::Integer, x_grid_cm, uₓ_sk_grid,
         i_iter,
         i_ion,
         γ_sf_grid,
@@ -978,7 +978,7 @@ values for comparison against earlier results.
 function get_dNdp_therm(
         num_hist_bins, nc_unit,
         m_ion, γ₀, β₀,
-        n_grid, γ_sf_grid,
+        n_grid::Integer, γ_sf_grid,
         i_ion, therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight, num_crossings, n_cr_count,
     )
 
@@ -986,8 +986,8 @@ function get_dNdp_therm(
     E₀ = m_ion[i_ion] * c^2  # Rest mass-energy of the current particle species
 
     # Also "zero" out the two output arrays to prevent issues later
-    dNdp_therm       = fill(1e-99, (0:psd_max,n_grid,3))
-    dNdp_therm_pvals = fill(1e-99, (0:psd_max,n_grid,3))
+    dNdp_therm       = fill(1e-99, (0:psd_max, n_grid, 3))
+    dNdp_therm_pvals = fill(1e-99, (0:psd_max, n_grid, 3))
 
     # Allocate histogram arrays to be used during subroutine
     ptot_sk_bins = zeros(num_hist_bins)
@@ -1010,9 +1010,9 @@ function get_dNdp_therm(
     # data from the scratch file
     #-----------------------------------------------------------------------
     max_cross = maximum(num_crossings)
-    therm_pₓ = zeros(max_cross,n_grid)
-    therm_pt = zeros(max_cross,n_grid)
-    therm_weight = zeros(max_cross,n_grid)
+    therm_pₓ = zeros(max_cross, n_grid)
+    therm_pt = zeros(max_cross, n_grid)
+    therm_weight = zeros(max_cross, n_grid)
 
 
     # Fill the arrays with data from the crossing arrays and (if needed) from the scratch file
