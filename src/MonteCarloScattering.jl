@@ -2,6 +2,7 @@ module MonteCarloScattering
 import Random
 using Dates
 using JLD2
+using CSV
 using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
 using Unitful: g, K, km, cm, s, dyn, erg, keV, GeV
 using Unitful: mp, me, c, q, k as kB, h, ħ    # physical constants
@@ -508,7 +509,7 @@ function @main(args)
                 mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine,
                 feb_upstream, feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac)
 
-    weights_file = jldopen("mc_coupled_weights.hdf5", "a+")
+    weights_file = "mc_coupled_weights.csv"
     spectra_file = jldopen("mc_coupled_spectra.hdf5", "a+")
 
     pressure_psd_par   = Vector{Float64}(undef, n_grid)
