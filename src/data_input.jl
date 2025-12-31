@@ -83,7 +83,7 @@ function check_pcuts(pcuts, Emax, Emax_per_aa, pmax)
 
     if Emax > 0keV
         # Convert from momentum[mₚc/aa] to energy[keV]
-        Emax_eff = 56 * pcuts[end] * c
+        Emax_eff = 56 * pcuts[end-1] * c
 
         if Emax > Emax_eff
             error("PCUTS: max energy exceeds highest pcut. Add more pcuts or lower Emax. ",
@@ -91,7 +91,7 @@ function check_pcuts(pcuts, Emax, Emax_per_aa, pmax)
         end
     elseif Emax_per_aa > 0keV   # Limit was on energy per nucleon
         # Convert from momentum[mₚc/aa] to energy[keV/aa]
-        Emax_eff_per_aa = pcuts[end]*c
+        Emax_eff_per_aa = pcuts[end-1]*c
 
         if Emax_per_aa > Emax_eff_per_aa
             error("PCUTS: max energy per aa exceeds highest pcut. Add more pcuts or lower Emax_per_aa. ",
@@ -99,7 +99,7 @@ function check_pcuts(pcuts, Emax, Emax_per_aa, pmax)
         end
 
     elseif pmax > 0g*c # Limit was on total momentum. Assume Fe for strictest limit on mom/nuc.
-        pmax_eff = 56 * pcuts[end]
+        pmax_eff = 56 * pcuts[end-1]
         if pmax > pmax_eff
             error("PCUTS: max momentum exceeds highest pcut. Add more pcuts or lower pmax. ",
                   "pmax = $pmax; pmax_eff (for Fe) = $pmax_eff")
