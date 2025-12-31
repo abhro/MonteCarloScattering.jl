@@ -27,8 +27,10 @@ None, but does use PSD information from module psd_vars
   particles injected into acceleration process, for three different reference frames
 """
 function get_dNdp_cr(
-        m_ion, psd_lin_cos_bins, γ₀, num_psd_θ_bins, psd_θ_bounds,
-        psd, psd_mom_bounds, num_psd_mom_bins, n_grid::Integer, γ_sf_grid, i_ion)
+        m_ion, psd_lin_cos_bins, γ₀,
+        num_psd_θ_bins::Integer, psd_θ_bounds,
+        psd, psd_mom_bounds, num_psd_mom_bins::Integer, psd_mom_axis,
+        n_grid::Integer, γ_sf_grid, i_ion)
 
     # Zero out the output array before summing in loops to follow
     # Note on dNdp_cr's third dimension:
@@ -41,6 +43,7 @@ function get_dNdp_cr(
 
     # Rest mass of particle species, used here in binning pitch angle
     rest_mass = m_ion[i_ion]
+    rest_energy = rest_mass * c^2
 
 
     # Set values needed to bin pitch angle
@@ -99,9 +102,8 @@ function get_dNdp_cr(
             end
 
             transform_corner_pt, transform_corner_ct = transform_psd_corners(
-                γᵤ,
-                aa_ion, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
-                num_psd_mom_bins, psd_mom_bounds, i_ion)
+                γᵤ, rest_energy, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
+                num_psd_mom_bins, psd_mom_bounds)
             #----------------------------------------------------------------------
             # corners transformed
 
@@ -121,7 +123,9 @@ function get_dNdp_cr(
 
             # Note that dNdp_cr as calculated here is dN(p), *not* dN/dp.
             # That conversion happens at the end of this subroutine
-            dNdp_cr[:,k,m] = get_transform_dN(psd[:,:,k], m, transform_corner_pt, transform_corner_ct, γᵤ, i_approx)
+            dNdp_cr[:,k,m] = get_transform_dN(
+                @view(psd[:,:,k]), m, transform_corner_pt, transform_corner_ct, γᵤ, i_approx,
+                num_psd_mom_bins, psd_mom_bounds, psd_mom_axis)
 
         end # loop over frames
 
@@ -334,11 +338,11 @@ comparison against the results of the original dN/dp subroutines.
 """
 function get_dNdp_2D(
         nc_unit, zone_pop, m_ion, n_ions, n₀_ion,
-        psd_lin_cos_bins, γ₀, β₀, psd, num_psd_θ_bins,
-        psd_θ_bounds, num_psd_mom_bins, psd_mom_bounds, n_grid::Integer,
-        γ_sf_grid, i_ion, num_crossings, n_cr_count, therm_grid,
+        psd_lin_cos_bins, γ₀, β₀,
+        psd, num_psd_θ_bins::Integer, psd_θ_bounds, num_psd_mom_bins::Integer, psd_mom_bounds,
+        n_grid::Integer, γ_sf_grid, i_ion, num_crossings, n_cr_count, therm_grid,
         therm_pₓ_sk, therm_ptot_sk, therm_weight,
-        psd_bins_per_dec_mom, psd_mom_min, psd_bins_per_dec_θ, psd_cos_fine,
+        psd_bins_per_dec_mom::Integer, psd_mom_min, psd_bins_per_dec_θ::Integer, psd_cos_fine,
         Δcos, psd_θ_min,
     )
 
@@ -644,10 +648,9 @@ The array that would be `dNdp_cr_pvals` is already set, as `psd_mom_bound`s
 function get_normalized_dNdp(
         nc_unit,
         jet_rad_pc, jet_sph_frac, m_ion, n₀_ion, β₀, γ₀, n_ions, do_multi_dNdps,
-        num_psd_mom_bins, psd_mom_bounds,
+        num_psd_mom_bins::Integer, psd_mom_bounds, psd_mom_axis,
         n_grid::Integer, x_grid_cm, uₓ_sk_grid,
-        i_iter,
-        i_ion,
+        i_iter::Integer, i_ion::Integer,
         γ_sf_grid,
         therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight, num_crossings, n_cr_count,
         psd, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
@@ -674,17 +677,17 @@ function get_normalized_dNdp(
 
     dNdp_cr = get_dNdp_cr(
         m_ion, psd_lin_cos_bins, γ₀, num_psd_θ_bins, psd_θ_bounds,
-        psd, psd_mom_bounds, num_psd_mom_bins, n_grid, γ_sf_grid, i_ion)
+        psd, psd_mom_bounds, num_psd_mom_bins, psd_mom_axis, n_grid, γ_sf_grid, i_ion)
 
     # Now have non-normalized dN/dp for both thermal and CR populations.
     # Determine the total number of particles in each grid zone by using
     # shock frame flux, area, crossing time:
     #     #  =  flux * area * (distance/speed)
-    local i_shock
+    local i_shock = 0
     for i in 1:n_grid
         if iszero(x_grid_cm[i]) || (x_grid_cm[i]*x_grid_cm[i+1] < 0)
-            # Either current grid zone is exactly at shock, or current and next grid zones
-            # straddle shock
+            # Either current grid zone is exactly at shock, or current and next
+            # grid zones straddle shock
             i_shock = i
             break
         end
@@ -809,14 +812,12 @@ function get_normalized_dNdp(
     # Plot the dN/dps as a check-by-eye on their reasonability. Include every grid
     # zone and frame, which is probably more data than necessary in most cases
     #-------------------------------------------------------------------------
-    if i_ion == 1
-        if do_multi_dNdps
-            therm_fileunit = open("mc_dNdp_grid_therm_$i_iter.dat")
-            CR_fileunit = open("mc_dNdp_grid_CR_$i_iter.dat")
-        else
-            therm_fileunit = open("mc_dNdp_grid_therm.dat")
-            CR_fileunit = open("mc_dNdp_grid_CR.dat")
-        end
+    if do_multi_dNdps
+        therm_fileunit = open("mc_dNdp_grid_therm_$i_iter.dat", "a")
+        CR_fileunit = open("mc_dNdp_grid_CR_$i_iter.dat", "a")
+    else
+        therm_fileunit = open("mc_dNdp_grid_therm.dat", "a")
+        CR_fileunit = open("mc_dNdp_grid_CR.dat", "a")
     end
 
     for i in 66:66 #1, n_grid #DEBUGLINE: we only care about this grid zone
@@ -942,8 +943,8 @@ function get_normalized_dNdp(
 
     end # loop over grid zones
 
-    i_ion == n_ions && close(therm_fileunit)
-    i_ion == n_ions && close(CR_fileunit)
+    close(therm_fileunit)
+    close(CR_fileunit)
     #-------------------------------------------------------------------------
     # end of plotting section
 

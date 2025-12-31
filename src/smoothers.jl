@@ -51,18 +51,19 @@ FIXME
   turbulence or additional amplification
 """
 function smooth_grid_par(
-        i_iter, i_shock, n_grid, x_grid_rg, x_grid_cm,
+        i_iter::Integer, i_shock::Integer, n_grid::Integer, x_grid_rg, x_grid_cm,
         Γ_grid, uz_sk_grid, θ_grid,
         pressure_psd_par, pressure_psd_perp,
         flux_px_upstream, flux_energy_upstream, Γ₂, q_esc_cal_pₓ, q_esc_cal_energy,
         pxx_flux, energy_flux, uₓ_sk_grid, γ_sf_grid, btot_grid, utot_grid,
         γ_ef_grid, β_ef_grid, εB_grid,
-        n_ions, aa_ion, zz_ion, T₀_ion, n₀_ion,
-        rg₀, do_prof_fac_damp, prof_weight_fac, γ₀, u₀, β₀,
-        γ₂, β₂, u₂, do_smoothing, smooth_mom_energy_fac,
+        n_ions::Integer, aa_ion, zz_ion, T₀_ion, n₀_ion,
+        rg₀, do_prof_fac_damp, prof_weight_fac,
+        γ₀, u₀, β₀, γ₂, β₂, u₂,
+        do_smoothing::Bool, smooth_mom_energy_fac,
         # ω = smooth_pressure_flux_psd_fac
         ω, bturb_comp_frac, bfield_amp, B₀,
-        x_art_start_rg, use_custom_εB)
+        x_art_start_rg, use_custom_εB::Bool)
 
     pxx_norm = zeros(n_grid)
     energy_norm = zeros(n_grid)
