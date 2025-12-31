@@ -1,6 +1,4 @@
 using Unitful: k as kB, c
-include("constants.jl"); using .constants: E₀ₚ
-include("parameters.jl"); using .parameters: na_cr
 
 """
     thermo_calcs(...)
@@ -31,10 +29,10 @@ calculate the pressure (which may be anisotropic) everywhere on the grid.
 function thermo_calcs(
         num_crossings, n_cr_count, therm_grid, therm_pₓ_sk, therm_ptot_sk,
         therm_weight, nc_unit, psd, zone_pop, aa_ion, zz_ion, T₀_ion, n₀_ion,
-        psd_lin_cos_bins, γ₀, β₀,
-        n_grid, γ_sf_grid, uₓ_sk_grid, i_ion, mc,
-        num_psd_mom_bins, num_psd_θ_bins, psd_max, psd_θ_bounds, psd_mom_bounds,
-        psd_bins_per_dec_mom, psd_mom_min, psd_bins_per_dec_θ, psd_cos_fine, Δcos, psd_θ_min,
+        psd_lin_cos_bins::Integer, γ₀, β₀,
+        n_grid::Integer, γ_sf_grid, uₓ_sk_grid, i_ion, mc,
+        num_psd_mom_bins::Integer, num_psd_θ_bins::Integer, psd_max, psd_θ_bounds, psd_mom_bounds,
+        psd_bins_per_dec_mom::Integer, psd_mom_min, psd_bins_per_dec_θ::Integer, psd_cos_fine, Δcos, psd_θ_min,
     )
 
     d²N_pf = fill(1e-99, (0:psd_max, 0:psd_max, n_grid))
@@ -48,7 +46,7 @@ function thermo_calcs(
     # total count of particles, not a true dN/dp
     # Set constants to be used repeatedly, including calculating the center
     # points of all bins to save time later
-    rest_mass_energy = aa_ion[i_ion] * E₀ₚ  # Rest mass-energy of the current particle species
+    E₀ = aa_ion[i_ion] * E₀ₚ  # Rest mass-energy of the current particle species
 
     cos_center = zeros(0:num_psd_θ_bins)
     for jθ in eachindex(cos_center)
@@ -143,7 +141,7 @@ function thermo_calcs(
             # Transform the center of the zone into the new frame
             ptot_sk = therm_pt[n,i]
             pₓ_sk   = therm_pₓ[n,i]
-            etot_sk = hypot(ptot_sk*c, rest_mass_energy)
+            etot_sk = hypot(ptot_sk*c, E₀)
 
             pₓ_Xf   = γᵤ * (pₓ_sk - βᵤ*etot_sk/c)
             pt_Xf   = √((ptot_sk^2 - pₓ_sk^2) + pₓ_Xf^2)
@@ -192,7 +190,7 @@ function thermo_calcs(
             cos_θ_sk = cos_center[jθ]
             ptot_sk  = pt_center[k]
             pₓ_sk    = ptot_sk * cos_θ_sk
-            etot_sk  = hypot(ptot_sk*c, rest_mass_energy)
+            etot_sk  = hypot(ptot_sk*c, E₀)
 
             pₓ_Xf    = γᵤ * (pₓ_sk - βᵤ*etot_sk/c)
             pt_Xf    = √(ptot_sk^2 - pₓ_sk^2 + pₓ_Xf^2)
@@ -240,6 +238,8 @@ function thermo_calcs(
     pressure_psd_par = zeros(n_grid)
     pressure_psd_perp = zeros(n_grid)
     energy_density_psd = zeros(n_grid)
+
+    local density_electron
 
     # Loop over grid zones and find pressure components everywhere
     #----------------------------------------------------------------------------
@@ -322,7 +322,7 @@ function thermo_calcs(
             # These factors are the same in all cells of this ptot column
             pressure_fac = 1//3 * pt_center[k] * vel_ptot[k] * norm_fac
             γ_tmp        = hypot(1, pt_center[k]/mc)
-            energy_density_fac = (γ_tmp - 1) * rest_mass_energy
+            energy_density_fac = (γ_tmp - 1) * E₀
 
             for jθ in 0:num_psd_θ_bins
 

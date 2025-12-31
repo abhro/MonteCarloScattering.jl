@@ -127,10 +127,10 @@ function print_input(
 
     @info("Gyroperiod divisions", "N_g(coarse)" = xn_per_coarse, "N_g(fine)" = xn_per_fine)
 
-    feb_str = ("""Free escape boundary
+    feb_str = """Free escape boundary
 upstream FEB   = $(feb_upstream/rg₀) rg₀ = $(uconvert(pc, feb_upstream))
 downstream FEB = $(feb_downstream/rg₀) rg₀ = $(uconvert(pc, feb_downstream))
-""")
+"""
     @info(feb_str)
 
     @info("Max CR age", age_max)
@@ -142,7 +142,7 @@ downstream FEB = $(feb_downstream/rg₀) rg₀ = $(uconvert(pc, feb_downstream))
 
 
     # Energy to switch between low- and high-pcut particle counts
-    pcut_str = @sprintf("  High pcut energy = %f keV/aa", energy_pcut_hi)
+    pcut_str = @sprintf("High pcut energy = %f keV/aa", energy_pcut_hi)
     @info(pcut_str)
 
 

@@ -59,7 +59,11 @@ the parameter `bins_per_decade_***` determines the fineness of the bins.
 ### Arguments
 - `pₓ_sk`: component of momentum parallel to shock normal (to B-field?), in code units
 - `ptot_sk`: total particle momentum, in code units
-- TODO
+- `psd_bins_per_dec_θ`
+- `num_psd_θ_bins`
+- `psd_cos_fine`
+- `Δcos`
+- `psd_θ_min`
 
 ### Returns
 Bin in angle into which particle falls

@@ -602,12 +602,10 @@ FIXME with actual argument list
 - `transform_corner_ct`: cos(θ) (NOT θ!!!) values at the corners
 """
 function transform_psd_corners(
-        γ_in,
-        aa_ion, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
-        num_psd_mom_bins, psd_mom_bounds, i_ion)
+        γ_in, E₀, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
+        num_psd_mom_bins, psd_mom_bounds)
 
     # Administrative constants
-    rest_mass_energy = aa_ion[i_ion] * E₀ₚ
     βᵤ = γ_in ≥ 1.000001 ? √(1 - 1/γ_in^2) : 0.0 # Prevent floating point issues
 
     # Fill transform_corner_** arrays, looping over angle outermost
@@ -637,7 +635,7 @@ function transform_psd_corners(
             #end
 
             pₓ_sk   = pt_sk * cosθ
-            etot_sk = hypot(pt_sk*c, rest_mass_energy)
+            etot_sk = hypot(pt_sk*c, E₀)
 
             pₓ_Xf  = γ_in * (pₓ_sk - βᵤ*etot_sk/c)
             pt_Xf  = √(pt_sk^2 + pₓ_Xf^2 - pₓ_sk^2)

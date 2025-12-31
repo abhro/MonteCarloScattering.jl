@@ -51,6 +51,7 @@ include("get_psd_bins.jl")
 include("particle_finish.jl")
 include("q_esc_calcs.jl")
 include("particle_counter.jl")
+include("thermo_calcs.jl")
 
 include("iter_init.jl")
 include("iter_finalize.jl")
@@ -509,7 +510,7 @@ function @main(args)
                 mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine,
                 feb_upstream, feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac)
 
-    weights_file = "mc_coupled_weights.csv"
+    weights_file = open("mc_coupled_weights.csv", "w")
     spectra_file = jldopen("mc_coupled_spectra.hdf5", "a+")
 
     pressure_psd_par   = Vector{Float64}(undef, n_grid)
@@ -604,7 +605,8 @@ function @main(args)
     T₀_ion = temperature.(species)
     n₀_ion = density.(species)
     main_loops(
-        n_itrs, n_ions, n_grid, n_pts_inj, n_tcuts, species,
+        n_itrs, n_ions, n_grid, n_pts_inj, n_tcuts, n_pts_max, n_xspec, n_print_pt,
+        species,
         (u₀, β₀, γ₀), (u₂, β₂, γ₂),
         Emax, Emax_per_aa, energy_pcut_hi, pmax,
         pxx_flux, pxz_flux, energy_flux,
@@ -622,7 +624,7 @@ function @main(args)
         x_PT_cm_sav, x_PT_cm_new, grid_sav, grid_new, inj_sav, inj_new, downstream_sav, downstream_new,
         prp_x_cm_sav, prp_x_cm_new, acctime_sec_sav, acctime_sec_new, tcut_sav, tcut_new, φ_rad_sav, φ_rad_new,
         pcuts, l_save, i_grid_feb, i_shock,
-        n_pts_max, n_xspec, n_print_pt, num_psd_mom_bins, num_psd_θ_bins,
+        num_psd_mom_bins, psd_mom_axis, num_psd_θ_bins,
         psd_lin_cos_bins, psd_cos_fine, Δcos, psd_mom_bounds, psd_θ_bounds, psd_θ_min,
         psd_mom_min, psd_bins_per_dec_mom, psd_bins_per_dec_θ,
         bmag₂, zone_vol, pₑ_crit, γₑ_crit,

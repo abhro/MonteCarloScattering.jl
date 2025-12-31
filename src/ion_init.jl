@@ -28,18 +28,20 @@ function assign_particle_properties_to_population!(
         pb_pf_new, pb_pf_in, x_PT_cm_new, x_PT_cm_in, grid_new, i_grid_in,
         downstream_new, inj_new, xn_per_new, prp_x_cm_new, acctime_sec_new, tcut_new, φ_rad_new)
 
+    slice = 1:n_pts_use
+
     assign_slice!((weight_new, ptot_pf_new, pb_pf_new, x_PT_cm_new, grid_new),
                   (weight_in, ptot_pf_in, pb_pf_in, x_PT_cm_in, i_grid_in),
-                  1:n_pts_use)
+                  slice)
 
-    downstream_new[1:n_pts_use]  .= false
-    inj_new[1:n_pts_use]         .= false
-    xn_per_new[1:n_pts_use]      .= xn_per_fine
-    prp_x_cm_new[1:n_pts_use]    .= x_grid_stop
-    acctime_sec_new[1:n_pts_use] .= 0.0s
-    tcut_new[1:n_pts_use]        .= 1
+    @inbounds downstream_new[slice]  .= false
+    @inbounds inj_new[slice]         .= false
+    @inbounds xn_per_new[slice]      .= xn_per_fine
+    @inbounds prp_x_cm_new[slice]    .= x_grid_stop
+    @inbounds acctime_sec_new[slice] .= 0.0s
+    @inbounds tcut_new[slice]        .= 1
 
-    φ_rad_new[1:n_pts_use] .= 2π*Random.rand(rng, n_pts_use)
+    @inbounds φ_rad_new[slice] .= 2π*Random.rand(rng, length(slice))
 end
 
 function get_pmax_cutoff(Emax, Emax_per_aa, pmax, aa)
