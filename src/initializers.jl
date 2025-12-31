@@ -915,7 +915,7 @@ function init_pop(
         n_pts_use = n_pts_MB[i_ion]
         weight_in = weight_inj[1:n_pts_use, i_ion]
         ptot_pf_in = ptot_inj[1:n_pts_use, i_ion]
-        pb_pf_in = ptot_pf_in[1:n_pts_use] * 2*(rand(rng, n_pts_use) .- 0.5)
+        pb_pf_in = ptot_pf_in[1:n_pts_use] .* 2*(rand(rng, n_pts_use) .- 0.5)
         x_PT_cm_in = fill(x_grid_start - 10*rg₀*η_mfp, n_pts_use)
         pxx_flux = zeros(MomentumDensityFluxCGS, n_grid)
         pxz_flux = zeros(MomentumDensityFluxCGS, n_grid)
