@@ -552,8 +552,8 @@ function @main(args)
 
     # Energy bins for photon production by a specific mechanism to ensure
     # uniformity across different sources, in units of MeV
-    energy_pion_MeV = zeros(na_photons)
-    energy_IC_MeV = zeros(na_photons)
+    energy_pion = zeros(typeof(1.0MeV), na_photons)
+    energy_IC = zeros(typeof(1.0MeV), na_photons)
 
     # Arrays to hold summed spectra due to the various sources
     pion_photon_sum = zeros(na_photons, n_grid)
