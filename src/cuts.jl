@@ -3,26 +3,26 @@ using .parameters: na_particles
 """
     new_pcut(...)
 
-Takes the `**_sav` arrays filled over the course of loop_pt and splits the
+Takes the `**_saved` arrays filled over the course of loop_pt and splits the
 saved particles to form the population of the next pcut
 
 ### Arguments
 TODO
 - `n_pts_target`
 - `n_saved`
-- `grid_sav`
-- `tcut_sav`
+- `grid_saved`
+- `tcut_saved`
 - `l_save`
-- `downstream_sav`
-- `inj_sav`
-- `weight_sav`
-- `ptot_pf_sav`
-- `pb_pf_sav`
-- `x_PT_cm_sav`
-- `xn_per_sav`
-- `prp_x_cm_sav`
-- `acctime_sec_sav`
-- `φ_rad_sav`
+- `downstream_saved`
+- `inj_saved`
+- `weight_saved`
+- `ptot_pf_saved`
+- `pb_pf_saved`
+- `x_PT_cm_saved`
+- `xn_per_saved`
+- `prp_x_cm_saved`
+- `acctime_sec_saved`
+- `φ_rad_saved`
 - `n_pts_use`
 
 ### Returns
@@ -32,9 +32,9 @@ TODO
 - `weight_running`: weight factor of each particle remaining after this pcut
 """
 function new_pcut(
-        n_pts_target, n_saved, l_save, grid_sav, downstream_sav,
-        inj_sav, weight_sav, ptot_pf_sav, pb_pf_sav, x_PT_cm_sav, xn_per_sav,
-        prp_x_cm_sav, acctime_sec_sav, φ_rad_sav, tcut_sav,
+        n_pts_target, n_saved, l_save, grid_saved, downstream_saved,
+        inj_saved, weight_saved, ptot_pf_saved, pb_pf_saved, x_PT_cm_saved, xn_per_saved,
+        prp_x_cm_saved, acctime_sec_saved, φ_rad_saved, tcut_saved,
         n_pts_use, weight_running)
 
     # Determine multiplicity of splitting; perhaps none needed
@@ -71,18 +71,18 @@ function new_pcut(
 
             n_pts_new += 1
 
-            weight_new[n_pts_new]      = weight_sav[j] / i_mult
-            ptot_pf_new[n_pts_new]     = ptot_pf_sav[j]
-            pb_pf_new[n_pts_new]       = pb_pf_sav[j]
-            x_PT_cm_new[n_pts_new]     = x_PT_cm_sav[j]
-            grid_new[n_pts_new]        = grid_sav[j]
-            downstream_new[n_pts_new]  = downstream_sav[j]
-            inj_new[n_pts_new]         = inj_sav[j]
-            xn_per_new[n_pts_new]      = xn_per_sav[j]
-            prp_x_cm_new[n_pts_new]    = prp_x_cm_sav[j]
-            acctime_sec_new[n_pts_new] = acctime_sec_sav[j]
-            φ_rad_new[n_pts_new]       = φ_rad_sav[j]
-            tcut_new[n_pts_new]        = tcut_sav[j]
+            weight_new[n_pts_new]      = weight_saved[j] / i_mult
+            ptot_pf_new[n_pts_new]     = ptot_pf_saved[j]
+            pb_pf_new[n_pts_new]       = pb_pf_saved[j]
+            x_PT_cm_new[n_pts_new]     = x_PT_cm_saved[j]
+            grid_new[n_pts_new]        = grid_saved[j]
+            downstream_new[n_pts_new]  = downstream_saved[j]
+            inj_new[n_pts_new]         = inj_saved[j]
+            xn_per_new[n_pts_new]      = xn_per_saved[j]
+            prp_x_cm_new[n_pts_new]    = prp_x_cm_saved[j]
+            acctime_sec_new[n_pts_new] = acctime_sec_saved[j]
+            φ_rad_new[n_pts_new]       = φ_rad_saved[j]
+            tcut_new[n_pts_new]        = tcut_saved[j]
 
         end  # loop over splits
     end  # loop over saved particles

@@ -567,19 +567,19 @@ function @main(args)
 
     # "module" pcut_vars
     l_save = zeros(Bool, na_particles) # Whether or not to save particle for next pcut
-    grid_sav        = zeros(Int, na_particles)
-    tcut_sav        = zeros(Int, na_particles)
-    downstream_sav  = zeros(Bool, na_particles)
-    inj_sav         = zeros(Bool, na_particles)
-    weight_sav      = zeros(na_particles)
-    ptot_pf_sav     = zeros(MomentumCGS, na_particles)
-    pb_pf_sav       = zeros(MomentumCGS, na_particles)
-    x_PT_cm_sav     = zeros(LengthCGS, na_particles)
-    xn_per_sav      = zeros(na_particles)
-    #zz_sav         = zeros(na_particles)
-    prp_x_cm_sav    = zeros(LengthCGS, na_particles)
-    acctime_sec_sav = zeros(TimeCGS, na_particles)
-    φ_rad_sav       = zeros(na_particles)
+    grid_saved        = zeros(Int, na_particles)
+    tcut_saved        = zeros(Int, na_particles)
+    downstream_saved  = zeros(Bool, na_particles)
+    inj_saved         = zeros(Bool, na_particles)
+    weight_saved      = zeros(na_particles)
+    ptot_pf_saved     = zeros(MomentumCGS, na_particles)
+    pb_pf_saved       = zeros(MomentumCGS, na_particles)
+    x_PT_cm_saved     = zeros(LengthCGS, na_particles)
+    xn_per_saved      = zeros(na_particles)
+    #zz_saved         = zeros(na_particles)
+    prp_x_cm_saved    = zeros(LengthCGS, na_particles)
+    acctime_sec_saved = zeros(TimeCGS, na_particles)
+    φ_rad_saved       = zeros(na_particles)
 
     grid_new        = zeros(Int, na_particles)
     tcut_new        = zeros(Int, na_particles)
@@ -619,10 +619,10 @@ function @main(args)
         therm_weight, psd, esc_psd_feb_upstream, esc_psd_feb_downstream,
         do_fast_push, inp_distr, energy_inj, inj_weight, ptot_inj, weight_inj,
         x_grid_start, x_grid_stop, rg₀, η_mfp, x_fast_stop_rg, x_grid_rg, x_grid_cm, n_pts_MB,
-        xn_per_fine, xn_per_coarse, xn_per_sav, xn_per_new,
-        weight_sav, weight_new, ptot_pf_sav, ptot_pf_new, pb_pf_sav, pb_pf_new,
-        x_PT_cm_sav, x_PT_cm_new, grid_sav, grid_new, inj_sav, inj_new, downstream_sav, downstream_new,
-        prp_x_cm_sav, prp_x_cm_new, acctime_sec_sav, acctime_sec_new, tcut_sav, tcut_new, φ_rad_sav, φ_rad_new,
+        xn_per_fine, xn_per_coarse, xn_per_saved, xn_per_new,
+        weight_saved, weight_new, ptot_pf_saved, ptot_pf_new, pb_pf_saved, pb_pf_new,
+        x_PT_cm_saved, x_PT_cm_new, grid_saved, grid_new, inj_saved, inj_new, downstream_saved, downstream_new,
+        prp_x_cm_saved, prp_x_cm_new, acctime_sec_saved, acctime_sec_new, tcut_saved, tcut_new, φ_rad_saved, φ_rad_new,
         pcuts, l_save, i_grid_feb, i_shock,
         num_psd_mom_bins, psd_mom_axis, num_psd_θ_bins,
         psd_lin_cos_bins, psd_cos_fine, Δcos, psd_mom_bounds, psd_θ_bounds, psd_θ_min,

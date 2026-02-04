@@ -103,7 +103,7 @@ function get_transform_dN(
         # i_approx = 0 finished
 
 
-        # If assuming isosceles trianglular distribution of cell_weight, peak is located
+        # If assuming isosceles triangular distribution of cell_weight, peak is located
         # above geometric mean of p_cell_lo and p_cell_hi. If assuming scalene
         # triangular distribution of cell_weight, peak of triangle is located on (geometric)
         # mean of ct_hi_pt and ct_lo_pt, noting that both are logarithms.
