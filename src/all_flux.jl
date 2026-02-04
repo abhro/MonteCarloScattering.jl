@@ -108,7 +108,7 @@ function all_flux!(
 
     # Calculate spectrum at x_spec locations if needed
     if n_xspec > 0
-        caclulate_x_spec_spectra!(
+        calculate_x_spec_spectra!(
             spectra_sf, spectra_pf, n_xspec, x_spec, x_PT_old, x_PT_cm,
             ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins,
             weight, pt_o_pₓ_sk, pt_o_pₓ_pf, ptot_pf, pb_pf, p_sk, γₚ_sk, γₚ_pf,
@@ -159,7 +159,7 @@ function all_flux!(
     return (i_grid, i_grid_old, n_cr_count, pₓ_esc_upstream, energy_esc_upstream)
 end
 
-function caclulate_x_spec_spectra!(
+function calculate_x_spec_spectra!(
         spectra_sf, spectra_pf, n_xspec, x_spec, x_PT_old, x_PT_cm,
         ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins,
         weight, pt_o_pₓ_sk, pt_o_pₓ_pf, ptot_pf, pb_pf, p_sk, γₚ_sk, γₚ_pf,

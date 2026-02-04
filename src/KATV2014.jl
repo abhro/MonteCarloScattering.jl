@@ -16,7 +16,7 @@ using ..constants: Tₜₕ, M_res, Γ_res, E₀_π⁰
 """
     get_σ_π(Tₚ, i_data, s_ECM)
 
-Calulates the total inclusive π-0 production cross section using method
+Calculates the total inclusive π-0 production cross section using method
 of Kafexhiu+ (2014) [PhRvD, V.90, 123014], section 4.
 """
 function get_σ_π(Tₚ, i_data, s_ECM)
@@ -41,7 +41,7 @@ function get_σ_π(Tₚ, i_data, s_ECM)
     end
 
 
-    # If 2 Gev < Tₚ < 5 GeV, then use Equations (1) and (6)
+    # If 2 GeV < Tₚ < 5 GeV, then use Equations (1) and (6)
     #-------------------------------------------------------------------------
     if Tₚ < 5
 
@@ -104,7 +104,7 @@ end
 const get_sigma_pi = get_σ_π
 
 @doc raw"""
-Calulates F(Tₚ, Eᵧ) as defined in Equations (9) and (11) of Kafexhiu+ (2014) [PhRvD, V.90, 123014].
+Calculates F(Tₚ, Eᵧ) as defined in Equations (9) and (11) of Kafexhiu+ (2014) [PhRvD, V.90, 123014].
 
 Equation 9:
 

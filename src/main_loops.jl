@@ -25,10 +25,10 @@ function main_loops(
         therm_weight, psd, esc_psd_feb_upstream, esc_psd_feb_downstream,
         do_fast_push, inp_distr, energy_inj, inj_weight, ptot_inj, weight_inj,
         x_grid_start, x_grid_stop, rg₀, η_mfp, x_fast_stop_rg, x_grid_rg, x_grid_cm, n_pts_MB,
-        xn_per_fine, xn_per_coarse, xn_per_sav, xn_per_new,
-        weight_sav, weight_new, ptot_pf_sav, ptot_pf_new, pb_pf_sav, pb_pf_new,
-        x_PT_cm_sav, x_PT_cm_new, grid_sav, grid_new, inj_sav, inj_new, downstream_sav, downstream_new,
-        prp_x_cm_sav, prp_x_cm_new, acctime_sec_sav, acctime_sec_new, tcut_sav, tcut_new, φ_rad_sav, φ_rad_new,
+        xn_per_fine, xn_per_coarse, xn_per_saved, xn_per_new,
+        weight_saved, weight_new, ptot_pf_saved, ptot_pf_new, pb_pf_saved, pb_pf_new,
+        x_PT_cm_saved, x_PT_cm_new, grid_saved, grid_new, inj_saved, inj_new, downstream_saved, downstream_new,
+        prp_x_cm_saved, prp_x_cm_new, acctime_sec_saved, acctime_sec_new, tcut_saved, tcut_new, φ_rad_saved, φ_rad_new,
         pcuts, l_save::AbstractVector{<:Bool}, i_grid_feb, i_shock,
         num_psd_mom_bins::Integer, psd_mom_axis, num_psd_θ_bins::Integer,
         psd_lin_cos_bins, psd_cos_fine, Δcos, psd_mom_bounds, psd_θ_bounds, psd_θ_min,
@@ -169,21 +169,21 @@ function main_loops(
 
                 @debug("Starting pcut loop", i_cut, pcuts[i_cut])
 
-                # Initialize all of the *_sav arrays to help prevent bleeding over between pcuts or ion species
+                # Initialize all of the *_saved arrays to help prevent bleeding over between pcuts or ion species
                 l_save .= false  # Whole array must be initialized in case number of particles changes from pcut to pcut
 
-                zero!(weight_sav)
-                zero!(ptot_pf_sav)
-                zero!(pb_pf_sav)
-                zero!(x_PT_cm_sav)
-                zero!(grid_sav)
-                zero!(downstream_sav)
-                zero!(inj_sav)
-                zero!(xn_per_sav)
-                zero!(prp_x_cm_sav)
-                zero!(acctime_sec_sav)
-                zero!(φ_rad_sav)
-                zero!(tcut_sav)
+                zero!(weight_saved)
+                zero!(ptot_pf_saved)
+                zero!(pb_pf_saved)
+                zero!(x_PT_cm_saved)
+                zero!(grid_saved)
+                zero!(downstream_saved)
+                zero!(inj_saved)
+                zero!(xn_per_saved)
+                zero!(prp_x_cm_saved)
+                zero!(acctime_sec_saved)
+                zero!(φ_rad_saved)
+                zero!(tcut_saved)
 
                 # A separate variable tracks the number of finished particles,
                 # so that race conditions can be avoided in OMP mode
@@ -235,8 +235,8 @@ function main_loops(
                         B_CMBz,
                         weight_new, ptot_pf_new, pb_pf_new, grid_new, downstream_new, inj_new,
                         xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new, tcut_new, x_PT_cm_new,
-                        l_save, weight_sav, ptot_pf_sav, pb_pf_sav, grid_sav, downstream_sav, inj_sav,
-                        xn_per_sav, prp_x_cm_sav, acctime_sec_sav, φ_rad_sav, tcut_sav, x_PT_cm_sav,
+                        l_save, weight_saved, ptot_pf_saved, pb_pf_saved, grid_saved, downstream_saved, inj_saved,
+                        xn_per_saved, prp_x_cm_saved, acctime_sec_saved, φ_rad_saved, tcut_saved, x_PT_cm_saved,
                         use_custom_εB, x_grid_stop,
                         uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
                         γ_ef_grid, β_ef_grid, btot_grid, θ_grid,
@@ -288,9 +288,9 @@ function main_loops(
                  x_PT_cm_new, xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new,
                  n_pts_use, weight_running
                 ) = new_pcut(
-                    n_pts_target, n_saved, l_save, grid_sav, downstream_sav, inj_sav,
-                    weight_sav, ptot_pf_sav, pb_pf_sav, x_PT_cm_sav, xn_per_sav,
-                    prp_x_cm_sav, acctime_sec_sav, φ_rad_sav, tcut_sav,
+                    n_pts_target, n_saved, l_save, grid_saved, downstream_saved, inj_saved,
+                    weight_saved, ptot_pf_saved, pb_pf_saved, x_PT_cm_saved, xn_per_saved,
+                    prp_x_cm_saved, acctime_sec_saved, φ_rad_saved, tcut_saved,
                     n_pts_use, weight_running)
 
 
