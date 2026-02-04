@@ -16,8 +16,8 @@ function particle_loop(
         B_CMBz,
         weight_new, ptot_pf_new, pb_pf_new, grid_new, downstream_new, inj_new,
         xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new, tcut_new, x_PT_cm_new,
-        l_save, weight_sav, ptot_pf_sav, pb_pf_sav, grid_sav, downstream_sav, inj_sav,
-        xn_per_sav, prp_x_cm_sav, acctime_sec_sav, φ_rad_sav, tcut_sav, x_PT_cm_sav,
+        l_save, weight_saved, ptot_pf_saved, pb_pf_saved, grid_saved, downstream_saved, inj_saved,
+        xn_per_saved, prp_x_cm_saved, acctime_sec_saved, φ_rad_saved, tcut_saved, x_PT_cm_saved,
         use_custom_εB, x_grid_stop,
         uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid, γ_ef_grid, β_ef_grid, btot_grid, θ_grid,
         pxx_flux, pxz_flux, energy_flux, pₓ_esc_feb, energy_esc_feb,
@@ -345,18 +345,18 @@ function particle_loop(
                            pcuts[i_cut], i_cut, ptot_pf)
                     l_save[i_prt] = true
 
-                    weight_sav[i_prt]       = weight
-                    ptot_pf_sav[i_prt]      = ptot_pf
-                    pb_pf_sav[i_prt]        = pb_pf
-                    x_PT_cm_sav[i_prt]      = r_PT_cm.x
-                    grid_sav[i_prt]         = i_grid
-                    downstream_sav[i_prt]   = l_downstream
-                    inj_sav[i_prt]          = inj
-                    xn_per_sav[i_prt]       = xn_per
-                    prp_x_cm_sav[i_prt]     = r_PT_cm.x < prp_x_cm ? prp_x_cm : r_PT_cm.x * 1.1cm # Ensure particle is within PRP
-                    acctime_sec_sav[i_prt]  = acctime_sec
-                    φ_rad_sav[i_prt]        = φ_rad
-                    tcut_sav[i_prt]         = tcut_curr
+                    weight_saved[i_prt]      = weight
+                    ptot_pf_saved[i_prt]     = ptot_pf
+                    pb_pf_saved[i_prt]       = pb_pf
+                    x_PT_cm_saved[i_prt]     = r_PT_cm.x
+                    grid_saved[i_prt]        = i_grid
+                    downstream_saved[i_prt]  = l_downstream
+                    inj_saved[i_prt]         = inj
+                    xn_per_saved[i_prt]      = xn_per
+                    prp_x_cm_saved[i_prt]    = r_PT_cm.x < prp_x_cm ? prp_x_cm : r_PT_cm.x * 1.1cm # Ensure particle is within PRP
+                    acctime_sec_saved[i_prt] = acctime_sec
+                    φ_rad_saved[i_prt]       = φ_rad
+                    tcut_saved[i_prt]        = tcut_curr
 
                     keep_looping = false
                     continue

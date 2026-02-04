@@ -83,7 +83,7 @@ function get_summed_emission(
 
     # Read in data from all three emission types: pion decay, synchrotron, and inverse Compton
     #-------------------------------------------------------------------------
-    read_in_emission_data() # TODO add arguments and retrun values
+    read_in_emission_data() # TODO add arguments and return values
     #-------------------------------------------------------------------------
     # Emission data read into arrays
 

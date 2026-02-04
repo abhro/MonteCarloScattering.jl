@@ -117,14 +117,14 @@ function synch_emission_thermal_particles!(
     synch_emis, num_hist_bins, dN_therm,
     p_pf_therm, bmag_curr, mc, n_photon_synch, energy_γ, nu, p_fac
 )
-    for iii in 0:num_hist_bins-1
+    for i in 0:num_hist_bins-1
 
         # Total number of electrons in Δp
-        xnum_electron = dN_therm[iii]
+        xnum_electron = dN_therm[i]
         xnum_electron ≤ 1e-60 && continue # skip empty bins
 
         # Assume electrons with E < 3 MeV contribute no synchrotron emission
-        p1 = √(p_pf_therm[iii] * p_pf_therm[iii+1]) # Geometric mean
+        p1 = √(p_pf_therm[i] * p_pf_therm[i+1]) # Geometric mean
         p1*c < 3MeV && continue
 
         # Lorentz factor for electron
@@ -135,11 +135,11 @@ function synch_emission_thermal_particles!(
 
         # Calculate F factor in eq. 6.18 Rybicki & Lightman (see Eq 6.31c)
         #     F(x) ≡ x ∫_x^∞ K_{5/3}(ξ) dξ              (6.31c)
-        for iit in 1:n_photon_synch
+        for j in 1:n_photon_synch
             if bmag_curr < 1e-20 || ω_c < 1e-55
                 F = 0.0
             else
-                ω_γ = energy_γ[iit] / ħ    # from E = ħω
+                ω_γ = energy_γ[j] / ħ    # from E = ħω
                 x = ω_γ/ω_c
 
                 xxx_max_set = 30.0
@@ -162,7 +162,7 @@ function synch_emission_thermal_particles!(
 
             # Only include emission if it's sufficiently positive
             if tmp_add > 1e-55
-                synch_emis[iit] += tmp_add
+                synch_emis[j] += tmp_add
             end
 
         end # loop over n_photon_synch
@@ -172,14 +172,14 @@ end
 function synch_emission_cosmic_ray!(
     synch_emis, num_psd_mom_bins, dN_cr, p_pf_cr, mc, bmag_curr, n_photon_synch, energy_γ, nu, p_fac
 )
-    for iii in 0:num_psd_mom_bins
+    for i in 0:num_psd_mom_bins
 
         # Total number of electrons in Δp
-        xnum_electron = dN_cr[iii]
+        xnum_electron = dN_cr[i]
         xnum_electron ≤ 1e-60 && continue # skip empty bins
 
         # Assume electrons with E < 3 MeV contribute no synchrotron emission
-        p1 = √(p_pf_cr[iii] * p_pf_cr[iii+1]) # Geometric mean
+        p1 = √(p_pf_cr[i] * p_pf_cr[i+1]) # Geometric mean
         p1*c < 3MeV && continue
 
         # Lorentz factor for electron
@@ -190,11 +190,11 @@ function synch_emission_cosmic_ray!(
 
         # Calculate F factor in eq. 6.18 Rybicki & Lightman (see Eq 6.31c)
         #     F(x) ≡ x ∫_x^∞ K_{5/3}(ξ) dξ              (6.31c)
-        for iit in 1:n_photon_synch
+        for j in 1:n_photon_synch
             if bmag_curr < 1e-20 || ω_c < 1e-55
                 F = 0.0
             else
-                ω_γ = energy_γ[iit] / ħ    # from E = ħω
+                ω_γ = energy_γ[j] / ħ    # from E = ħω
                 x = ω_γ/ω_c
 
                 xxx_max_set = 30.0
@@ -217,7 +217,7 @@ function synch_emission_cosmic_ray!(
 
             # Only include emission if it's sufficiently positive
             if tmp_add > 1e-55
-                synch_emis[iit] += tmp_add
+                synch_emis[j] += tmp_add
             end
 
         end # loop over n_photon_synch
