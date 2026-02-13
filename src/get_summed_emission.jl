@@ -109,9 +109,9 @@ function get_summed_emission(
     # means the + sign in the Doppler shift formula must be changed to a - sign, as will be
     # noted again later.
     n_cos_bins = 180
-    cosθ = range(-1.0, 1.0, length=n_cos_bins+1)
+    cosθ = range(-1.0, 1.0, length = n_cos_bins + 1)
     # Fractional surface area on a sphere, i.e. ∫ sin(θ) dθ dφ, divided by 4π steradians
-    frac_area = 1/n_cos_bins
+    frac_area = 1 / n_cos_bins
 
     photon_flux_out = Matrix{Float64}(undef, (na_photons, n_grid))
     # Loop over the one (or two) plasma frame spectra to be Doppler shifted into the ISM frame.
@@ -120,13 +120,13 @@ function get_summed_emission(
         if k == 1
             n_photon = n_photon_pion - 1
             log_energy_MeV_in[1:n_photon] .= exp10(log_energy_MeV_pion[1:n_photon])
-            photon_flux_in  .= photon_flux_pion
-            fill!(photon_flux_out, 1e-99)
+            photon_flux_in .= photon_flux_pion
+            fill!(photon_flux_out, 1.0e-99)
         elseif k == 2
             n_photon = n_photon_synch - 1
             log_energy_MeV_in[1:n_photon] .= exp10(log_energy_MeV_synch[1:n_photon])
-            photon_flux_in  .= photon_flux_synch
-            fill!(photon_flux_out, 1e-99)
+            photon_flux_in .= photon_flux_synch
+            fill!(photon_flux_out, 1.0e-99)
         end
 
         # Obtain energy widths of each bin now, since they're constant across all the grid zones.
@@ -134,25 +134,25 @@ function get_summed_emission(
         # the difference of the logarithms gives the area under the curve, or number of photons
         # in this bin. Also obtain the midpoint (in log space) of each energy bin.
         ΔlogE = log_energy_MeV_in[3] - log_energy_MeV_in[2] # position chosen arbitrarily
-        for j in 1:n_photon-1
-            energy_mid[j] = √(log_energy_MeV_in[j] * log_energy_MeV_in[j+1])
+        for j in 1:(n_photon - 1)
+            energy_mid[j] = √(log_energy_MeV_in[j] * log_energy_MeV_in[j + 1])
         end
         # Highest-energy zone handled separately, but correctly.
-        energy_mid[n_photon] = energy_mid[n_photon-1] * exp10(ΔlogE)
+        energy_mid[n_photon] = energy_mid[n_photon - 1] * exp10(ΔlogE)
 
         # Loop over grid positions with emission data
         for i in i_grid_start[k]:i_grid_end[k]
 
             # Obtain the current flow speed difference between the plasma and ISM frames
-            γ_sk_pf  = γ_sf_grid[i]
-            β_sk_pf  = utot_grid[i] / c
+            γ_sk_pf = γ_sf_grid[i]
+            β_sk_pf = utot_grid[i] / c
             β_pf_ISM = β_ef_grid[i]
             γ_pf_ISM = γ_ef_grid[i]
 
             # Convert photon fluxes from number per log(energy) to pure number
             for j in 1:n_photon
-                if photon_flux_in[j,i] > 1e-90
-                    photon_flux_in[j,i] *= ΔlogE
+                if photon_flux_in[j, i] > 1.0e-90
+                    photon_flux_in[j, i] *= ΔlogE
                 end
             end
 
@@ -162,21 +162,21 @@ function get_summed_emission(
             # which we will use to re-bin in the ISM frame.
             for l in 1:n_cos_bins, j in 1:n_photon
 
-                xnum_trans = photon_flux_in[j,i] * frac_area
+                xnum_trans = photon_flux_in[j, i] * frac_area
 
                 # With the energy of the transformed photons, as well as the number of
                 # photons coming from this angle, re-bin in terms of energy
-                if xnum_trans > 1e-99
+                if xnum_trans > 1.0e-99
 
                     # Determine the two energy ratios at the angular boundaries using the
                     # Doppler shift formula. Recall that since a cosine of -1 points upstream,
                     # i.e. towards the observer, the + sign in the Doppler shift formula must
                     # be changed to a - sign.
-                    dimless_avg = √((1 - β_pf_ISM*cosθ[l]) * (1 - β_pf_ISM*cosθ[l+1]))
+                    dimless_avg = √((1 - β_pf_ISM * cosθ[l]) * (1 - β_pf_ISM * cosθ[l + 1]))
                     energy_trans = energy_mid[j] * γ_pf_ISM * dimless_avg
 
                     m = findnext(≥(energy_trans), log_energy_MeV_in, 2)
-                    photon_flux_out[m-1,i] += xnum_trans
+                    photon_flux_out[m - 1, i] += xnum_trans
                 end
 
             end # loop over incoming photon energies and angles
@@ -188,13 +188,13 @@ function get_summed_emission(
         # emission-specific arrays. Because these arrays were shifted from plasma to shock
         # frame, three factors of γ_pf_ISM need to be included: two from relativistic
         # beaming, and one from time dilation.
-        mask = photon_flux_out .> 1e-95
+        mask = photon_flux_out .> 1.0e-95
         if k == 1
-            photon_flux_pion[  mask]  .= photon_flux_out[mask] * γ_pf_ISM^3
-            photon_flux_pion[.!mask]  .= 1e-99
+            photon_flux_pion[mask] .= photon_flux_out[mask] * γ_pf_ISM^3
+            photon_flux_pion[.!mask] .= 1.0e-99
         elseif k == 2
-            photon_flux_synch[  mask] .= photon_flux_out[mask] * γ_pf_ISM^3
-            photon_flux_synch[.!mask] .= 1e-99
+            photon_flux_synch[mask] .= photon_flux_out[mask] * γ_pf_ISM^3
+            photon_flux_synch[.!mask] .= 1.0e-99
         end
 
     end # loop over emission types
@@ -232,13 +232,13 @@ function get_summed_emission(
         # Fill the correct emission array with the summed emission; fill the rest with zero emission
         if k == 1
             photon_flux_pion .= photon_flux_out
-            photon_flux_pion[:,n_shells+1:end] .= 1e-99
+            photon_flux_pion[:, (n_shells + 1):end] .= 1.0e-99
         elseif k == 2
             photon_flux_synch .= photon_flux_out
-            photon_flux_synch[:,n_shells+1:end] .= 1e-99
+            photon_flux_synch[:, (n_shells + 1):end] .= 1.0e-99
         elseif k == 3
             photon_flux_IC .= photon_flux_out
-            photon_flux_IC[:,n_shells+1:end] .= 1e-99
+            photon_flux_IC[:, (n_shells + 1):end] .= 1.0e-99
         end
 
     end
@@ -258,26 +258,26 @@ function get_summed_emission(
     # All three emission spectra use logarithmic energy scales with the same number of bins
     # per decade in energy. So determine where the first bin of each spectrum falls in the
     # summed spectrum
-    n_pion_start  = trunc(Int, log10(Eᵧ_pion_min  / Eᵧ_min) * n_bins_per_decade)
+    n_pion_start = trunc(Int, log10(Eᵧ_pion_min / Eᵧ_min) * n_bins_per_decade)
     n_synch_start = trunc(Int, log10(Eᵧ_synch_min / Eᵧ_min) * n_bins_per_decade)
-    n_ic_start    = trunc(Int, log10(Eᵧ_IC_min    / Eᵧ_min) * n_bins_per_decade)
+    n_ic_start = trunc(Int, log10(Eᵧ_IC_min / Eᵧ_min) * n_bins_per_decade)
 
 
     # Loop over spectral shells, creating a total spectrum for each
-    fill!(photon_flux_out, 1e-99) # "zero" out array
+    fill!(photon_flux_out, 1.0e-99) # "zero" out array
     for n in 1:n_shells
 
         # Add pion spectrum to total
         n_photon = n_photon_pion - 1
-        n_start  = n_pion_start
+        n_start = n_pion_start
 
         for j in 1:n_photon
-            photon_flux_out[n_start+j,n] = photon_flux_pion[j,n]
+            photon_flux_out[n_start + j, n] = photon_flux_pion[j, n]
 
-            if photon_flux_pion[j,n] > 1e-99
-                photon_flux_pion[j,n] = log10(photon_flux_pion[j,n] / ΔlogE)
+            if photon_flux_pion[j, n] > 1.0e-99
+                photon_flux_pion[j, n] = log10(photon_flux_pion[j, n] / ΔlogE)
             else
-                photon_flux_pion[j,n] = -99
+                photon_flux_pion[j, n] = -99
             end
         end
 
@@ -290,19 +290,19 @@ function get_summed_emission(
 
 
     # Sum all spectral shells into a single, total, spectrum
-    photon_flux_tot = sum(photon_flux_out[1:n_pts_sum,1:n_shells], dims=2)
+    photon_flux_tot = sum(photon_flux_out[1:n_pts_sum, 1:n_shells], dims = 2)
 
     # Return spectral regions to log space, flux per d(logE).
     for j in 1:n_pts_sum
         for n in 1:n_shells
-            if photon_flux_out[j,n] > 1e-96
-                photon_flux_out[j,n] = log10(photon_flux_out[j,n] / ΔlogE)
+            if photon_flux_out[j, n] > 1.0e-96
+                photon_flux_out[j, n] = log10(photon_flux_out[j, n] / ΔlogE)
             else
-                photon_flux_out[j,n] = -99.0
+                photon_flux_out[j, n] = -99.0
             end
         end
 
-        if photon_flux_tot[j] > 1e-96
+        if photon_flux_tot[j] > 1.0e-96
             photon_flux_tot[j] = log10(photon_flux_tot[j] / ΔlogE)
         else
             photon_flux_tot[j] = -99.0
@@ -317,9 +317,11 @@ function get_summed_emission(
     # *energy* fluxes (rather than number fluxes) takes slightly different formula.
     #-------------------------------------------------------------------------
     log_energy_MeV_out = zeros(0:n_pts_sum)
-    log_energy_MeV_out[1:n_pts_sum] .= range(start  = log10(Eᵧ_min_MeV),
-                                             step   = ΔlogE,
-                                             length = n_pts_sum)
+    log_energy_MeV_out[1:n_pts_sum] .= range(
+        start = log10(Eᵧ_min_MeV),
+        step = ΔlogE,
+        length = n_pts_sum
+    )
 
     # Create histograms for summed emission
     create_histograms(n_shells, n_pts_sum, photon_flux_out, log_energy_MeV_out)
@@ -333,7 +335,7 @@ function get_summed_emission(
             log_energy_MeV_out[1:n_photon] .= log_energy_MeV_pion[1:n_photon]
             photon_flux_out[1:n_photon, 1:n_shells] .= photon_flux_pion[1:n_photon, 1:n_shells]
 
-            j_unit = open(status="unknown", file="./photon_pion_summed.dat")
+            j_unit = open(status = "unknown", file = "./photon_pion_summed.dat")
 
         elseif k == 2
             n_photon = n_photon_synch - 1
@@ -341,7 +343,7 @@ function get_summed_emission(
             log_energy_MeV_out[1:n_photon] .= log_energy_MeV_synch[1:n_photon]
             photon_flux_out[1:n_photon, 1:n_shells] .= photon_flux_synch[1:n_photon, 1:n_shells]
 
-            j_unit = open(status="unknown", file="./photon_synch_summed.dat")
+            j_unit = open(status = "unknown", file = "./photon_synch_summed.dat")
 
         elseif k == 3
             n_photon = n_photon_IC - 1
@@ -349,7 +351,7 @@ function get_summed_emission(
             log_energy_MeV_out[1:n_photon] .= log_energy_MeV_IC[1:n_photon]
             photon_flux_out[1:n_photon, 1:n_shells] .= photon_flux_IC[1:n_photon, 1:n_shells]
 
-            j_unit = open(status="unknown", file="./photon_IC_summed.dat")
+            j_unit = open(status = "unknown", file = "./photon_IC_summed.dat")
 
         end
 
@@ -358,29 +360,33 @@ function get_summed_emission(
 
             for j in 1:n_photon
 
-                photon_flux = photon_flux_out[j,n]
-                log_energy_MeV  = log_energy_MeV_out[j]
+                photon_flux = photon_flux_out[j, n]
+                log_energy_MeV = log_energy_MeV_out[j]
                 if photon_flux > -98
                     energy_flux_MeV = photon_flux + log_energy_MeV
                 else
                     energy_flux_MeV = -99.0
                 end
 
-                write(j_unit, # photon_***_summed.dat
-                      n, j_plot,
-                      photon_flux,          # 1 log10(photons/(cm²⋅sec))
-                      log_energy_MeV,       # 2 log10(MeV)
-                      energy_flux_MeV)      # 3 log10(MeV/(cm²⋅sec))
+                write(
+                    j_unit, # photon_***_summed.dat
+                    n, j_plot,
+                    photon_flux,          # 1 log10(photons/(cm²⋅sec))
+                    log_energy_MeV,       # 2 log10(MeV)
+                    energy_flux_MeV,      # 3 log10(MeV/(cm²⋅sec))
+                )
 
                 j_plot += 1
-                log_energy_MeV = log_energy_MeV_out[j+1]
+                log_energy_MeV = log_energy_MeV_out[j + 1]
 
                 if j != n_photon
-                    write(j_unit, # photon_***_summed.dat
-                          n, j_plot,
-                          photon_flux,      # 1 log10(photons/(cm²⋅sec))
-                          log_energy_MeV,   # 2 log10(MeV)
-                          energy_flux_MeV)  # 3 log10(MeV/(cm²⋅sec))
+                    write(
+                        j_unit, # photon_***_summed.dat
+                        n, j_plot,
+                        photon_flux,      # 1 log10(photons/(cm²⋅sec))
+                        log_energy_MeV,   # 2 log10(MeV)
+                        energy_flux_MeV,  # 3 log10(MeV/(cm²⋅sec))
+                    )
                 end
 
                 j_plot += 1
@@ -404,6 +410,8 @@ function get_summed_emission(
 
     #deallocate(photon_flux_in, photon_flux_out)
     #deallocate(photon_flux_pion, photon_flux_synch, photon_flux_IC)
+
+    return
 end
 
 function read_in_emission_data()
@@ -461,12 +469,12 @@ function read_in_emission_data()
         # If more than one pion decay or IC spectrum was generated, handle this part differently.
         if k == 1 && skip_pion_read
             photon_flux_in[1:n_photon, i_grid_start[k]:n_grid] .= pion_photon_sum[1:n_photon, i_grid_start[k]:n_grid]
-            log_energy_MeV_in[1:n_photon] .= log10.(E_pion[1:n_photon]/1MeV)
+            log_energy_MeV_in[1:n_photon] .= log10.(E_pion[1:n_photon] / 1MeV)
 
         elseif k == 3 && skip_IC_read
 
             photon_flux_in[1:n_photon, i_grid_start[k]:n_grid] .= ic_photon_sum[1:n_photon, i_grid_start[k]:n_grid]
-            log_energy_MeV_in[1:n_photon] .= log10.(E_IC[1:n_photon]/1MeV)
+            log_energy_MeV_in[1:n_photon] .= log10.(E_IC[1:n_photon] / 1MeV)
 
         elseif k == 2 # Make sure different formats of synchrotron and other emission processes are managed
 
@@ -479,11 +487,11 @@ function read_in_emission_data()
                     log_energy_MeV_in[j],               # 2 log10(MeV)
                 ) = read(grid_file_unit)  # photon_***.dat
             end
-            read(grid_file_unit,"(2I5,8ES12.3E2)") # Advance past output from print_plot_vals
+            read(grid_file_unit, "(2I5,8ES12.3E2)") # Advance past output from print_plot_vals
 
 
             # Loop over remaining grid zones
-            for i in i_grid_start[k]+1:n_grid
+            for i in (i_grid_start[k] + 1):n_grid
                 # Each spectra read in after the first is given a simple error check -- do
                 # the energy bins match previously read-in energy bins? -- before being
                 # included in photon_flux_in
@@ -502,16 +510,17 @@ function read_in_emission_data()
 
                     log_energy_MeV_tmp != log_energy_MeV_in[j] && error(
                         "Energy bins for read-in spectra do not match. ",
-                        "log_energy_MeV_in[$j] = ",log_energy_MeV_in[j],". log_energy_MeV_tmp[$j] = ",log_energy_MeV_tmp)
+                        "log_energy_MeV_in[$j] = ", log_energy_MeV_in[j], ". log_energy_MeV_tmp[$j] = ", log_energy_MeV_tmp
+                    )
 
-                    photon_flux_in[j,i] = photon_flux_tmp
+                    photon_flux_in[j, i] = photon_flux_tmp
 
                 end
 
                 # Again, exit the loop if downstream FEB means some grid zones don't have emission recorded
                 m < 0 && break
 
-                read(grid_file_unit,"(2I5,8ES12.3E2)") # Advance past output of print_plot_vals
+                read(grid_file_unit, "(2I5,8ES12.3E2)") # Advance past output of print_plot_vals
 
             end # loop over grid zones
 
@@ -527,11 +536,11 @@ function read_in_emission_data()
                     log_energy_MeV_in[j],               # 3 log10(MeV)
                 ) = read(grid_file_unit)  # photon_***.dat
             end
-            read(grid_file_unit,"(2I4,F5.1,48ES12.3E2)") # Advance past output of print_plot_vals
+            read(grid_file_unit, "(2I4,F5.1,48ES12.3E2)") # Advance past output of print_plot_vals
 
 
             # Loop over remaining grid zones
-            for i in i_grid_start[k]+1:n_grid
+            for i in (i_grid_start[k] + 1):n_grid
                 # Each spectra read in after the first is given a simple error check -- do
                 # the energy bins match previously read-in energy bins? -- before being
                 # included in photon_flux_in
@@ -551,9 +560,10 @@ function read_in_emission_data()
 
                     log_energy_MeV_tmp != log_energy_MeV_in[j] && error(
                         "Energy bins for read-in spectra do not match. ",
-                        "log_energy_MeV_in[$j] = ",log_energy_MeV_in[j],". log_energy_MeV_tmp[$j] = ",log_energy_MeV_tmp)
+                        "log_energy_MeV_in[$j] = ", log_energy_MeV_in[j], ". log_energy_MeV_tmp[$j] = ", log_energy_MeV_tmp
+                    )
 
-                    photon_flux_in[j,i] = photon_flux_tmp
+                    photon_flux_in[j, i] = photon_flux_tmp
                 end
 
                 # Again, exit the loop if downstream FEB means some grid zones don't have emission recorded
@@ -568,18 +578,19 @@ function read_in_emission_data()
         # Assign the temporary array to the emission-specific array for further handling.
         # Additionally, convert it from log space to linear space.
         if k == 1
-            photon_flux_pion     .= exp10.(photon_flux_in)
-            log_energy_MeV_pion  .= log_energy_MeV_in
+            photon_flux_pion .= exp10.(photon_flux_in)
+            log_energy_MeV_pion .= log_energy_MeV_in
         elseif k == 2
-            photon_flux_synch    .= exp10.(photon_flux_in)
+            photon_flux_synch .= exp10.(photon_flux_in)
             log_energy_MeV_synch .= log_energy_MeV_in
         elseif k == 3
-            photon_flux_IC       .= exp10.(photon_flux_in)
-            log_energy_MeV_IC    .= log_energy_MeV_in
+            photon_flux_IC .= exp10.(photon_flux_in)
+            log_energy_MeV_IC .= log_energy_MeV_in
         end
 
         close(grid_file_unit)
     end
+    return
 end
 
 function pion_emission(pion_photon_sum, n_photon_pion, n_grid, i_grid_start, i_grid_end, E_pion)
@@ -592,31 +603,33 @@ function pion_emission(pion_photon_sum, n_photon_pion, n_grid, i_grid_start, i_g
     # production due to pion decay
     i_grid_start[1] = n_grid + 1
     for i in 1:n_grid
-        if count(pion_photon_sum[:,i] .> -90) ≥ 1
+        if count(pion_photon_sum[:, i] .> -90) ≥ 1
 
             # Find first/last position with photon production, since that task
             # would normally be handled during read-in from files
             i_grid_start[1] = min(i_grid_start[1], i)
-            i_grid_end[1]   = i
+            i_grid_end[1] = i
 
             j_plot = 0
-            for j in 1:n_photon_pion-1
+            for j in 1:(n_photon_pion - 1)
                 j_plot += 1
 
-                log_energy_γ_MeV = log10(E_pion[j]/1MeV)
-                photon_flux  = pion_photon_sum[j,i]
+                log_energy_γ_MeV = log10(E_pion[j] / 1MeV)
+                photon_flux = pion_photon_sum[j, i]
                 if photon_flux > -99
                     emis_γ_MeV = photon_flux + log_energy_γ_MeV
                 else
                     emis_γ_MeV = -99.0
                 end
 
-                write(grid_file_unit, # photon_pion_decay_grid.dat
-                      i, j_plot,
-                      photon_flux,                  # 1 log10(photons/(cm²⋅sec))
-                      log_energy_γ_MeV,             # 2 log10(MeV)
-                      emis_γ_MeV,                   # 3 log10[MeV/(cm²⋅sec)] at Earth
-                      photon_flux-log_energy_γ_MeV) # 4 log10[photons/(cm²⋅sec⋅MeV)]
+                write(
+                    grid_file_unit, # photon_pion_decay_grid.dat
+                    i, j_plot,
+                    photon_flux,                    # 1 log10(photons/(cm²⋅sec))
+                    log_energy_γ_MeV,               # 2 log10(MeV)
+                    emis_γ_MeV,                     # 3 log10[MeV/(cm²⋅sec)] at Earth
+                    photon_flux - log_energy_γ_MeV  # 4 log10[photons/(cm²⋅sec⋅MeV)]
+                )
             end
             print_plot_vals(grid_file_unit)
 
@@ -624,10 +637,12 @@ function pion_emission(pion_photon_sum, n_photon_pion, n_grid, i_grid_start, i_g
     end
 
     close(grid_file_unit)
+
+    return
 end
 
 function inverse_compton_emission(ic_photon_sum, n_grid, i_grid_start, i_grid_end, n_photon_IC, E_IC)
-    ic_photon_sum .= log10(ic_photon_sum[:,:])
+    ic_photon_sum .= log10(ic_photon_sum[:, :])
 
     # Make sure we're writing to photon_IC_grid.dat, and at the end of the file.
     # Note that since IC emission is separated by field, this file should not exist
@@ -638,31 +653,33 @@ function inverse_compton_emission(ic_photon_sum, n_grid, i_grid_start, i_grid_en
     # production due to pion decay
     i_grid_start[3] = n_grid + 1
     for i in 1:n_grid
-        if count(ic_photon_sum[:,i] > -90) ≥ 1
+        if count(ic_photon_sum[:, i] > -90) ≥ 1
 
             # Find first/last position with photon production, since that task would
             # normally be handled during read-in from files
             i_grid_start[3] = min(i_grid_start[3], i)
-            i_grid_end[3]   = i
+            i_grid_end[3] = i
 
             j_plot = 0
-            for j in 1:n_photon_IC-1
+            for j in 1:(n_photon_IC - 1)
                 j_plot += 1
 
-                log_energy_γ_MeV = log10(E_IC[j]/1MeV)
-                photon_flux  = ic_photon_sum[j,i]
+                log_energy_γ_MeV = log10(E_IC[j] / 1MeV)
+                photon_flux = ic_photon_sum[j, i]
                 if photon_flux > -99
                     emis_γ_MeV = photon_flux + log_energy_γ_MeV
                 else
                     emis_γ_MeV = -99.0
                 end
 
-                write(grid_file_unit, # photon_IC_grid.dat
-                      i, j_plot,
-                      photon_flux,              # 1 log10(photons/(cm²⋅sec))
-                      log_energy_γ_MeV,         # 2 log10(MeV)
-                      emis_γ_MeV,               # 3 log10[MeV/(cm²⋅sec)] at Earth
-                      photon_flux-log_energy_γ_MeV) # 4 log10[photons/(cm²⋅sec⋅MeV)]
+                write(
+                    grid_file_unit, # photon_IC_grid.dat
+                    i, j_plot,
+                    photon_flux,                    # 1 log10(photons/(cm²⋅sec))
+                    log_energy_γ_MeV,               # 2 log10(MeV)
+                    emis_γ_MeV,                     # 3 log10[MeV/(cm²⋅sec)] at Earth
+                    photon_flux - log_energy_γ_MeV, # 4 log10[photons/(cm²⋅sec⋅MeV)]
+                )
             end
             print_plot_vals(grid_file_unit)
 
@@ -670,38 +687,43 @@ function inverse_compton_emission(ic_photon_sum, n_grid, i_grid_start, i_grid_en
     end
 
     close(grid_file_unit)
+    return
 end
 
 function create_histograms(n_shells, n_pts_sum, photon_flux_out, log_energy_MeV_out)
-    j_unit = open(status="unknown", file="./photon_tot_summed.dat")
+    j_unit = open(status = "unknown", file = "./photon_tot_summed.dat")
     for n in 1:n_shells
         j_plot = 1
 
         for j in 1:n_pts_sum
 
-            photon_flux = photon_flux_out[j,n]
-            log_energy_MeV  = log_energy_MeV_out[j]
+            photon_flux = photon_flux_out[j, n]
+            log_energy_MeV = log_energy_MeV_out[j]
             if photon_flux > -98
                 energy_flux_MeV = photon_flux + log_energy_MeV
             else
                 energy_flux_MeV = -99.0
             end
 
-            write(j_unit,             # photon_tot_summed.dat
-                  n, j_plot,
-                  photon_flux,          # 1 log10(photons/(cm²⋅sec))
-                  log_energy_MeV,       # 2 log10(MeV)
-                  energy_flux_MeV)      # 3 log10(MeV/(cm²⋅sec))
+            write(
+                j_unit,             # photon_tot_summed.dat
+                n, j_plot,
+                photon_flux,            # 1 log10(photons/(cm²⋅sec))
+                log_energy_MeV,         # 2 log10(MeV)
+                energy_flux_MeV,        # 3 log10(MeV/(cm²⋅sec))
+            )
 
             j_plot += 1
-            log_energy_MeV = log_energy_MeV_out[j+1]
+            log_energy_MeV = log_energy_MeV_out[j + 1]
 
             if j != n_pts_sum
-                write(j_unit,         # photon_tot_summed.dat
-                      n, j_plot,
-                      photon_flux,      # 1 log10(photons/(cm²⋅sec))
-                      log_energy_MeV,   # 2 log10(MeV)
-                      energy_flux_MeV)  # 3 log10(MeV/(cm²⋅sec))
+                write(
+                    j_unit,         # photon_tot_summed.dat
+                    n, j_plot,
+                    photon_flux,        # 1 log10(photons/(cm²⋅sec))
+                    log_energy_MeV,     # 2 log10(MeV)
+                    energy_flux_MeV,    # 3 log10(MeV/(cm²⋅sec))
+                )
             end
 
             j_plot += 1
@@ -712,42 +734,47 @@ function create_histograms(n_shells, n_pts_sum, photon_flux_out, log_energy_MeV_
 
     end # loop over spectral locations
     close(j_unit)
+    return
 end
 
 function create_total_emission_histogram(n_pts_sum, ΔlogE, log_energy_MeV_out, photon_flux_tot, Eᵧ_min_MeV)
-    log_energy_MeV_out[1:n_pts_sum] .= range(start = log10(Eᵧ_min_MeV),
-                                             step = ΔlogE,
-                                             length = n_pts_sum)
+    log_energy_MeV_out[1:n_pts_sum] .= range(
+        start = log10(Eᵧ_min_MeV), step = ΔlogE, length = n_pts_sum
+    )
 
-    j_unit = open(status="unknown", file="./photon_tot.dat")
+    j_unit = open(status = "unknown", file = "./photon_tot.dat")
 
     j_plot = 1
 
     for j in 1:n_pts_sum
 
         photon_flux = photon_flux_tot[j]
-        log_energy_MeV  = log_energy_MeV_out[j]
+        log_energy_MeV = log_energy_MeV_out[j]
         if photon_flux > -98.0
             energy_flux_MeV = photon_flux + log_energy_MeV
         else
             energy_flux_MeV = -99.0
         end
 
-        write(j_unit,   # photon_tot.dat
-              j, j_plot,
-              photon_flux,                      # 1 log10(photons/(cm²⋅sec))
-              log_energy_MeV,                   # 2 log10(MeV)
-              energy_flux_MeV)                  # 3 log10(MeV/(cm²⋅sec))
+        write(
+            j_unit,   # photon_tot.dat
+            j, j_plot,
+            photon_flux,                    # 1 log10(photons/(cm²⋅sec))
+            log_energy_MeV,                 # 2 log10(MeV)
+            energy_flux_MeV,                # 3 log10(MeV/(cm²⋅sec))
+        )
 
         j_plot += 1
-        log_energy_MeV = log_energy_MeV_out[j+1]
+        log_energy_MeV = log_energy_MeV_out[j + 1]
 
         if j != n_pts_sum
-            write(j_unit, # photon_tot.dat
-                  j, j_plot,
-                  photon_flux,                  # 1 log10(photons/(cm²⋅sec))
-                  log_energy_MeV,               # 2 log10(MeV)
-                  energy_flux_MeV)              # 3 log10(MeV/(cm²⋅sec))
+            write(
+                j_unit, # photon_tot.dat
+                j, j_plot,
+                photon_flux,                # 1 log10(photons/(cm²⋅sec))
+                log_energy_MeV,             # 2 log10(MeV)
+                energy_flux_MeV,            # 3 log10(MeV/(cm²⋅sec))
+            )
         end
 
         j_plot += 1
@@ -756,49 +783,52 @@ function create_total_emission_histogram(n_pts_sum, ΔlogE, log_energy_MeV_out, 
 
     print_plot_vals(j_unit)
     close(j_unit)
+    return
 end
 
 function sum_spectral_regions()
     for n in 1:n_shells
 
         nn_lo = n_shell_endpoints[n]
-        nn_hi = n_shell_endpoints[n+1]-1
+        nn_hi = n_shell_endpoints[n + 1] - 1
 
         # Sum over second dimension in photon_flux_in, from nn_lo to nn_hi
-        photon_flux_out[1:n_photon,n] .= sum(photon_flux_in[1:n_photon, nn_lo:nn_hi], dims=2)
+        photon_flux_out[1:n_photon, n] .= sum(photon_flux_in[1:n_photon, nn_lo:nn_hi], dims = 2)
 
         # Quick check to eliminate sums of "zeros"
         for j in 1:n_photon
-            if photon_flux_out[j,n] < 1e-95
-                photon_flux_out[j,n] = 1e-99
+            if photon_flux_out[j, n] < 1.0e-95
+                photon_flux_out[j, n] = 1.0e-99
             end
         end
     end
+    return
 end
 function sum_synch_IC_spectra()
     n_photon = n_photon_synch - 1
-    n_start  = n_synch_start
+    n_start = n_synch_start
 
     for j in 1:n_photon
-        photon_flux_out[n_start+j,n] += photon_flux_synch[j,n]
+        photon_flux_out[n_start + j, n] += photon_flux_synch[j, n]
 
-        if photon_flux_synch[j,n] > 1e-99
-            photon_flux_synch[j,n] = log10(photon_flux_synch[j,n] / ΔlogE)
+        if photon_flux_synch[j, n] > 1.0e-99
+            photon_flux_synch[j, n] = log10(photon_flux_synch[j, n] / ΔlogE)
         else
-            photon_flux_synch[j,n] = -99.0
+            photon_flux_synch[j, n] = -99.0
         end
     end
 
     n_photon = n_photon_IC - 1
-    n_start  = n_ic_start
+    n_start = n_ic_start
 
     for j in 1:n_photon
-        photon_flux_out[n_start+j,n] += photon_flux_IC[j,n]
+        photon_flux_out[n_start + j, n] += photon_flux_IC[j, n]
 
-        if photon_flux_IC[j,n] > 1e-99
-            photon_flux_IC[j,n] = log10(photon_flux_IC[j,n] / ΔlogE)
+        if photon_flux_IC[j, n] > 1.0e-99
+            photon_flux_IC[j, n] = log10(photon_flux_IC[j, n] / ΔlogE)
         else
-            photon_flux_IC[j,n] = -99.0
+            photon_flux_IC[j, n] = -99.0
         end
     end
+    return
 end

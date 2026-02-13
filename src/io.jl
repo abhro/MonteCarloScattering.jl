@@ -28,17 +28,17 @@ function tcut_print(
     # Set a floor on the array values, and normalize spectra_coupled so that each spectrum
     # has a total weight of 1 (actual weight, of course, is the entry in weight_coupled)
     for i_ion in 1:n_ions, i_cut in 1:n_tcuts
-        if weight_coupled[i_cut,i_ion] < 1e-60
-            weight_coupled[i_cut,i_ion] = 1e-99
+        if weight_coupled[i_cut, i_ion] < 1.0e-60
+            weight_coupled[i_cut, i_ion] = 1.0e-99
         end
 
-        if sum(spectra_coupled[:,i_cut,i_ion]) > 1e-99
-            spectra_coupled[:,i_cut,i_ion] = spectra_coupled[:,i_cut,i_ion] / sum(spectra_coupled[:,i_cut,i_ion])
+        if sum(spectra_coupled[:, i_cut, i_ion]) > 1.0e-99
+            spectra_coupled[:, i_cut, i_ion] = spectra_coupled[:, i_cut, i_ion] / sum(spectra_coupled[:, i_cut, i_ion])
         end
 
         for i_pt in 0:num_psd_mom_bins
-            if spectra_coupled[i_pt,i_cut,i_ion] < 1e-60
-                spectra_coupled[i_pt,i_cut,i_ion] = 1e-99
+            if spectra_coupled[i_pt, i_cut, i_ion] < 1.0e-60
+                spectra_coupled[i_pt, i_cut, i_ion] = 1.0e-99
             end
         end
     end
@@ -60,7 +60,7 @@ function tcut_print(
         # XXX how does hdf5 actually index these things? probably two levels of
         # indexing isn't even necessasry
         spectra_fileunit[i_ion]["psd_mom_bounds"] = psd_mom_bounds     # cgs units
-        spectra_fileunit[i_ion]["psd_mom_bounds_nat"] = log10.(psd_mom_bounds/(mp*c))  # nat units
+        spectra_fileunit[i_ion]["psd_mom_bounds_nat"] = log10.(psd_mom_bounds / (mp * c))  # nat units
         spectra_fileunit[i_ion]["spectra"] = log10.(spectra_coupled)
 
         print_plot_vals(spectra_fileunit)
@@ -72,6 +72,7 @@ function tcut_print(
     #    close(weights_fileunit)
     #    close(spectra_fileunit)
     #end
+    return
 end
 
 """
@@ -103,41 +104,50 @@ function print_input(
         r_comp, u₀, β₀, γ₀, u₂, β₂, γ₂, species, bmag₀,
         bmag₂, θ_B₀, θ_B₂, θ_u₂,
         mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine, feb_upstream,
-        feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac)
+        feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac
+    )
 
     n_pts_max = max(n_pts_inj, n_pts_pcut, n_pts_pcut_hi)
-    @info("Array parameters/usage",
-          na_particles, psd_max, n_pts_max, n_ions,
-          num_psd_mom_bins, num_psd_θ_bins, na_c, n_xspec, n_pcuts, n_grid)
+    @info(
+        "Array parameters/usage",
+        na_particles, psd_max, n_pts_max, n_ions,
+        num_psd_mom_bins, num_psd_θ_bins, na_c, n_xspec, n_pcuts, n_grid
+    )
 
     @info("Compression ratios", r_RH, r_comp)
     @info("Shock speeds", u₀, u₂, β₀, β₂, γ₀, γ₂)
-    @info("Particle densities",
-          ρ₀ = density(species[1]),
-          ρ₂ = density(species[1])*γ₀*β₀/(γ₂*β₂))
+    @info(
+        "Particle densities",
+        ρ₀ = density(species[1]),
+        ρ₂ = density(species[1]) * γ₀ * β₀ / (γ₂ * β₂)
+    )
 
     @info("Upstream magnetic field", bmag₀, θ_B₀)
     @info("Downstream magnetic field", bmag₂, θ_B₂, θ_u₂)
 
-    @info("Temperatures",
-          "T₀(proton)" = temperature(species[begin]),
-          "T₀(electron)" = temperature(species[end]))
+    @info(
+        "Temperatures",
+        "T₀(proton)" = temperature(species[begin]),
+        "T₀(electron)" = temperature(species[end])
+    )
 
     @info("Mach numbers", "Mach(sonic)" = mach_sonic, "Mach(Alfven)" = mach_alfven)
 
     @info("Gyroperiod divisions", "N_g(coarse)" = xn_per_coarse, "N_g(fine)" = xn_per_fine)
 
     feb_str = """Free escape boundary
-upstream FEB   = $(feb_upstream/rg₀) rg₀ = $(uconvert(pc, feb_upstream))
-downstream FEB = $(feb_downstream/rg₀) rg₀ = $(uconvert(pc, feb_downstream))
-"""
+    upstream FEB   = $(feb_upstream / rg₀) rg₀ = $(uconvert(pc, feb_upstream))
+    downstream FEB = $(feb_downstream / rg₀) rg₀ = $(uconvert(pc, feb_downstream))
+    """
     @info(feb_str)
 
     @info("Max CR age", age_max)
 
     # Test-particle index from Keshet & Waxman (2005) [2005PhRvL..94k1102K] Eq 23
-    kw_idx_str = @sprintf("Keshet & Waxman (2005) index = %f",
-                          (3β₀ - 2*β₀*β₂^2 + β₂^3) / (β₀ - β₂))
+    kw_idx_str = @sprintf(
+        "Keshet & Waxman (2005) index = %f",
+        (3β₀ - 2 * β₀ * β₂^2 + β₂^3) / (β₀ - β₂)
+    )
     @info(kw_idx_str)
 
 
@@ -147,9 +157,11 @@ downstream FEB = $(feb_downstream/rg₀) rg₀ = $(uconvert(pc, feb_downstream))
 
 
     # Finally a warning about possible complications later
-    if do_fast_push && bturb_comp_frac > 0
-        @warn("Both fast push and amplified B-field turbulence in use. "*
-              "Check flux equations in 'init_pop' for consistency")
+    return if do_fast_push && bturb_comp_frac > 0
+        @warn(
+            "Both fast push and amplified B-field turbulence in use. " *
+                "Check flux equations in 'init_pop' for consistency"
+        )
     end
 end
 
@@ -175,67 +187,68 @@ function print_plot_vals(
         smooth_pressure_flux_psd_fac, energy_transfer_frac, iseed_in
     )
 
-    x_pts_inj   = float(n_pts_inj)
-    x_pts_pcut  = float(n_pts_pcut)
-    xseed       = float(iseed_in)
+    x_pts_inj = float(n_pts_inj)
+    x_pts_pcut = float(n_pts_pcut)
+    xseed = float(iseed_in)
     x_fast_push = do_fast_push ? 66.0 : 0.0
-    x_in_distr  = float(inp_distr)
-    x_DSA       = dont_DSA ? 66.0 : 0.0
-    x_ions      = float(n_ions)
+    x_in_distr = float(inp_distr)
+    x_DSA = dont_DSA ? 66.0 : 0.0
+    x_ions = float(n_ions)
 
     iannt = 3333
-    idum  = 333
+    idum = 333
 
     # WARNING: these column numbers are reused in both subroutine read_old_prof
     # and the plotting program pg_color.f90. If they are ever changed,
     # modify the other codes accordingly!
-    write(iunit,
-          (
-           iannt, idum,
-           u₀/1e5,                          # 1
-           γ₀,                              # 2
-           r_comp,                          # 3
-           r_RH,                            # 4
-           θ_B₀,                            # 5
-           θ_B₂,                            # 6
-           θ_u₂,                            # 7
-           bmag₀,                           # 8
-           feb_upstream/rg₀,                # 9
-           Emax,                            # 10
-           Emax_per_aa,                     # 11
-           pmax/(mp*c),                     # 12
-           x_pts_inj,                       # 13
-           x_pts_pcut,                      # 14
-           xn_per_coarse,                   # 15
-           xn_per_fine,                     # 16
-           mach_sonic,                      # 17
-           mach_alfven,                     # 18
-           x_grid_start_rg,                 # 19
-           xseed,                           # 20
-           x_grid_stop_rg,                  # 21
-           x_fast_push,                     # 22
-           x_fast_stop_rg,                  # 23
-           η_mfp,                           # 24
-           x_art_start_rg,                  # 25
-           x_art_scale,                     # 26
-           feb_downstream/rg₀,              # 27
-           jet_rad_pc,                      # 28
-           jet_sph_frac,                    # 29
-           jet_dist_kpc,                    # 30
-           smooth_mom_energy_fac,           # 31
-           x_in_distr,                      # 32
-           energy_inj,                      # 33
-           smooth_pressure_flux_psd_fac,    # 34
-           x_DSA,                           # 35
-           energy_transfer_frac,            # 36
+    return write(
+        iunit,
+        (
+            iannt, idum,
+            u₀ / 1.0e5,                      # 1
+            γ₀,                              # 2
+            r_comp,                          # 3
+            r_RH,                            # 4
+            θ_B₀,                            # 5
+            θ_B₂,                            # 6
+            θ_u₂,                            # 7
+            bmag₀,                           # 8
+            feb_upstream / rg₀,              # 9
+            Emax,                            # 10
+            Emax_per_aa,                     # 11
+            pmax / (mp * c),                 # 12
+            x_pts_inj,                       # 13
+            x_pts_pcut,                      # 14
+            xn_per_coarse,                   # 15
+            xn_per_fine,                     # 16
+            mach_sonic,                      # 17
+            mach_alfven,                     # 18
+            x_grid_start_rg,                 # 19
+            xseed,                           # 20
+            x_grid_stop_rg,                  # 21
+            x_fast_push,                     # 22
+            x_fast_stop_rg,                  # 23
+            η_mfp,                           # 24
+            x_art_start_rg,                  # 25
+            x_art_scale,                     # 26
+            feb_downstream / rg₀,            # 27
+            jet_rad_pc,                      # 28
+            jet_sph_frac,                    # 29
+            jet_dist_kpc,                    # 30
+            smooth_mom_energy_fac,           # 31
+            x_in_distr,                      # 32
+            energy_inj,                      # 33
+            smooth_pressure_flux_psd_fac,    # 34
+            x_DSA,                           # 35
+            energy_transfer_frac,            # 36
 
-           x_ions,
-           aa_ion,
-           zz_ion,
-           n₀_ion,
-           T₀_ion,
-          )
-         )
+            x_ions,
+            aa_ion,
+            zz_ion,
+            n₀_ion,
+            T₀_ion,
+        )
+    )
 
 end
 print_plot_vals(args...) = error("Fortran holdover function")

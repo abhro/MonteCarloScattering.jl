@@ -29,7 +29,8 @@ Calculate dN(p) (a 1-D array) for the passed slice of PSD in the specified inert
 """
 function get_transform_dN(
         psd, m, transform_corner_pt, transform_corner_ct, γᵤ, i_approx::Integer,
-        num_psd_mom_bins, psd_mom_bounds, psd_mom_axis)
+        num_psd_mom_bins, psd_mom_bounds, psd_mom_axis
+    )
 
     dN_out = zeros(psd_mom_axis)
 
@@ -37,7 +38,7 @@ function get_transform_dN(
     #--------------------------------------------------------------------------
     for j in 0:psd_max, i in 0:psd_max
 
-        psd[i,j] < 1e-66 && continue # Skip empty cells in PSD
+        psd[i, j] < 1.0e-66 && continue # Skip empty cells in PSD
 
         # In the below block, "cell_weight" includes n₀⋅u₁ normalization and division by
         # |vₓ| to change #/(cm²⋅s) to #/cm³. Divide by γ of flow speed as part of
@@ -46,9 +47,11 @@ function get_transform_dN(
         # Obtain cell_weight, p_cell_lo and p_cell_hi
         #----------------------------------------------------------------------
         cell_weight = psd[i, j] / γᵤ
-        (pt_lo_pt, pt_lo_ct, pt_hi_pt, pt_hi_ct,
-         ct_lo_pt, ct_lo_ct, ct_hi_pt, ct_hi_ct,
-         pt_lo_tied, pt_hi_tied) = identify_corners(i, j, transform_corner_pt, transform_corner_ct, m)
+        (
+            pt_lo_pt, pt_lo_ct, pt_hi_pt, pt_hi_ct,
+            ct_lo_pt, ct_lo_ct, ct_hi_pt, ct_hi_ct,
+            pt_lo_tied, pt_hi_tied,
+        ) = identify_corners(i, j, transform_corner_pt, transform_corner_ct, m)
         # Use of m in argument list signals what frame we're in; not used except in case of error/printout
 
         p_cell_lo = pt_lo_pt
@@ -64,22 +67,28 @@ function get_transform_dN(
 
         # Error check to make sure that Lorentz transformations give reasonable results for l_lo
         if p_cell_lo > psd_mom_bounds[end]
-            @warn("In get_dNdp_cr, p_cell_lo > psd_mom_max!",
-                  m, j, i, p_cell_lo, psd_mom_bounds[end])
+            @warn(
+                "In get_dNdp_cr, p_cell_lo > psd_mom_max!",
+                m, j, i, p_cell_lo, psd_mom_bounds[end]
+            )
             l_lo = num_psd_mom_bins
         end
 
 
-        l_hi = findnext(≥(p_cell_hi), # find phase space break FIXME write better comments
-                        psd_mom_bounds,
-                        l_lo) # start searching from l_lo
+        l_hi = findnext( # find phase space break FIXME write better comments
+            ≥(p_cell_hi),
+            psd_mom_bounds,
+            l_lo
+        ) # start searching from l_lo
 
 
         # Error check to make sure that Lorentz transformations give reasonable results
         # for l_hi
-        if p_cell_hi > psd_mom_bounds[num_psd_mom_bins+1]
-            @warn("In get_dNdp_cr, p_cell_hi > psd_mom_max!",
-                  m, j, i, p_cell_hi, psd_mom_bounds[num_psd_mom_bins+1])
+        if p_cell_hi > psd_mom_bounds[num_psd_mom_bins + 1]
+            @warn(
+                "In get_dNdp_cr, p_cell_hi > psd_mom_max!",
+                m, j, i, p_cell_hi, psd_mom_bounds[num_psd_mom_bins + 1]
+            )
             l_hi = num_psd_mom_bins
         end
         #----------------------------------------------------------------------
@@ -112,7 +121,8 @@ function get_transform_dN(
         elseif i_approx == 1 || i_approx == 2
             triangular_distribution!(
                 dN_out, i_approx, p_cell_hi, p_cell_lo,
-                ct_lo_pt, ct_hi_pt, cell_weight, l_lo, l_hi, psd_mom_bounds)
+                ct_lo_pt, ct_hi_pt, cell_weight, l_lo, l_hi, psd_mom_bounds
+            )
         #----------------------------------------------------------------------
         # i_approx = 1, i_approx = 2 finished
 
@@ -167,25 +177,25 @@ TODO
 """
 function uniform_cell_distribution!(dN_out, l_lo, l_hi, p_cell_lo, p_cell_hi, psd_mom_bounds, cell_weight)
     length_tot = 1 / (p_cell_hi - p_cell_lo)
-    p_bottom   = p_cell_lo
+    p_bottom = p_cell_lo
 
     for l in l_lo:l_hi
         # Cell fits entirely within bin of psd_mom_bounds
-        if p_cell_hi < psd_mom_bounds[l_lo+1]
+        if p_cell_hi < psd_mom_bounds[l_lo + 1]
             dN_out[l] += cell_weight
             break
         end
 
         # Top of bin in psd_mom_bounds less than p_cell_hi
-        if psd_mom_bounds[l+1] < p_cell_hi
-            dN_out[l] += cell_weight*(psd_mom_bounds[l+1] - p_bottom) / length_tot
+        if psd_mom_bounds[l + 1] < p_cell_hi
+            dN_out[l] += cell_weight * (psd_mom_bounds[l + 1] - p_bottom) / length_tot
             # Adjust p_bottom to mark counting of current bin
-            p_bottom = psd_mom_bounds[l+1]
+            p_bottom = psd_mom_bounds[l + 1]
         end
 
         # Top of bin in psd_mom_bounds is equal to/greater than p_cell_hi
-        if psd_mom_bounds[l+1] ≥ p_cell_hi
-            dN_out[l] += cell_weight*(p_cell_hi - psd_mom_bounds[l]) / length_tot
+        if psd_mom_bounds[l + 1] ≥ p_cell_hi
+            dN_out[l] += cell_weight * (p_cell_hi - psd_mom_bounds[l]) / length_tot
             break
         end
     end
@@ -197,19 +207,21 @@ end
 
 TODO
 """
-function triangular_distribution!(dN_out, i_approx, p_cell_hi, p_cell_lo,
-                                  ct_lo_pt, ct_hi_pt, cell_weight, l_lo, l_hi, psd_mom_bounds)
+function triangular_distribution!(
+        dN_out, i_approx, p_cell_hi, p_cell_lo,
+        ct_lo_pt, ct_hi_pt, cell_weight, l_lo, l_hi, psd_mom_bounds
+    )
     length_tot = 1 / (p_cell_hi - p_cell_lo)
-    ct_height  = 2 * cell_weight / length_tot # A = 1/2*b*h
+    ct_height = 2 * cell_weight / length_tot # A = 1/2*b*h
 
-    p_bottom     = p_cell_lo
+    p_bottom = p_cell_lo
     if i_approx == 1
-        p_peak   = (p_cell_lo + p_cell_hi) / 2
+        p_peak = (p_cell_lo + p_cell_hi) / 2
     else # i_approx == 2
-        p_peak   = (ct_lo_pt + ct_hi_pt) / 2
+        p_peak = (ct_lo_pt + ct_hi_pt) / 2
     end
-    p_denom_lo   = 1 / (p_peak - p_cell_lo)
-    p_denom_hi   = 1 / (p_cell_hi - p_peak)
+    p_denom_lo = 1 / (p_peak - p_cell_lo)
+    p_denom_hi = 1 / (p_cell_hi - p_peak)
 
     fractional_area = 0 # Total amount of cell_weight accounted for
 
@@ -217,7 +229,7 @@ function triangular_distribution!(dN_out, i_approx, p_cell_hi, p_cell_lo,
 
         # Cell fits entirely within bin of psd_mom_bounds
         #------------------------------------------------------------------
-        if p_cell_hi < psd_mom_bounds[l_lo+1]
+        if p_cell_hi < psd_mom_bounds[l_lo + 1]
             dN_out[l] += cell_weight
             break
         end
@@ -230,12 +242,12 @@ function triangular_distribution!(dN_out, i_approx, p_cell_hi, p_cell_lo,
         # - a triangle if p_bottom = p_cell_lo, or
         # - a trapezoid if p_bottom > p_cell_lo
         #------------------------------------------------------------------
-        if psd_mom_bounds[l+1] ≤ p_peak
+        if psd_mom_bounds[l + 1] ≤ p_peak
             # Calculate current base
-            p_base = psd_mom_bounds[l+1] - p_bottom
+            p_base = psd_mom_bounds[l + 1] - p_bottom
 
             # Calculate right-hand height
-            ct_rh_height = (psd_mom_bounds[l+1] - p_cell_lo) * p_denom_lo * ct_height
+            ct_rh_height = (psd_mom_bounds[l + 1] - p_cell_lo) * p_denom_lo * ct_height
 
             # Calculate left-hand height, taking advantage of right triangle similarity
             if p_bottom == p_cell_lo
@@ -245,11 +257,11 @@ function triangular_distribution!(dN_out, i_approx, p_cell_hi, p_cell_lo,
             end
 
             # Calculate partial area and add it to dN_out
-            partial_area = p_base/2 * (ct_lh_height + ct_rh_height)
+            partial_area = p_base / 2 * (ct_lh_height + ct_rh_height)
             dN_out[l] += partial_area
 
             # Adjust p_bottom to mark counting of current bin, update fractional_area...
-            p_bottom = psd_mom_bounds[l+1]
+            p_bottom = psd_mom_bounds[l + 1]
             fractional_area += partial_area
 
             # ...and move on to next bin
@@ -262,21 +274,21 @@ function triangular_distribution!(dN_out, i_approx, p_cell_hi, p_cell_lo,
         # Top of bin in psd_mom_bounds between p_peak and p_cell_hi; area
         # is remaining area minus missing triangle at right
         #------------------------------------------------------------------
-        if psd_mom_bounds[l+1] < p_cell_hi
+        if psd_mom_bounds[l + 1] < p_cell_hi
             # Calculate missing base
-            p_base = p_cell_hi - psd_mom_bounds[l+1]
+            p_base = p_cell_hi - psd_mom_bounds[l + 1]
 
             # Calculate left-hand height of missing area, taking advantage
             # of right triangle similarity
             ct_lh_height = p_base * p_denom_hi * ct_height
 
             # Calculate missing area and partial area and add it to dN_out
-            missing_area = p_base/2 * ct_lh_height
+            missing_area = p_base / 2 * ct_lh_height
             partial_area = (cell_weight - fractional_area) - missing_area
             dN_out[l] += partial_area
 
             # Adjust p_bottom to mark counting of current bin, update fractional_area
-            p_bottom = psd_mom_bounds[l+1]
+            p_bottom = psd_mom_bounds[l + 1]
             fractional_area += partial_area
 
             # ...and move on to next bin
@@ -289,7 +301,7 @@ function triangular_distribution!(dN_out, i_approx, p_cell_hi, p_cell_lo,
         # Top of bin in psd_mom_bounds above p_cell_hi; area is remaining
         # fraction of total
         #------------------------------------------------------------------
-        if psd_mom_bounds[l+1] ≥ p_cell_hi
+        if psd_mom_bounds[l + 1] ≥ p_cell_hi
             # Calculate partial area and add it to dN_out
             dN_out[l] += cell_weight - fractional_area
             break
@@ -306,28 +318,28 @@ end
 TODO
 """
 function track_pitch_angles(
-    m, i_ct_pt_sk_min, psd_mom_bounds, rest_mass, utsk_cm, cell_weight,
-    proton_num_density_upstream, cθ_sk_xw,
-    ct_bounds, cθ_ef_xw, cθ_pf_xw, i, j,
-    pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct,
-    pt_lo_pt, pt_hi_pt, ct_lo_pt, ct_hi_pt,
-)
+        m, i_ct_pt_sk_min, psd_mom_bounds, rest_mass, utsk_cm, cell_weight,
+        proton_num_density_upstream, cθ_sk_xw,
+        ct_bounds, cθ_ef_xw, cθ_pf_xw, i, j,
+        pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct,
+        pt_lo_pt, pt_hi_pt, ct_lo_pt, ct_hi_pt,
+    )
     # Adjust cell_weight to remove the velocity-weighting applied in PSD
     if i == 0
         pt_sk = 0.0
-        i_pt_sk  = i_ct_pt_sk_min
+        i_pt_sk = i_ct_pt_sk_min
     else
-        pt_sk = exp10(psd_mom_bounds[i] + psd_mom_bounds[i+1])
+        pt_sk = exp10(psd_mom_bounds[i] + psd_mom_bounds[i + 1])
         pt_sk = √pt_sk * mp * utsk_cm
-        i_pt_sk  = floor(Int, psd_mom_bounds[i])
+        i_pt_sk = floor(Int, psd_mom_bounds[i])
     end
-    γₚ_sk = hypot(1, pt_sk/(rest_mass*c))
+    γₚ_sk = hypot(1, pt_sk / (rest_mass * c))
 
     cell_weight = cell_weight * pt_sk / (γₚ_sk * rest_mass) / proton_num_density_upstream
 
     # Binning shock frame values very easy; just add directly to correct bin of histogram
     if m == 1
-        cθ_sk_xw[j,i_pt_sk] += cell_weight
+        cθ_sk_xw[j, i_pt_sk] += cell_weight
     end
 
 
@@ -335,7 +347,7 @@ function track_pitch_angles(
     # as well as the correct decade of momentum for binning
     ct_cell_lo = min(pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct)
     ct_cell_hi = max(pt_lo_ct, pt_hi_ct, ct_lo_ct, ct_hi_ct)
-    i_pt_pf = floor(Int, (pt_lo_pt + pt_hi_pt + ct_lo_pt + ct_hi_pt)/4)
+    i_pt_pf = floor(Int, (pt_lo_pt + pt_hi_pt + ct_lo_pt + ct_hi_pt) / 4)
 
 
     # Determine the spread in cos(θ)
@@ -346,46 +358,47 @@ function track_pitch_angles(
 
     # Distribute cell weight among all bins crossed by cell
     ct_length_tot = ct_cell_hi - ct_cell_lo
-    ct_bottom     = ct_cell_lo
+    ct_bottom = ct_cell_lo
 
     for l in l_lo:-1:l_hi
         # Cell fits entirely within bin of ct_bounds
-        if ct_cell_hi < ct_bounds[l_lo-1]
+        if ct_cell_hi < ct_bounds[l_lo - 1]
             if m == 2
-                cθ_pf_xw[l-1, i_pt_pf] += cell_weight
+                cθ_pf_xw[l - 1, i_pt_pf] += cell_weight
             elseif m == 3
-                cθ_ef_xw[l-1, i_pt_pf] += cell_weight
+                cθ_ef_xw[l - 1, i_pt_pf] += cell_weight
             end
             break
         end
 
         # Top of bin in ct_bounds less than ct_cell_hi
-        if ct_bounds[l-1] < ct_cell_hi
-            frac_ct_length = (ct_bounds[l-1] - ct_bottom) / ct_length_tot
+        if ct_bounds[l - 1] < ct_cell_hi
+            frac_ct_length = (ct_bounds[l - 1] - ct_bottom) / ct_length_tot
 
             if m == 2
-                cθ_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+                cθ_pf_xw[l - 1, i_pt_pf] += cell_weight * frac_ct_length
             elseif m == 3
-                cθ_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+                cθ_ef_xw[l - 1, i_pt_pf] += cell_weight * frac_ct_length
             end
 
             # Adjust ct_bottom to mark counting of current bin
-            ct_bottom = ct_bounds[l-1]
+            ct_bottom = ct_bounds[l - 1]
         end
 
         # Top of bin in ct_bounds is ≥ ct_cell_hi
-        if ct_bounds[l-1] ≥ ct_cell_hi
+        if ct_bounds[l - 1] ≥ ct_cell_hi
             frac_ct_length = (ct_cell_hi - ct_bounds[l]) / ct_length_tot
 
             if m == 2
-                cθ_pf_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+                cθ_pf_xw[l - 1, i_pt_pf] += cell_weight * frac_ct_length
             elseif m == 3
-                cθ_ef_xw[l-1, i_pt_pf] += cell_weight*frac_ct_length
+                cθ_ef_xw[l - 1, i_pt_pf] += cell_weight * frac_ct_length
             end
 
             break
         end
     end # loop over bins of ct_bounds
+    return
 end
 
 #----------------------------------------------------------------------------
@@ -428,9 +441,10 @@ original xyz frame by taking scalar products along the xyz axes.
 function transform_p_PS(
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot,
         γᵤ_sf, b_cosθ, b_sinθ,
-        mc)
+        mc
+    )
 
-    φ_p = φ_rad + π/2
+    φ_p = φ_rad + π / 2
 
     p_p_cos = p_perp_b_pf * cos(φ_p)
 
@@ -438,11 +452,13 @@ function transform_p_PS(
     #CHECKTHIS: θ in shock frame may be different from θ in plasma frame because of lorentz
     # transformation between the two. Are the next lines correct in light of this?
     #@debug("Momenta and mag fields", pb_pf, p_perp_b_pf, p_p_cos, φ_p, b_cosθ, b_sinθ)
-    p_pf = SVector(pb_pf*b_cosθ - p_p_cos*b_sinθ,
-                   p_perp_b_pf * sin(φ_p),
-                   pb_pf*b_sinθ + p_p_cos*b_cosθ)
+    p_pf = SVector(
+        pb_pf * b_cosθ - p_p_cos * b_sinθ,
+        p_perp_b_pf * sin(φ_p),
+        pb_pf * b_sinθ + p_p_cos * b_cosθ
+    )
 
-    Δpₓ = (γᵤ_sf - 1) * p_pf.x + γᵤ_sf * γₚ_pf * aa*mp * uₓ_sk
+    Δpₓ = (γᵤ_sf - 1) * p_pf.x + γᵤ_sf * γₚ_pf * aa * mp * uₓ_sk
     # xyz shock frame components
     p_sk = SVector(p_pf.x + Δpₓ, p_pf.y, p_pf.z)
 
@@ -454,7 +470,7 @@ function transform_p_PS(
     #p_perp_b_sk = perpendicular_momentum(ptot_sk, pb_sk;
     #                                     warn_str="ptot_sk < pb_sk in transform_p_PS")
 
-    γₚ_sk = hypot(ptot_sk/mc, 1)
+    γₚ_sk = hypot(ptot_sk / mc, 1)
 
     return ptot_sk, p_sk, γₚ_sk
 end
@@ -508,75 +524,84 @@ function transform_p_PSP(
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
         uₓ_sk_old, uz_sk_old, utot_old, γᵤ_sf_old, b_cos_old, b_sin_old,
         uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
-        mc)
+        mc
+    )
 
-    φ_p = φ_rad + π/2
+    φ_p = φ_rad + π / 2
 
     m = aa * mp
 
     p_p_cos = p_perp_b_pf * cos(φ_p)
 
     # xyz (old) plasma frame components
-    p_pf = SVector(pb_pf*b_cos_old - p_p_cos*b_sin_old,
-                   p_perp_b_pf * sin(φ_p),
-                   pb_pf*b_sin_old + p_p_cos*b_cos_old)
+    p_pf = SVector(
+        pb_pf * b_cos_old - p_p_cos * b_sin_old,
+        p_perp_b_pf * sin(φ_p),
+        pb_pf * b_sin_old + p_p_cos * b_cos_old
+    )
 
     # xyz (new) shock frame components
     p_sk = SVector(
-        (((γᵤ_sf_old-1) * (uₓ_sk_old/utot_old)^2 + 1) * p_pf.x +
-         (γᵤ_sf_old-1) * (uₓ_sk_old*uz_sk_old/utot_old^2) * p_pf.z +
-         γᵤ_sf_old * γₚ_pf * m * uₓ_sk_old),
+        (
+            ((γᵤ_sf_old - 1) * (uₓ_sk_old / utot_old)^2 + 1) * p_pf.x +
+                (γᵤ_sf_old - 1) * (uₓ_sk_old * uz_sk_old / utot_old^2) * p_pf.z +
+                γᵤ_sf_old * γₚ_pf * m * uₓ_sk_old
+        ),
         p_pf.y,
-        ((γᵤ_sf_old-1) * (uₓ_sk_old*uz_sk_old/utot_old^2) * p_pf.x +
-         ((γᵤ_sf_old-1) * (uz_sk_old/utot_old)^2 + 1) * p_pf.z +
-         γᵤ_sf_old * γₚ_pf * m * uz_sk_old)
+        (
+            (γᵤ_sf_old - 1) * (uₓ_sk_old * uz_sk_old / utot_old^2) * p_pf.x +
+                ((γᵤ_sf_old - 1) * (uz_sk_old / utot_old)^2 + 1) * p_pf.z +
+                γᵤ_sf_old * γₚ_pf * m * uz_sk_old
+        )
     )
 
     # Parallel/perpendicular (new) shock frame components
     ptot_sk = norm(p_sk)
-    pb_sk = p_sk.x*b_cosθ + p_sk.z*b_sinθ
+    pb_sk = p_sk.x * b_cosθ + p_sk.z * b_sinθ
 
     if ptot_sk < abs(pb_sk)
-        p_perp_b_sk = 1e-6 * ptot_sk
+        p_perp_b_sk = 1.0e-6 * ptot_sk
         pb_sk = copysign(√(ptot_sk^2 - p_perp_b_sk^2), pb_sk)
         @warn("ptot_sk < pb_sk in transform_p_PSP")
     else
         p_perp_b_sk = √(ptot_sk^2 - pb_sk^2)
     end
 
-    γₚ_sk = hypot(ptot_sk/mc, 1)
+    γₚ_sk = hypot(ptot_sk / mc, 1)
 
 
     # xyz (new) plasma frame components
-    p_pf = SVector(( # x-component
-                    ((γᵤ_sf - 1) * (uₓ_sk/utot)^2 + 1) * p_sk.x
-                    + (γᵤ_sf - 1) * (uₓ_sk*uz_sk/utot^2) * p_sk.z
-                    - γᵤ_sf * γₚ_sk * m * uₓ_sk
-                   ),
-                   p_sk.y,
-                   ( # z-component
-                    (γᵤ_sf - 1) * (uₓ_sk*uz_sk/utot^2) * p_sk.x
-                    + ((γᵤ_sf - 1) * (uz_sk/utot)^2 + 1) * p_sk.z
-                    - γᵤ_sf * γₚ_sk * m * uz_sk
-                   ))
+    p_pf = SVector(
+        ( # x-component
+            ((γᵤ_sf - 1) * (uₓ_sk / utot)^2 + 1) * p_sk.x
+                + (γᵤ_sf - 1) * (uₓ_sk * uz_sk / utot^2) * p_sk.z
+                - γᵤ_sf * γₚ_sk * m * uₓ_sk
+        ),
+        p_sk.y,
+        ( # z-component
+            (γᵤ_sf - 1) * (uₓ_sk * uz_sk / utot^2) * p_sk.x
+                + ((γᵤ_sf - 1) * (uz_sk / utot)^2 + 1) * p_sk.z
+                - γᵤ_sf * γₚ_sk * m * uz_sk
+        )
+    )
 
 
     # Parallel/perpendicular (new) plasma frame components, including new phase angle
     ptot_pf = norm(p_pf)
-    pb_pf = p_pf.x*b_cosθ + p_pf.z*b_sinθ
+    pb_pf = p_pf.x * b_cosθ + p_pf.z * b_sinθ
     if ptot_pf < abs(pb_pf)
-        p_perp_b_pf = 1e-6 * ptot_pf
-        pb_pf       = copysign(√(ptot_pf^2 - p_perp_b_pf^2), pb_pf)
+        p_perp_b_pf = 1.0e-6 * ptot_pf
+        pb_pf = copysign(√(ptot_pf^2 - p_perp_b_pf^2), pb_pf)
         @warn("ptot_pf < pb_pf in transform_p_PSP")
     else
         p_perp_b_pf = √(ptot_pf^2 - pb_pf^2)
     end
 
-    γₚ_pf = hypot(ptot_pf/mc, 1)
+    γₚ_pf = hypot(ptot_pf / mc, 1)
 
     # See Figure 14 of Ellison, Baring, Jones (1996) [1996ApJ...473.1029E] for more details on φ_p
-    φ_p = atan(p_pf.y, -p_pf.x*b_sinθ + p_pf.z*b_cosθ)
-    φ_rad = φ_p - π/2
+    φ_p = atan(p_pf.y, -p_pf.x * b_sinθ + p_pf.z * b_cosθ)
+    φ_rad = φ_p - π / 2
 
     return ptot_pf, ptot_sk, p_sk, pb_sk, p_perp_b_sk, γₚ_sk, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad
 end
@@ -603,14 +628,15 @@ FIXME with actual argument list
 """
 function transform_psd_corners(
         γ_in, E₀, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
-        num_psd_mom_bins, psd_mom_bounds)
+        num_psd_mom_bins, psd_mom_bounds
+    )
 
     # Administrative constants
-    βᵤ = γ_in ≥ 1.000001 ? √(1 - 1/γ_in^2) : 0.0 # Prevent floating point issues
+    βᵤ = γ_in ≥ 1.000001 ? √(1 - 1 / γ_in^2) : 0.0 # Prevent floating point issues
 
     # Fill transform_corner_** arrays, looping over angle outermost
-    transform_corner_pt = OffsetMatrix{Float64}(undef, 0:num_psd_mom_bins+1, 0:num_psd_θ_bins+1)
-    transform_corner_ct = OffsetMatrix{Float64}(undef, 0:num_psd_mom_bins+1, 0:num_psd_θ_bins+1)
+    transform_corner_pt = OffsetMatrix{Float64}(undef, 0:(num_psd_mom_bins + 1), 0:(num_psd_θ_bins + 1))
+    transform_corner_ct = OffsetMatrix{Float64}(undef, 0:(num_psd_mom_bins + 1), 0:(num_psd_θ_bins + 1))
     for j in eachindex(psd_θ_bounds)
 
         # Determine current cosine, remembering that psd_θ_bounds has both a linearly-spaced
@@ -634,15 +660,15 @@ function transform_psd_corners(
             #    pt_sk = 0.0 # Edge case when i = 0
             #end
 
-            pₓ_sk   = pt_sk * cosθ
-            etot_sk = hypot(pt_sk*c, E₀)
+            pₓ_sk = pt_sk * cosθ
+            etot_sk = hypot(pt_sk * c, E₀)
 
-            pₓ_Xf  = γ_in * (pₓ_sk - βᵤ*etot_sk/c)
-            pt_Xf  = √(pt_sk^2 + pₓ_Xf^2 - pₓ_sk^2)
+            pₓ_Xf = γ_in * (pₓ_sk - βᵤ * etot_sk / c)
+            pt_Xf = √(pt_sk^2 + pₓ_Xf^2 - pₓ_sk^2)
 
             # Transform to log space because get_dNdp_cr expects it
-            transform_corner_pt[i,j] = log10(pt_Xf)
-            transform_corner_ct[i,j] = pₓ_Xf / pt_Xf
+            transform_corner_pt[i, j] = log10(pt_Xf)
+            transform_corner_ct[i, j] = pₓ_Xf / pt_Xf
 
 
         end # loop over momentum

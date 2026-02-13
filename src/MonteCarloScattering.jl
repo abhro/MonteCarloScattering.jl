@@ -17,20 +17,20 @@ using TOML
 using Logging
 
 module CGSTypes
-using Unitful: g, K, cm, s, dyn, erg, keV, GeV
-using UnitfulGaussian: Fr, G, qcgs
-export LengthCGS, TimeCGS, MomentumCGS, BFieldCGS, EnergyCGS, MomentumFluxCGS,
-       MomentumDensityFluxCGS, EnergyFluxCGS, EnergyDensityFluxCGS
-const LengthCGS              = typeof(1.0 * cm)
-const TimeCGS                = typeof(1.0 * s)
-const MomentumCGS            = typeof(1.0 * g*cm/s)
-const BFieldCGS              = typeof(1.0 * G)
-const EnergyCGS              = typeof(1.0 * erg)
-const EnergyDensityCGS       = typeof(1.0 * erg/cm^3)
-const MomentumFluxCGS        = typeof(1.0 * g*cm^2/s^2) # (g*cm/s) * cm/s
-const MomentumDensityFluxCGS = typeof(1.0 * erg/cm^3)
-const EnergyFluxCGS          = typeof(1.0 * erg*cm/s)
-const EnergyDensityFluxCGS   = typeof(1.0 * erg/(cm^2*s))
+    using Unitful: g, K, cm, s, dyn, erg, keV, GeV
+    using UnitfulGaussian: Fr, G, qcgs
+    export LengthCGS, TimeCGS, MomentumCGS, BFieldCGS, EnergyCGS, MomentumFluxCGS,
+        MomentumDensityFluxCGS, EnergyFluxCGS, EnergyDensityFluxCGS
+    const LengthCGS = typeof(1.0 * cm)
+    const TimeCGS = typeof(1.0 * s)
+    const MomentumCGS = typeof(1.0 * g * cm / s)
+    const BFieldCGS = typeof(1.0 * G)
+    const EnergyCGS = typeof(1.0 * erg)
+    const EnergyDensityCGS = typeof(1.0 * erg / cm^3)
+    const MomentumFluxCGS = typeof(1.0 * g * cm^2 / s^2) # (g*cm/s) * cm/s
+    const MomentumDensityFluxCGS = typeof(1.0 * erg / cm^3)
+    const EnergyFluxCGS = typeof(1.0 * erg * cm / s)
+    const EnergyDensityFluxCGS = typeof(1.0 * erg / (cm^2 * s))
 end
 using .CGSTypes
 
@@ -65,16 +65,16 @@ using .constants: B_CMB0, E₀ₑ
 using .initializers: set_photon_shells
 using .particle_counter: get_normalized_dNdp
 
-zero!(A::AbstractArray{T}) where T = fill!(A, zero(T))
+zero!(A::AbstractArray{T}) where {T} = fill!(A, zero(T))
 
 include("data_input.jl")
 include("main_loops.jl")
 
-function @main(args)
+function (@main)(args)
     # Start the wall clock for this run
     t_start = now()
 
-    global_logger(ConsoleLogger(show_limited=false))
+    global_logger(ConsoleLogger(show_limited = false))
 
     # Get input, control variables, etc.
     cfg_toml = TOML.parsefile("mc_in.toml")
@@ -92,7 +92,7 @@ function @main(args)
 
     η_mfp = get(cfg_toml, "gyrofactor", 1)
 
-    bmag₀ = cfg_toml["B-mag-upstream"]*G
+    bmag₀ = cfg_toml["B-mag-upstream"] * G
     # rg₀ below is the gyroradius of a proton whose speed is u₀ that is gyrating in a field
     # of strength bmag₀. Note that this formula is relativistically correct
     rg₀ = (γ₀ * E₀ₚ * β₀) / (qcgs * bmag₀) |> cm
@@ -104,9 +104,10 @@ function @main(args)
     check_x_grid_limits(x_grid_start_rg, x_grid_stop_rg)
 
     feb_upstream, feb_downstream, use_prp = get_feb(
-            get(cfg_toml, "FEB-upstream", nothing),
-            get(cfg_toml, "FEB-downstream", nothing),
-            x_grid_start_rg, rg₀)
+        get(cfg_toml, "FEB-upstream", nothing),
+        get(cfg_toml, "FEB-downstream", nothing),
+        x_grid_start_rg, rg₀
+    )
 
     x_spec = get(cfg_toml, "XSPEC", Float64[])
     n_xspec = length(x_spec)
@@ -117,13 +118,13 @@ function @main(args)
 
     n_pts_inj = cfg_toml["N_PTS_INJ"]
     n_pts_pcut = cfg_toml["N_PTS_PCUT"]
-    max(n_pts_inj,n_pts_pcut) > na_particles && error("Array size na_particles too small.")
+    max(n_pts_inj, n_pts_pcut) > na_particles && error("Array size na_particles too small.")
 
     n_pts_pcut_hi = cfg_toml["N_PTS_PCUT_HI"]
     energy_pcut_hi = cfg_toml["EN_PCUT_HI"]
     n_pts_pcut_hi > na_particles && error("Array size na_particles too small.")
 
-    pcuts = cfg_toml["momentum-cutoffs"] * mp * c .|> (g*cm/s)
+    pcuts = cfg_toml["momentum-cutoffs"] * mp * c .|> (g * cm / s)
     check_pcuts(pcuts, Emax, Emax_per_aa, pmax)
 
     dont_shock = get(cfg_toml, "no-shock", false)
@@ -142,13 +143,19 @@ function @main(args)
 
     smooth_pressure_flux_psd_fac = get(cfg_toml, "SMPFP", 0)
     if smooth_pressure_flux_psd_fac < 0 || smooth_pressure_flux_psd_fac > 1
-        throw(DomainError(smooth_pressure_flux_psd_fac,
-                          "smooth_pressure_flux_psd_fac/SMPFP must be in [0, 1]"))
+        throw(
+            DomainError(
+                smooth_pressure_flux_psd_fac,
+                "smooth_pressure_flux_psd_fac/SMPFP must be in [0, 1]"
+            )
+        )
     end
     # TODO: actually get pressure calculation working properly
     if smooth_pressure_flux_psd_fac > 0
-        error("SMPFP: code does not properly calculate pressure from PSD. ",
-              "Set to 0 or get this code working")
+        error(
+            "SMPFP: code does not properly calculate pressure from PSD. ",
+            "Set to 0 or get this code working"
+        )
     end
 
     r_comp, r_RH, Γ₂_RH = let
@@ -161,7 +168,7 @@ function @main(args)
     end
 
     β₂, γ₂, bmag₂, θ_B₂, θᵤ₂ = calc_downstream(bmag₀, r_comp, β₀)
-    u₂ = β₂*c |> cm/s
+    u₂ = β₂ * c |> cm / s
     @debug("Results from calc_downstream()", u₂, β₂, γ₂, bmag₂, θ_B₂, θᵤ₂)
 
 
@@ -252,7 +259,7 @@ function @main(args)
 
             age_max < 0s && error("tcut tracking must be used with anaccel time limit. Adjust keyword 'AGEMX'.")
             # Check to make sure we haven't used more tcuts than allowed by na_c
-            (n_tcuts+1) > na_c && error("TCUTS: parameter na_c smaller than desired number of tcuts.")
+            (n_tcuts + 1) > na_c && error("TCUTS: parameter na_c smaller than desired number of tcuts.")
             # Check to make sure final tcut is much larger than age_max so that
             #   we never have to worry about exceeding it
             tcuts[end] ≤ 10age_max && error("TCUTS: final tcut must be much (10x) larger than age_max.")
@@ -283,9 +290,9 @@ function @main(args)
     energy_pool = zeros(n_grid)
 
     # Set quantities related to the phase space distribution, including the bins
-    psd_cos_fine = 1 - 2 / (psd_lin_cos_bins+1)
+    psd_cos_fine = 1 - 2 / (psd_lin_cos_bins + 1)
     psd_θ_fine = acos(psd_cos_fine)
-    psd_θ_min  = psd_θ_fine / exp10(psd_log_θ_decs)
+    psd_θ_min = psd_θ_fine / exp10(psd_log_θ_decs)
     @debug("Phase space angle parameters", psd_cos_fine, psd_θ_fine, psd_θ_min)
 
     if inp_distr == 1
@@ -295,7 +302,7 @@ function @main(args)
     elseif inp_distr == 2
         # Set minimum PSD energy using δ-function dist for upstream plasma;
         # allow for a few extra zones below the location of the distribution
-        Emin = energy_inj/5
+        Emin = energy_inj / 5
     else
         error("Unknown input distribution ", inp_distr)
     end
@@ -306,11 +313,11 @@ function @main(args)
     psd_mom_min = let
         rest_mass_min = minimum(mass.(species))
         rest_energy_min = uconvert(erg, rest_mass_min, MassEnergy())
-        if Emin < 1e-3*rest_energy_min
+        if Emin < rest_energy_min / 1000
             √(2 * rest_mass_min * Emin)
         else
-            γ = 1 + Emin/rest_energy_min
-            rest_mass_min*c * √(γ^2 - 1)
+            γ = 1 + Emin / rest_energy_min
+            rest_mass_min * c * √(γ^2 - 1)
         end
     end
 
@@ -321,35 +328,41 @@ function @main(args)
         rest_mass_max = maximum(mass.(species))
         rest_energy_max = uconvert(erg, rest_mass_max, MassEnergy())
         if Emax > 0keV
-            γ = 1 + Emax/rest_energy_max
-            rest_mass_max*c * √(γ^2 - 1)
+            γ = 1 + Emax / rest_energy_max
+            rest_mass_max * c * √(γ^2 - 1)
         elseif Emax_per_aa > 0keV
-            γ = 1 + Emax_per_aa/E₀ₚ
-            rest_mass_max*c * √(γ^2 - 1)
-        elseif pmax > 0g*cm/s
+            γ = 1 + Emax_per_aa / E₀ₚ
+            rest_mass_max * c * √(γ^2 - 1)
+        elseif pmax > 0g * cm / s
             pmax
         else
             # Something has gone very wrong.
             error("Max CR energy not set in data_input, so can not set PSD bins.")
         end
-    end |> g*cm/s
+    end |> g * cm / s
 
     # Adjust max momentum based on a SF->PF Lorentz transform
     psd_mom_max *= 2γ₀
     num_psd_mom_bins, psd_mom_bounds = set_psd_mom_bins(psd_mom_min, psd_mom_max, psd_bins_per_dec_mom)
     psd_mom_axis = axes(psd_mom_bounds, 1)
-    @debug("Setting PSD momentum parameters",
-           psd_mom_max, num_psd_mom_bins, psd_mom_axis, psd_mom_bounds)
+    @debug(
+        "Setting PSD momentum parameters",
+        psd_mom_max, num_psd_mom_bins, psd_mom_axis, psd_mom_bounds
+    )
     Δcos, psd_θ_bounds = set_psd_angle_bins(psd_bins_per_dec_θ, psd_lin_cos_bins, psd_cos_fine, psd_θ_min)
-    num_psd_θ_bins = length(psd_θ_bounds)-2
+    num_psd_θ_bins = length(psd_θ_bounds) - 2
     psd_θ_axis = axes(psd_θ_bounds, 1)
-    @debug("Setting PSD angle parameters",
-           Δcos, num_psd_θ_bins, psd_θ_axis, psd_θ_bounds)
+    @debug(
+        "Setting PSD angle parameters",
+        Δcos, num_psd_θ_bins, psd_θ_axis, psd_θ_bounds
+    )
 
     # Set the boundaries of the shells to use for photon calculation
     if do_photons
-        x_shell_midpoints, x_shell_endpoints = set_photon_shells(num_upstream_shells, num_downstream_shells, use_prp,
-                                                                 feb_upstream, feb_downstream, rg₀, x_grid_stop_rg)
+        x_shell_midpoints, x_shell_endpoints = set_photon_shells(
+            num_upstream_shells, num_downstream_shells, use_prp,
+            feb_upstream, feb_downstream, rg₀, x_grid_stop_rg
+        )
     else
         x_shell_midpoints, x_shell_endpoints = nothing, nothing
     end
@@ -367,11 +380,11 @@ function @main(args)
 
         # Arrays for holding thermal distribution information; they're set at the start of
         # the run, but included here because of chance they could change due to fast push
-        n_pts_MB   = zeros(Int, n_ions)
-        ptot_inj   = zeros(MomentumCGS, na_particles, n_ions)
+        n_pts_MB = zeros(Int, n_ions)
+        ptot_inj = zeros(MomentumCGS, na_particles, n_ions)
         weight_inj = zeros(na_particles, n_ions)
         # Arrays for holding information about particle counts and spectra at various tcuts
-        weight_coupled  = Matrix{Float64}(undef, na_c, n_ions)
+        weight_coupled = Matrix{Float64}(undef, na_c, n_ions)
         spectra_coupled = zeros(0:psd_max, na_c, n_ions)
     end # "module" iteration_vars
 
@@ -384,8 +397,10 @@ function @main(args)
                 throw(DomainError("x_spec position $i falls outside grid start/stop bounds."))
             end
 
-            println(outfile, "x position for spectrum calculation:  ",
-                    i, x_spec[i]/rg₀, " rg₀ ", uconvert(pc, x_spec[i] * cm))
+            println(
+                outfile, "x position for spectrum calculation:  ",
+                i, x_spec[i] / rg₀, " rg₀ ", uconvert(pc, x_spec[i] * cm)
+            )
         end
 
         println(outfile)
@@ -394,21 +409,23 @@ function @main(args)
 
     # Get grid zone numbers for the boundaries between photon shells, and for
     # the location of the upstream FEB. Add the photon shells to the output file
-    n_shell_endpoints = zeros(Int, num_upstream_shells+num_downstream_shells+1)
+    n_shell_endpoints = zeros(Int, num_upstream_shells + num_downstream_shells + 1)
     if do_photons
         let i_tmp = 1
             for i in 1:n_grid
-                if x_grid_cm[i] ≤ x_shell_endpoints[i_tmp] && x_grid_cm[i+1] > x_shell_endpoints[i_tmp]
+                if x_grid_cm[i] ≤ x_shell_endpoints[i_tmp] && x_grid_cm[i + 1] > x_shell_endpoints[i_tmp]
                     n_shell_endpoints[i_tmp] = i
                     i_tmp += 1
                 end
             end
         end
 
-        for i in 1:(num_upstream_shells+num_downstream_shells)
-            println(outfile, "x boundaries[rg₀] for photon shell ", i, ":",
-                    x_shell_endpoints[i]/rg₀, " -> ", x_shell_endpoints[i+1]/rg₀, "  (",
-                    n_shell_endpoints[i], "->", n_shell_endpoints[i+1], ")")
+        for i in 1:(num_upstream_shells + num_downstream_shells)
+            println(
+                outfile, "x boundaries[rg₀] for photon shell ", i, ":",
+                x_shell_endpoints[i] / rg₀, " -> ", x_shell_endpoints[i + 1] / rg₀, "  (",
+                n_shell_endpoints[i], "->", n_shell_endpoints[i + 1], ")"
+            )
         end
 
         println(outfile)
@@ -420,7 +437,7 @@ function @main(args)
     # and density of CMB photons), calculate it here. If redshift was provided during
     # data_input, cosmo_calc will return distance instead
     # Cosmo_calc expects distance in megaparsecs, so convert from value read in during data_input
-    jet_dist_Mpc = jet_dist_kpc * 1e-3
+    jet_dist_Mpc = jet_dist_kpc * 1.0e-3
     # TODO use cosmology.jl for this instead?
     #jet_dist_Mpc, redshift = cosmo_calc_wrapper(jet_dist_Mpc, redshift)
     if cosmo_var == 1
@@ -448,11 +465,12 @@ function @main(args)
     # Zero out total escaping fluxes and calculate the far upstream fluxes
     #pₓ_esc_flux_upstream_tot = 0.0
     #energy_esc_flux_upstream_tot = 0.0
-    pₓ_esc_flux_upstream     = zeros(n_itrs)
+    pₓ_esc_flux_upstream = zeros(n_itrs)
     energy_esc_flux_upstream = zeros(n_itrs)
     flux_px_upstream, flux_pz_upstream, flux_energy_upstream = upstream_fluxes(
         number_density.(species), temperature.(species), mass.(species),
-        bmag₀, θ_B₀, u₀, β₀, γ₀)
+        bmag₀, θ_B₀, u₀, β₀, γ₀
+    )
 
     # Determine upstream Mach numbers (sonic & Alfvén)
     mach_sonic, mach_alfven = upstream_machs(β₀, species, bmag₀)
@@ -461,26 +479,26 @@ function @main(args)
     # Set up the initial shock profile, or read it in from a file
     if ! do_old_prof
         (
-         uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
-         β_ef_grid, γ_ef_grid, btot_grid, θ_grid, εB_grid, bmag₂,
+            uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
+            β_ef_grid, γ_ef_grid, btot_grid, θ_grid, εB_grid, bmag₂,
         ) = setup_profile(
-                          u₀, β₀, γ₀, bmag₀, θ_B₀, r_comp, bturb_comp_frac, bfield_amp, use_custom_εB,
-                          n_ions, species, flux_px_upstream, flux_energy_upstream, grid_axis,
-                          x_grid_cm, x_grid_rg,
-                         )
+            u₀, β₀, γ₀, bmag₀, θ_B₀, r_comp, bturb_comp_frac, bfield_amp, use_custom_εB,
+            n_ions, species, flux_px_upstream, flux_energy_upstream, grid_axis,
+            x_grid_cm, x_grid_rg,
+        )
     else
         error("Reading old profiles not yet supported")
         (
-         x_grid_rg, x_grid_cm, uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid, β_ef_grid, γ_ef_grid,
-         btot_grid, εB_grid, θ_grid, n_grid, u₀, γ₀, rg₀, r_comp, r_RH, β₀, bmag₀,
-         u₂, β₂, γ₂, θᵤ₂, bmag₂, θ_B₀, θ_B₂, flux_px_upstream, flux_pz_upstream, flux_energy_upstream
+            x_grid_rg, x_grid_cm, uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid, β_ef_grid, γ_ef_grid,
+            btot_grid, εB_grid, θ_grid, n_grid, u₀, γ₀, rg₀, r_comp, r_RH, β₀, bmag₀,
+            u₂, β₂, γ₂, θᵤ₂, bmag₂, θ_B₀, θ_B₂, flux_px_upstream, flux_pz_upstream, flux_energy_upstream,
         ) = read_old_prof(n_old_skip, n_old_profs, n_old_per_prof)
 
         # Must set far upstream and downstream limits manually, since they won't be read in from the file
-        x_grid_rg[begin] = -1e30
-        x_grid_rg[end]   =  1e30
-        x_grid_cm[begin] = -1e30 * rg₀
-        x_grid_cm[end]   =  1e30 * rg₀
+        x_grid_rg[begin] = -1.0e30
+        x_grid_rg[end]   =  1.0e30
+        x_grid_cm[begin] = -1.0e30 * rg₀
+        x_grid_cm[end]   =  1.0e30 * rg₀
     end
 
 
@@ -504,23 +522,25 @@ function @main(args)
 
 
     # Print a bunch of data about the run to screen/file
-    print_input(n_pts_inj, n_pts_pcut, n_pts_pcut_hi, n_ions,
-                num_psd_mom_bins, num_psd_θ_bins, n_xspec, length(pcuts), n_grid, r_RH, r_comp,
-                u₀, β₀, γ₀, u₂, β₂, γ₂, species, bmag₀, bmag₂, θ_B₀, θ_B₂, θᵤ₂,
-                mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine,
-                feb_upstream, feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac)
+    print_input(
+        n_pts_inj, n_pts_pcut, n_pts_pcut_hi, n_ions,
+        num_psd_mom_bins, num_psd_θ_bins, n_xspec, length(pcuts), n_grid, r_RH, r_comp,
+        u₀, β₀, γ₀, u₂, β₂, γ₂, species, bmag₀, bmag₂, θ_B₀, θ_B₂, θᵤ₂,
+        mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine,
+        feb_upstream, feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac
+    )
 
     weights_file = open("mc_coupled_weights.csv", "w")
     spectra_file = jldopen("mc_coupled_spectra.hdf5", "a+")
 
-    pressure_psd_par   = Vector{Float64}(undef, n_grid)
-    pressure_psd_perp  = Vector{Float64}(undef, n_grid)
+    pressure_psd_par = Vector{Float64}(undef, n_grid)
+    pressure_psd_perp = Vector{Float64}(undef, n_grid)
     energy_density_psd = Vector{Float64}(undef, n_grid)
 
     energy_transfer_pool = Vector{EnergyCGS}(undef, n_grid)
-    energy_recv_pool     = Vector{EnergyCGS}(undef, n_grid)
+    energy_recv_pool = Vector{EnergyCGS}(undef, n_grid)
 
-    energy_density       = Matrix{Float64}(undef, na_c, n_ions)
+    energy_density = Matrix{Float64}(undef, na_c, n_ions)
     therm_energy_density = Matrix{Float64}(undef, na_c, n_ions)
 
     psd = OffsetArray{Float64}(undef, (psd_mom_axis, psd_θ_axis, n_grid))
@@ -655,6 +675,8 @@ function @main(args)
     println(outfile)
     println(outfile, " Finished. Run time = ", run_time, ", ", round(run_time, Minute))
     println(outfile)
+
+    return nothing
 end # main
 end # module
 # vim: set textwidth=92:shiftwidth=4:

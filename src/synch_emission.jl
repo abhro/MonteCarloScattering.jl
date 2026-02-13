@@ -39,7 +39,7 @@ function synch_emission(
 
     # Minimum energy for synch photon spectrum.
     # Max set by value of n_γ_synch and bins_per_dec_photon.
-    energy_γ_min_log = log10(ustrip(erg, photon_synch_min_MeV*MeV)) # Min photon energy in log(ergs)
+    energy_γ_min_log = log10(ustrip(erg, photon_synch_min_MeV * MeV)) # Min photon energy in log(ergs)
     Δγ = 1 / bins_per_dec_photon
 
     # Get strength of magnetic field, which will be used to find p_fac below. Note that
@@ -50,18 +50,18 @@ function synch_emission(
         bmag_curr = btot_grid[i_grid]
     else
         n₀ = dot(n₀_ion, aa_ion)
-        energy_density = (flux_energy_upstream + γ₀*u₀*n₀*E₀ₚ) / u₂ - flux_px_upstream
-        bmag_curr = √(8π * 1e-3 * energy_density)
+        energy_density = (flux_energy_upstream + γ₀ * u₀ * n₀ * E₀ₚ) / u₂ - flux_px_upstream
+        bmag_curr = √(8π * 1.0e-3 * energy_density)
     end
 
     # Rybicki & Lightman eq. 6.18 without F factor.
     # units are power per unit frequency per electron (cgs)
     # Above: Note there is no sin(α) factor
-    p_fac = √3/2π * (qcgs^3 * bmag_curr/E₀ₑ)
+    p_fac = √3 / 2π * (qcgs^3 * bmag_curr / E₀ₑ)
 
 
     # Initialize emission array and set energy of output photons
-    synch_emis = fill(1e-99, n_photon_synch)
+    synch_emis = fill(1.0e-99, n_photon_synch)
     energy_γ = exp10.(range(start = energy_γ_min_log, step = Δγ, length = n_photon_synch)) # Photon energy in ergs
 
     nu = 5//3
@@ -81,15 +81,15 @@ function synch_emission(
     # isn't already open), and write d²N/dEdt to it.
     #-------------------------------------------------------------------------
     synch_unit = 62
-    lopen = inquire(:isopen, unit=synch_unit)
+    lopen = inquire(:isopen, unit = synch_unit)
     if !lopen
-        synch_unit = open(status="scratch", form="unformatted")
+        synch_unit = open(status = "scratch", form = "unformatted")
     end
 
 
     # Only write to the scratch file if there actually was synchrotron emission
     # produced by this grid zone
-    if maximum(synch_emis) > 1e-90
+    if maximum(synch_emis) > 1.0e-90
 
         # Write the current grid zone number and number of synchrotron bins to the scratch file
         write(synch_unit, i_grid, n_photon_synch)
@@ -97,11 +97,11 @@ function synch_emission(
         # Convert synch_emis from dP/d(lnE) to d²N/dEdt by dividing (twice) by
         # photon energy, then write to the scratch file
         for i in 1:n_photon_synch
-            if synch_emis[i] > 1e-90
-                p_fac = max(synch_emis[i] / energy_γ[i]^2, 1e-99)
+            if synch_emis[i] > 1.0e-90
+                p_fac = max(synch_emis[i] / energy_γ[i]^2, 1.0e-99)
                 write(synch_unit, energy_γ[i], p_fac)
             else
-                write(synch_unit, energy_γ[i], 1e-99)
+                write(synch_unit, energy_γ[i], 1.0e-99)
             end
         end
 
@@ -114,36 +114,36 @@ end
 
 
 function synch_emission_thermal_particles!(
-    synch_emis, num_hist_bins, dN_therm,
-    p_pf_therm, bmag_curr, mc, n_photon_synch, energy_γ, nu, p_fac
-)
-    for i in 0:num_hist_bins-1
+        synch_emis, num_hist_bins, dN_therm,
+        p_pf_therm, bmag_curr, mc, n_photon_synch, energy_γ, nu, p_fac
+    )
+    for i in 0:(num_hist_bins - 1)
 
         # Total number of electrons in Δp
         xnum_electron = dN_therm[i]
-        xnum_electron ≤ 1e-60 && continue # skip empty bins
+        xnum_electron ≤ 1.0e-60 && continue # skip empty bins
 
         # Assume electrons with E < 3 MeV contribute no synchrotron emission
-        p1 = √(p_pf_therm[i] * p_pf_therm[i+1]) # Geometric mean
-        p1*c < 3MeV && continue
+        p1 = √(p_pf_therm[i] * p_pf_therm[i + 1]) # Geometric mean
+        p1 * c < 3MeV && continue
 
         # Lorentz factor for electron
-        γ_electron = hypot(p1/mc, 1)
+        γ_electron = hypot(p1 / mc, 1)
 
         # Eq. 6.17c Rybicki & Lightman without sin(α)
-        ω_c = 3*(γ_electron^2)*qcgs*bmag_curr / 2mc
+        ω_c = 3 * (γ_electron^2) * qcgs * bmag_curr / 2mc
 
         # Calculate F factor in eq. 6.18 Rybicki & Lightman (see Eq 6.31c)
         #     F(x) ≡ x ∫_x^∞ K_{5/3}(ξ) dξ              (6.31c)
         for j in 1:n_photon_synch
-            if bmag_curr < 1e-20 || ω_c < 1e-55
+            if bmag_curr < 1.0e-20 || ω_c < 1.0e-55
                 F = 0.0
             else
                 ω_γ = energy_γ[j] / ħ    # from E = ħω
-                x = ω_γ/ω_c
+                x = ω_γ / ω_c
 
                 xxx_max_set = 30.0
-                if x ≥ xxx_max_set || x < 1e-15
+                if x ≥ xxx_max_set || x < 1.0e-15
                     F = 0.0
                 else
                     F = x * quadgk(t -> besselk(nu, t), x, Inf)
@@ -161,44 +161,45 @@ function synch_emission_thermal_particles!(
             tmp_add = xnum_electron * ω_γ * p_fac * F
 
             # Only include emission if it's sufficiently positive
-            if tmp_add > 1e-55
+            if tmp_add > 1.0e-55
                 synch_emis[j] += tmp_add
             end
 
         end # loop over n_photon_synch
     end
+    return
 end
 
 function synch_emission_cosmic_ray!(
-    synch_emis, num_psd_mom_bins, dN_cr, p_pf_cr, mc, bmag_curr, n_photon_synch, energy_γ, nu, p_fac
-)
+        synch_emis, num_psd_mom_bins, dN_cr, p_pf_cr, mc, bmag_curr, n_photon_synch, energy_γ, nu, p_fac
+    )
     for i in 0:num_psd_mom_bins
 
         # Total number of electrons in Δp
         xnum_electron = dN_cr[i]
-        xnum_electron ≤ 1e-60 && continue # skip empty bins
+        xnum_electron ≤ 1.0e-60 && continue # skip empty bins
 
         # Assume electrons with E < 3 MeV contribute no synchrotron emission
-        p1 = √(p_pf_cr[i] * p_pf_cr[i+1]) # Geometric mean
-        p1*c < 3MeV && continue
+        p1 = √(p_pf_cr[i] * p_pf_cr[i + 1]) # Geometric mean
+        p1 * c < 3MeV && continue
 
         # Lorentz factor for electron
-        γ_electron = hypot(p1/mc, 1)
+        γ_electron = hypot(p1 / mc, 1)
 
         # Eq. 6.17c Rybicki & Lightman without sin(α)
-        ω_c = 3*(γ_electron^2)*qcgs*bmag_curr / 2mc
+        ω_c = 3 * (γ_electron^2) * qcgs * bmag_curr / 2mc
 
         # Calculate F factor in eq. 6.18 Rybicki & Lightman (see Eq 6.31c)
         #     F(x) ≡ x ∫_x^∞ K_{5/3}(ξ) dξ              (6.31c)
         for j in 1:n_photon_synch
-            if bmag_curr < 1e-20 || ω_c < 1e-55
+            if bmag_curr < 1.0e-20 || ω_c < 1.0e-55
                 F = 0.0
             else
                 ω_γ = energy_γ[j] / ħ    # from E = ħω
-                x = ω_γ/ω_c
+                x = ω_γ / ω_c
 
                 xxx_max_set = 30.0
-                if x ≥ xxx_max_set || x < 1e-15
+                if x ≥ xxx_max_set || x < 1.0e-15
                     F = 0.0
                 else
                     F = x * quadgk(t -> besselk(nu, t), x, Inf)
@@ -216,10 +217,11 @@ function synch_emission_cosmic_ray!(
             tmp_add = xnum_electron * ω_γ * p_fac * F
 
             # Only include emission if it's sufficiently positive
-            if tmp_add > 1e-55
+            if tmp_add > 1.0e-55
                 synch_emis[j] += tmp_add
             end
 
         end # loop over n_photon_synch
     end
+    return
 end

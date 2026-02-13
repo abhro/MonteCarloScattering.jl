@@ -29,17 +29,19 @@ Randomly moves the particle's momentum vector along the surface of the unit sphe
 function scattering(
         rng, aa, gyro_denom, ptot_pf, γₚ_pf, xn_per,
         pb_pf, p_perp_b_pf, φ_rad,
-        use_custom_frg, pₑ_crit, γₑ_crit, η_mfp)
+        use_custom_frg, pₑ_crit, γₑ_crit, η_mfp
+    )
 
+    mc = aa * mp * c
     # If particle is an electron and p < pₑ_crit, use a constant MFP for scattering.
     # Note that instead addition to calculating the gyro period in seconds,
     # the code keeps vt_pf times the gyro period to find Δθ_max.
     if aa < 1 && ptot_pf < pₑ_crit
-        gyro_rad_tot_cm =      pₑ_crit *         c * gyro_denom
-        gyro_period_sec = 2π * γₑ_crit * aa*mp * c * gyro_denom
+        gyro_rad_tot_cm = pₑ_crit * c * gyro_denom
+        gyro_period_sec = 2π * γₑ_crit * mc * gyro_denom
     else
-        gyro_rad_tot_cm =    ptot_pf *         c * gyro_denom
-        gyro_period_sec = 2π * γₚ_pf * aa*mp * c * gyro_denom
+        gyro_rad_tot_cm = ptot_pf * c * gyro_denom
+        gyro_period_sec = 2π * γₚ_pf * mc * gyro_denom
     end
     vp_tg = 2π * gyro_rad_tot_cm
 
@@ -55,7 +57,7 @@ function scattering(
 
     # Calculate the maximum allowed change in pitch angle; this formula is
     # slightly different from that used in previous version of the code
-    cos_max = cos(√(6vp_tg / (xn_per*λ_mfp)))
+    cos_max = cos(√(6vp_tg / (xn_per * λ_mfp)))
 
     # Compute the actual change in pitch angle, as well as its modulation due to a
     # randomly-selected phase angle adjustment. See Ellison+ (1990) [1990ApJ...360..702E]
@@ -63,20 +65,20 @@ function scattering(
     cos_old_pitch = pb_pf / ptot_pf
     sin_old_pitch = p_perp_b_pf / ptot_pf
 
-    cos_Δθ = 1 - Random.rand(rng)*(1 - cos_max)  # Change of cos between [0, cos_max]
+    cos_Δθ = 1 - Random.rand(rng) * (1 - cos_max)  # Change of cos between [0, cos_max]
     sin_Δθ = √(1 - cos_Δθ^2)
 
-    φ_scat = Random.rand(rng)*2π - π
+    φ_scat = Random.rand(rng) * 2π - π
 
     # Spherical law of cosines
-    cos_new_pitch = cos_old_pitch*cos_Δθ + sin_old_pitch*sin_Δθ*cos(φ_scat)
+    cos_new_pitch = cos_old_pitch * cos_Δθ + sin_old_pitch * sin_Δθ * cos(φ_scat)
     sin_new_pitch = √(1 - cos_new_pitch^2)
 
     # Adjust the components of ptot_pf and the phase angle
-    pb_pf       = ptot_pf * cos_new_pitch
+    pb_pf = ptot_pf * cos_new_pitch
     p_perp_b_pf = ptot_pf * sin_new_pitch
 
-    φ_p_old = φ_rad + π/2
+    φ_p_old = φ_rad + π / 2
 
     if sin_new_pitch != 0
 
@@ -93,7 +95,7 @@ function scattering(
         φ_p_new = φ_p_old
     end
 
-    φ_rad = φ_p_new - π/2
+    φ_rad = φ_p_new - π / 2
 
     return gyro_period_sec, pb_pf, p_perp_b_pf, φ_rad
 end

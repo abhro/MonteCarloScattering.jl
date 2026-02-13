@@ -35,24 +35,27 @@ function new_pcut(
         n_pts_target, n_saved, l_save, grid_saved, downstream_saved,
         inj_saved, weight_saved, ptot_pf_saved, pb_pf_saved, x_PT_cm_saved, xn_per_saved,
         prp_x_cm_saved, acctime_sec_saved, φ_rad_saved, tcut_saved,
-        n_pts_use, weight_running)
+        n_pts_use, weight_running
+    )
 
     # Determine multiplicity of splitting; perhaps none needed
     i_mult = max(n_pts_target ÷ n_saved, 1) # In case n_pts_target drops between pcuts
     @debug("Determined multiplicity of splitting", i_mult)
 
-    grid_new        = zeros(Int,        n_pts_use*i_mult)
-    tcut_new        = zeros(Int,        n_pts_use*i_mult)
-    downstream_new  = zeros(Bool,       n_pts_use*i_mult)
-    inj_new         = zeros(Bool,       n_pts_use*i_mult)
-    weight_new      = zeros(Float64,    n_pts_use*i_mult)
-    ptot_pf_new     = zeros(MomentumCGS, n_pts_use*i_mult)
-    pb_pf_new       = zeros(MomentumCGS, n_pts_use*i_mult)
-    x_PT_cm_new     = zeros(LengthCGS,  n_pts_use*i_mult)
-    xn_per_new      = zeros(Float64,    n_pts_use*i_mult)
-    prp_x_cm_new    = zeros(LengthCGS,  n_pts_use*i_mult)
-    acctime_sec_new = zeros(TimeCGS,    n_pts_use*i_mult)
-    φ_rad_new       = zeros(Float64,    n_pts_use*i_mult)
+    N = n_pts_use * i_mult
+
+    grid_new        = zeros(Int, N)
+    tcut_new        = zeros(Int, N)
+    downstream_new  = zeros(Bool, N)
+    inj_new         = zeros(Bool, N)
+    weight_new      = zeros(Float64, N)
+    ptot_pf_new     = zeros(MomentumCGS, N)
+    pb_pf_new       = zeros(MomentumCGS, N)
+    x_PT_cm_new     = zeros(LengthCGS, N)
+    xn_per_new      = zeros(Float64, N)
+    prp_x_cm_new    = zeros(LengthCGS, N)
+    acctime_sec_new = zeros(TimeCGS, N)
+    φ_rad_new       = zeros(Float64, N)
 
     # Calculate effect on particle weights and the weighting factor of each
     # remaining particle in the simulation
@@ -87,22 +90,27 @@ function new_pcut(
         end  # loop over splits
     end  # loop over saved particles
 
-    return (grid_new, tcut_new, downstream_new, inj_new, weight_new, ptot_pf_new, pb_pf_new,
-            x_PT_cm_new, xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new,
-            n_pts_new, weight_running)
+    return (
+        grid_new, tcut_new, downstream_new, inj_new, weight_new, ptot_pf_new, pb_pf_new,
+        x_PT_cm_new, xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new,
+        n_pts_new, weight_running,
+    )
 end
 
 function pcut_finalize(
         i_iter, i_ion, i_cut, p_pcut_hi, n_pts_pcut, n_pts_pcut_hi, n_pts_use,
-        weight_running, l_save, t_start, pcuts, outfile)
+        weight_running, l_save, t_start, pcuts, outfile
+    )
     break_pcut = false
     n_saved = count(l_save)
 
     t_end = now()
     run_time = t_end - t_start
 
-    @info("Finalizing pcut", i_iter, i_ion, i_cut,
-          pcuts[i_cut], n_saved, n_pts_use, weight_running, run_time)
+    @info(
+        "Finalizing pcut", i_iter, i_ion, i_cut,
+        pcuts[i_cut], n_saved, n_pts_use, weight_running, run_time
+    )
 
     # If no particles saved, don't bother with remaining pcuts
     if n_saved == 0
@@ -141,13 +149,14 @@ Nothing. All adjustments made to input arrays
 function tcut_track!(
         weight_coupled::AbstractArray, spectra_coupled::AbstractArray,
         tcut_curr, weight, ptot_pf,
-        i_ion, num_psd_mom_bins, psd_mom_min, psd_bins_per_dec_mom)
+        i_ion, num_psd_mom_bins, psd_mom_min, psd_bins_per_dec_mom
+    )
     # Since particle is still coupled to shock (i.e. being accelerated),
     # add its weight to appropriate bin of weight_coupled
-    weight_coupled[tcut_curr,i_ion] += weight
+    weight_coupled[tcut_curr, i_ion] += weight
 
     # For spectra, need to convert ptot_pf into a psd bin, then add it to array;
     #  note that we don't care about angular component
     i_pt = get_psd_bin_momentum(ptot_pf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
-    spectra_coupled[i_pt, tcut_curr, i_ion] += weight
+    return spectra_coupled[i_pt, tcut_curr, i_ion] += weight
 end

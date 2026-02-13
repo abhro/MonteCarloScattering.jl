@@ -50,17 +50,18 @@ function particle_finish!(
     # Transform plasma frame momentum into shock frame for binning
     ptot_sk, p_sk, γₚ_sk = transform_p_PS(
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
-        b_cosθ, b_sinθ, mc)
+        b_cosθ, b_sinθ, mc
+    )
     #@debug("Values from transform_p_PS:", ptot_sk, p_sk, γₚ_sk)
 
     # Get phase space bins for this particle
     ip = get_psd_bin_momentum(ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
     jθ = get_psd_bin_angle(p_sk.x, ptot_sk, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
 
-    if ptot_sk > abs(_pf_spike_away*p_sk.x)
-        weight_factor = γₚ_sk * aa*mp * _pf_spike_away / ptot_sk
+    if ptot_sk > abs(_pf_spike_away * p_sk.x)
+        weight_factor = γₚ_sk * aa * mp * _pf_spike_away / ptot_sk
     else
-        weight_factor = γₚ_sk * ustrip(s/cm, aa*mp / abs(p_sk.x)) # FIXME dimensionality
+        weight_factor = γₚ_sk * ustrip(s / cm, aa * mp / abs(p_sk.x)) # FIXME dimensionality
     end
 
     # Now take additional action based on *how* the particle left the grid
@@ -72,10 +73,10 @@ function particle_finish!(
         esc_flux[i_ion] += weight
         esc_psd_feb_upstream[ip, jθ] += weight * weight_factor
 
-        if (γₚ_sk - 1) < (E_rel_pt/(aa*E₀ₚ))
-            energy_flux_add = ptot_sk^2 / (2 * aa*mp) * weight
+        if (γₚ_sk - 1) < (E_rel_pt / (aa * E₀ₚ))
+            energy_flux_add = ptot_sk^2 / (2 * aa * mp) * weight
         else
-            energy_flux_add = (γₚ_sk - 1) * aa*E₀ₚ * weight
+            energy_flux_add = (γₚ_sk - 1) * aa * E₀ₚ * weight
         end
 
         # Update escape arrays that will be averaged over consecutive iterations
@@ -98,4 +99,5 @@ function particle_finish!(
     else
         error("Unknown i_reason passed: $i_reason. Can only handle 1-4")
     end
+    return
 end

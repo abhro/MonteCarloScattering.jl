@@ -35,7 +35,7 @@ function thermo_calcs(
         psd_bins_per_dec_mom::Integer, psd_mom_min, psd_bins_per_dec_θ::Integer, psd_cos_fine, Δcos, psd_θ_min,
     )
 
-    d²N_pf = fill(1e-99, (0:psd_max, 0:psd_max, n_grid))
+    d²N_pf = fill(1.0e-99, (0:psd_max, 0:psd_max, n_grid))
 
     # Initialize d²N_pf to "zero"
     # Dimensions of arrays (chosen for maximum speed during loops):
@@ -68,9 +68,9 @@ function thermo_calcs(
     end
 
     pt_center = similar(psd_mom_bounds)
-    for k in eachindex(psd_mom_bounds[begin:end-1])
+    for k in eachindex(psd_mom_bounds[begin:(end - 1)])
         # Convert from log to linear space
-        pt_center[k] = exp10((psd_mom_bounds[k] + psd_mom_bounds[k+1]) / 2)
+        pt_center[k] = exp10((psd_mom_bounds[k] + psd_mom_bounds[k + 1]) / 2)
     end
 
 
@@ -79,9 +79,9 @@ function thermo_calcs(
     #----------------------------------------------------------------------------
     # Set up the arrays that will hold the crossing data
     max_cross = maximum(num_crossings, 1)
-    therm_pₓ = zeros(max_cross, 0:n_grid+1)
-    therm_pt = zeros(max_cross, 0:n_grid+1)
-    therm_weight = zeros(max_cross, 0:n_grid+1)
+    therm_pₓ = zeros(max_cross, 0:(n_grid + 1))
+    therm_pt = zeros(max_cross, 0:(n_grid + 1))
+    therm_weight = zeros(max_cross, 0:(n_grid + 1))
 
 
     # Fill d²N_pf with data from thermal particles
@@ -109,7 +109,7 @@ function thermo_calcs(
     if ntot_crossings > na_cr
 
         # Need to go into the scratch file for the remainder of the crossings
-        for i in 1:ntot_crossings-na_cr
+        for i in 1:(ntot_crossings - na_cr)
             i_grid, _, pₓ_sk, ptot_sk, cell_weight = read(nc_unit)
 
             n_cross_fill[i_grid] += 1
@@ -139,12 +139,12 @@ function thermo_calcs(
         for n in 1:num_crossings[i]
 
             # Transform the center of the zone into the new frame
-            ptot_sk = therm_pt[n,i]
-            pₓ_sk   = therm_pₓ[n,i]
-            etot_sk = hypot(ptot_sk*c, E₀)
+            pₓ_sk = therm_pₓ[n, i]
+            ptot_sk = therm_pt[n, i]
+            etot_sk = hypot(ptot_sk * c, E₀)
 
-            pₓ_Xf   = γᵤ * (pₓ_sk - βᵤ*etot_sk/c)
-            pt_Xf   = √((ptot_sk^2 - pₓ_sk^2) + pₓ_Xf^2)
+            pₓ_Xf = γᵤ * (pₓ_sk - βᵤ * etot_sk / c)
+            pt_Xf = √((ptot_sk^2 - pₓ_sk^2) + pₓ_Xf^2)
             # In rare cases, floating point round-off can cause pt_Xf to be smaller than abs(pₓ_Xf)
             if abs(pₓ_Xf) > pt_Xf
                 pₓ_Xf = copysign(pt_Xf, pₓ_Xf)
@@ -155,7 +155,7 @@ function thermo_calcs(
             jθ_Xf = get_psd_bin_angle(pₓ_Xf, pt_Xf, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
 
             # And add particle count to the appropriate bin in d²N_pf
-            d²N_pf[jθ_Xf, kpt_Xf, i] += therm_weight[n,i]
+            d²N_pf[jθ_Xf, kpt_Xf, i] += therm_weight[n, i]
         end
 
     end
@@ -182,18 +182,18 @@ function thermo_calcs(
         # Loop over cells in d²N_sf
         for jθ in 0:num_psd_θ_bins, k in 0:num_psd_mom_bins
 
-            psd[k,jθ,i] ≤ 1e-66 && continue # Skip empty zones
+            psd[k, jθ, i] ≤ 1.0e-66 && continue # Skip empty zones
 
-            cell_weight = psd[k,jθ,i]
+            cell_weight = psd[k, jθ, i]
 
             # Transform the center of the zone into the new frame
             cos_θ_sk = cos_center[jθ]
-            ptot_sk  = pt_center[k]
-            pₓ_sk    = ptot_sk * cos_θ_sk
-            etot_sk  = hypot(ptot_sk*c, E₀)
+            ptot_sk = pt_center[k]
+            pₓ_sk = ptot_sk * cos_θ_sk
+            etot_sk = hypot(ptot_sk * c, E₀)
 
-            pₓ_Xf    = γᵤ * (pₓ_sk - βᵤ*etot_sk/c)
-            pt_Xf    = √(ptot_sk^2 - pₓ_sk^2 + pₓ_Xf^2)
+            pₓ_Xf = γᵤ * (pₓ_sk - βᵤ * etot_sk / c)
+            pt_Xf = √(ptot_sk^2 - pₓ_sk^2 + pₓ_Xf^2)
 
             # Get location of center in transformed d²N_pf
             kpt_Xf = get_psd_bin_momentum(pt_Xf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
@@ -204,8 +204,8 @@ function thermo_calcs(
 
         end # loop over angles and ptot
 
-        mask = (d²N_pf[:,:,i] .> 1e-66)
-        norm_fac = sum(d²N_pf[mask...,i])
+        mask = (d²N_pf[:, :, i] .> 1.0e-66)
+        norm_fac = sum(d²N_pf[mask..., i])
         if iszero(num_crossings[i]) && norm_fac > 0
             norm_fac += n₀_ion[i_ion] / uₓ_sk_grid[i]
         end
@@ -214,14 +214,14 @@ function thermo_calcs(
         end
 
 
-        for k in 0:psd_max-1, jθ in 0:psd_max-1
-            if d²N_pf[jθ,k,i] > 1e-66
-                d²N_pf[jθ,k,i] *= norm_fac
+        for k in 0:(psd_max - 1), jθ in 0:(psd_max - 1)
+            if d²N_pf[jθ, k, i] > 1.0e-66
+                d²N_pf[jθ, k, i] *= norm_fac
             end
         end
 
-        mask = (d²N_pf[:,:,i] .> 1e-66)
-        d²N_pop[i] = sum(d²N_pf[mask...,i])
+        mask = (d²N_pf[:, :, i] .> 1.0e-66)
+        d²N_pop[i] = sum(d²N_pf[mask..., i])
     end # loop over grid locations
     #----------------------------------------------------------------------------
     # Transformed d²N_pf calculated
@@ -231,7 +231,7 @@ function thermo_calcs(
     # With angular information we can get both parallel and perpendicular components
     #----------------------------------------------------------------------------
     # Find the velocity associated with each momentum bin
-    vel_ptot = @. pt_center * c / (mc * hypot(1, pt_center/mc))
+    vel_ptot = @. pt_center * c / (mc * hypot(1, pt_center / mc))
 
 
     # Output arguments
@@ -245,19 +245,19 @@ function thermo_calcs(
     #----------------------------------------------------------------------------
     for i in 1:n_grid
 
-        density_loc = γ₀*β₀*n₀_ion[i_ion] / √(γ_sf_grid[i]^2 - 1)
+        density_loc = γ₀ * β₀ * n₀_ion[i_ion] / √(γ_sf_grid[i]^2 - 1)
 
         # Determine the normalization factors to use during the pressure calculation.
         # Three cases: (1) no detected particles, (2) only CRs detected, and
         # (3) thermal particles detected
         #-----------------------------------------------------------------------
-        if maximum(d²N_pf[:,:,i]) < 1e-66 && iszero(num_crossings[i])
+        if maximum(d²N_pf[:, :, i]) < 1.0e-66 && iszero(num_crossings[i])
 
             # Case (1): No particles of any kind detected at this grid location.
             # Thermal particles must have passed through, so find their density
             # and analytically determine components of pressure
             # #assumecold: using Γ = 5/3 in the pressure calculation
-            pressure_loc = density_loc^(5//3) * kB*T₀_ion[i_ion]
+            pressure_loc = density_loc^(5 // 3) * kB * T₀_ion[i_ion]
 
             if aa_ion[i_ion] ≥ 1
                 density_electron = density_loc * zz_ion[i_ion]
@@ -289,7 +289,7 @@ function thermo_calcs(
 
             # Scale the contributions from the thermal particles by the fraction of the
             # zone's population they represent, and add that to the running total
-            pressure_loc *= 1 - d²N_pop[i]/zone_pop[i]
+            pressure_loc *= 1 - d²N_pop[i] / zone_pop[i]
             pressure_psd_par[i]  += 1/3 * pressure_loc
             pressure_psd_perp[i] += 2/3 * pressure_loc
 
@@ -321,24 +321,24 @@ function thermo_calcs(
 
             # These factors are the same in all cells of this ptot column
             pressure_fac = 1//3 * pt_center[k] * vel_ptot[k] * norm_fac
-            γ_tmp        = hypot(1, pt_center[k]/mc)
+            γ_tmp = hypot(1, pt_center[k] / mc)
             energy_density_fac = (γ_tmp - 1) * E₀
 
             for jθ in 0:num_psd_θ_bins
 
                 # Don't bother with empty cells
-                d²N_pf[jθ,k,i] < 1e-66 && continue
+                d²N_pf[jθ, k, i] < 1.0e-66 && continue
 
-                pressure_par_tmp  = d²N_pf[jθ,k,i] * pressure_fac * cos_center[jθ]^2
+                pressure_par_tmp = d²N_pf[jθ, k, i] * pressure_fac * cos_center[jθ]^2
                 # The factor of two below is because there are two perpendicular components of pressure
-                pressure_perp_tmp = d²N_pf[jθ,k,i] * pressure_fac * (1 - cos_center[jθ]^2)
+                pressure_perp_tmp = d²N_pf[jθ, k, i] * pressure_fac * (1 - cos_center[jθ]^2)
 
-                pressure_psd_par[i]  += pressure_par_tmp
+                pressure_psd_par[i] += pressure_par_tmp
                 pressure_psd_perp[i] += pressure_perp_tmp
 
 
                 # Update the energy density also
-                energy_density_psd[i] += energy_density_fac * d²N_pf[jθ,k,i] * norm_fac
+                energy_density_psd[i] += energy_density_fac * d²N_pf[jθ, k, i] * norm_fac
             end
         end
 

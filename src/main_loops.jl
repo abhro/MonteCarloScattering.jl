@@ -54,18 +54,18 @@ function main_loops(
         # Zero out numerous quantities that will be modified over the course of this iteration.
         # Minimally positive number is used to prevent errors when taking logarithms later
         # XXX uses the type-pirated version of Base.fill!
-        fill!((pxx_flux, pxz_flux), 1e-99erg/cm^3)
-        fill!((energy_flux, pressure_psd_par, pressure_psd_perp, energy_density_psd), 1e-99)
-        fill!((esc_spectra_feb_upstream, esc_spectra_feb_downstream), 1e-99)
-        fill!(weight_coupled, 1e-99)
+        fill!((pxx_flux, pxz_flux), 1.0e-99erg / cm^3)
+        fill!((energy_flux, pressure_psd_par, pressure_psd_perp, energy_density_psd), 1.0e-99)
+        fill!((esc_spectra_feb_upstream, esc_spectra_feb_downstream), 1.0e-99)
+        fill!(weight_coupled, 1.0e-99)
 
 
         # Additionally, set/reset scalar quantities that will change
-        ∑P_downstream  = 1e-99erg/cm^3         # total downstream pressure
-        ∑KEdensity_downstream = 1e-99erg/cm^3  # total downstream kinetic energy density
+        ∑P_downstream = 1.0e-99erg/cm^3         # total downstream pressure
+        ∑KEdensity_downstream = 1.0e-99erg/cm^3 # total downstream kinetic energy density
 
-        energy_esc_upstream    = 1e-99
-        pₓ_esc_upstream        = 1e-99
+        energy_esc_upstream = 1.0e-99
+        pₓ_esc_upstream = 1.0e-99
 
         # To facilitate energy transfer from ions to electrons, calculate here the target energy
         # density fraction for electrons at each grid zone, and zero out the pool of
@@ -92,8 +92,8 @@ function main_loops(
 
             zz = charge(species[i_ion])
             m = mass(species[i_ion])
-            aa = m/mp |> NoUnits
-            mc = m*c
+            aa = m / mp |> NoUnits
+            mc = m * c
 
             # At the start of each ion, print a glyph to the screen
             @info("Starting species iteration", i_iter, i_ion)
@@ -102,8 +102,10 @@ function main_loops(
 
             # Zero out the phase space distributions and set variables related to
             # tracking thermal particles
-            n_cr_count = clear_psd!(num_crossings, therm_grid, therm_pₓ_sk, therm_ptot_sk,
-                                    therm_weight, psd, esc_psd_feb_upstream, esc_psd_feb_downstream)
+            n_cr_count = clear_psd!(
+                num_crossings, therm_grid, therm_pₓ_sk, therm_ptot_sk,
+                therm_weight, psd, esc_psd_feb_upstream, esc_psd_feb_downstream
+            )
 
             # In addition to initializing the phase space distribution, open the scratch (i.e.
             # temporary) file to which we will write information about thermal particle grid crossings
@@ -111,14 +113,16 @@ function main_loops(
 
             # To maintain identical results between OpenMP and serial versions,
             # set RNG seed based on current iteration/ion/pcut/particle number
-            iseed_mod = (i_iter - 1)*n_ions + (i_ion - 1)
+            iseed_mod = (i_iter - 1) * n_ions + (i_ion - 1)
             rng = Random.Xoshiro(iseed_mod)
 
 
             # Initialize the particle populations that will be propagated through
             # the shock structure
-            (n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in, x_PT_cm_in,
-             pxx_flux, pxz_flux, energy_flux) = init_pop(
+            (
+                n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in, x_PT_cm_in,
+                pxx_flux, pxz_flux, energy_flux,
+            ) = init_pop(
                 do_fast_push, inp_distr, i_ion, m, rng,
                 temperature.(species), energy_inj, inj_weight, n_pts_inj,
                 density.(species), x_grid_start, rg₀, η_mfp, x_fast_stop_rg,
@@ -126,20 +130,23 @@ function main_loops(
                 n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid,
                 ptot_inj, weight_inj, n_pts_MB,
             )
-            @debug("Finished init_pop on",
-                   i_iter, i_ion, n_pts_use,
-                   length(i_grid_in), length(weight_in),
-                   length(ptot_pf_in), length(pb_pf_in), length(x_PT_cm_in),
-                   length(pxx_flux), length(pxz_flux), length(energy_flux),
-                   i_grid_in, weight_in, ptot_pf_in, pb_pf_in,
-                   x_PT_cm_in, pxx_flux, pxz_flux, energy_flux)
+            @debug(
+                "Finished init_pop on",
+                i_iter, i_ion, n_pts_use,
+                length(i_grid_in), length(weight_in),
+                length(ptot_pf_in), length(pb_pf_in), length(x_PT_cm_in),
+                length(pxx_flux), length(pxz_flux), length(energy_flux),
+                i_grid_in, weight_in, ptot_pf_in, pb_pf_in,
+                x_PT_cm_in, pxx_flux, pxz_flux, energy_flux
+            )
 
             # Assign the various particle properties to the population
             assign_particle_properties_to_population!(
                 rng, n_pts_use, xn_per_fine, x_grid_stop,
                 weight_new, weight_in, ptot_pf_new, ptot_pf_in,
                 pb_pf_new, pb_pf_in, x_PT_cm_new, x_PT_cm_in, grid_new, i_grid_in,
-                downstream_new, inj_new, xn_per_new, prp_x_cm_new, acctime_sec_new, tcut_new, φ_rad_new)
+                downstream_new, inj_new, xn_per_new, prp_x_cm_new, acctime_sec_new, tcut_new, φ_rad_new
+            )
 
             # Weight of remaining particles, printed after each pcut; note that this will not be
             # correct for all particles if they were originally created so each thermal bin
@@ -191,7 +198,7 @@ function main_loops(
 
                 # For high-energy electrons in a strong magnetic field, need to know
                 # previous cutoff momentum for calculating new PRP downstream
-                pcut_prev = i_cut > 1 ? pcuts[i_cut-1] : 0.0g*c
+                pcut_prev = i_cut > 1 ? pcuts[i_cut - 1] : 0.0g*c
 
                 #--------------------------------------------------------------------
                 #  Start of loop over particles
@@ -216,9 +223,11 @@ function main_loops(
                 #$omp parallel for default(none), schedule(dynamic,1), num_threads(6)
                 for i_prt in 1:n_pts_use # loop_pt
 
-                    (i_fin, i_reason, pb_pf, p_perp_b_pf, γₚ_pf, γᵤ_sf, b_cosθ, b_sinθ, weight,
-                     uₓ_sk, uz_sk, utot, φ_rad,
-                     ∑P_downstream, ∑KEdensity_downstream) = particle_loop(
+                    (
+                        i_fin, i_reason, pb_pf, p_perp_b_pf, γₚ_pf, γᵤ_sf, b_cosθ, b_sinθ, weight,
+                        uₓ_sk, uz_sk, utot, φ_rad,
+                        ∑P_downstream, ∑KEdensity_downstream,
+                    ) = particle_loop(
                         i_iter, i_ion, i_cut, i_prt, i_grid_feb, i_shock,
                         n_ions, n_pts_max, n_xspec, n_grid, n_print_pt, num_psd_mom_bins, num_psd_θ_bins,
                         psd_cos_fine, Δcos, psd_θ_min,
@@ -251,15 +260,17 @@ function main_loops(
                     )
 
                     if !l_save[i_prt]
-                        particle_finish!(pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
-                                         esc_flux, esc_psd_feb_downstream, esc_psd_feb_upstream,
-                                         i_reason, i_iter, i_ion,
-                                         num_psd_mom_bins, num_psd_θ_bins,
-                                         psd_bins_per_dec_mom, psd_bins_per_dec_θ,
-                                         psd_mom_min, psd_θ_min, psd_cos_fine, Δcos,
-                                         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                                         uₓ_sk, uz_sk, utot,
-                                         γᵤ_sf, b_cosθ, b_sinθ, weight, mc)
+                        particle_finish!(
+                            pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
+                            esc_flux, esc_psd_feb_downstream, esc_psd_feb_upstream,
+                            i_reason, i_iter, i_ion,
+                            num_psd_mom_bins, num_psd_θ_bins,
+                            psd_bins_per_dec_mom, psd_bins_per_dec_θ,
+                            psd_mom_min, psd_θ_min, psd_cos_fine, Δcos,
+                            aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
+                            uₓ_sk, uz_sk, utot,
+                            γᵤ_sf, b_cosθ, b_sinθ, weight, mc
+                        )
                     end
 
                     # Particle counting
@@ -278,20 +289,22 @@ function main_loops(
                 # Conclusion of particle loop
 
                 break_pcut, n_pts_target, n_saved = pcut_finalize(
-                     i_iter, i_ion, i_cut, p_pcut_hi, n_pts_pcut, n_pts_pcut_hi, n_pts_use,
-                     weight_running, l_save, t_start, pcuts, outfile)
+                    i_iter, i_ion, i_cut, p_pcut_hi, n_pts_pcut, n_pts_pcut_hi, n_pts_use,
+                    weight_running, l_save, t_start, pcuts, outfile
+                )
                 if break_pcut
                     break
                 end
                 (
-                 grid_new, tcut_new, downstream_new, inj_new, weight_new, ptot_pf_new, pb_pf_new,
-                 x_PT_cm_new, xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new,
-                 n_pts_use, weight_running
+                    grid_new, tcut_new, downstream_new, inj_new, weight_new, ptot_pf_new, pb_pf_new,
+                    x_PT_cm_new, xn_per_new, prp_x_cm_new, acctime_sec_new, φ_rad_new,
+                    n_pts_use, weight_running,
                 ) = new_pcut(
                     n_pts_target, n_saved, l_save, grid_saved, downstream_saved, inj_saved,
                     weight_saved, ptot_pf_saved, pb_pf_saved, x_PT_cm_saved, xn_per_saved,
                     prp_x_cm_saved, acctime_sec_saved, φ_rad_saved, tcut_saved,
-                    n_pts_use, weight_running)
+                    n_pts_use, weight_running
+                )
 
 
             end # loop_pcut
@@ -326,15 +339,17 @@ function main_loops(
 
         #DEBUGLINE
         for i in 1:n_grid
-            @debug("",
-                   i_iter, i,
-                   #x_grid_rg[i],
-                   therm_energy_density[i,1:n_ions]/zone_vol[i],
-                   therm_energy_density[i,n_ions]/max(sum(therm_energy_density[i,1:n_ions]),1e-99),
-                   sum(therm_energy_density[i,1:n_ions]/zone_vol[i]),
-                   energy_density[i,1:n_ions]/zone_vol[i],
-                   energy_density[i,n_ions]/max(sum(energy_density[i,1:n_ions]),1e-99),
-                   sum(energy_density[i,1:n_ions]/zone_vol[i]))
+            @debug(
+                "",
+                i_iter, i,
+                #x_grid_rg[i],
+                therm_energy_density[i, 1:n_ions] / zone_vol[i],
+                therm_energy_density[i, n_ions] / max(sum(therm_energy_density[i, 1:n_ions]), 1.0e-99),
+                sum(therm_energy_density[i, 1:n_ions] / zone_vol[i]),
+                energy_density[i, 1:n_ions] / zone_vol[i],
+                energy_density[i, n_ions] / max(sum(energy_density[i, 1:n_ions]), 1.0e-99),
+                sum(energy_density[i, 1:n_ions] / zone_vol[i])
+            )
         end
         #print_plot_vals(888)
 
@@ -353,13 +368,16 @@ function main_loops(
         )
         # If tcut tracking was enabled, print out the results here
         if do_tcuts
-            tcut_print(weights_file, spectra_file, n_tcuts, tcuts, n_ions,
-                       num_psd_mom_bins, psd_mom_bounds,
-                       i_iter, weight_coupled, spectra_coupled)
+            tcut_print(
+                weights_file, spectra_file, n_tcuts, tcuts, n_ions,
+                num_psd_mom_bins, psd_mom_bounds,
+                i_iter, weight_coupled, spectra_coupled
+            )
         end
 
     end # loop_itr
     #--------------------------------------------------------------------------
     # Conclusion of iteration loop
 
+    return
 end
