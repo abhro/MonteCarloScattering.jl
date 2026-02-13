@@ -10,7 +10,7 @@ using UnitfulGaussian: Fr
 
 Return `f(x[i], x[i+1])` for each `i` in `x`'s index, excluding the last `i`.
 """
-function adjacent_apply(f, x::AbstractVector{T}) where T
+function adjacent_apply(f, x::AbstractVector{T}) where {T}
     y = Vector{T}(undef, length(x) - 1)
     adjacent_apply!(f, y, x)
     return y
@@ -23,8 +23,8 @@ In-place version of `adjacent_apply`.
 """
 function adjacent_apply!(f, y, x)
     length(y) == length(x) - 1 || throw(DimensionMismatch("y must have length one less than x"))
-    for i in eachindex(@view(x[begin:end-1]), y)
-        y[i] = f(x[i], x[i+1])
+    for i in eachindex(@view(x[begin:(end - 1)]), y)
+        y[i] = f(x[i], x[i + 1])
     end
 
     return y
@@ -35,22 +35,24 @@ function geometric_center!(x, y)
     n = length(x)
     n == length(y) - 1 || throw(DimensionMismatch())
 
-    for i in eachindex(y[begin:end-1])
-        x[i] = √(y[i] * y[i+1])
+    for i in eachindex(y[begin:(end - 1)])
+        x[i] = √(y[i] * y[i + 1])
     end
+    return
 end
 
 #geometric_center(y) = adjacent_apply((a, b) -> √(a*b), y)
 function geometric_center(y)
     x = zeros(eltype(y), length(y) - 1)
 
-    for i in eachindex(@view(y[begin:end-1]))
-        x[i] = √(y[i] * y[i+1])
+    for i in eachindex(@view(y[begin:(end - 1)]))
+        x[i] = √(y[i] * y[i + 1])
     end
+    return
 end
 
 using Unitful
-lorentz(v::Unitful.Velocity) = lorentz(v/c)
+lorentz(v::Unitful.Velocity) = lorentz(v / c)
 """
     γ = lorentz(v)
     γ = lorentz(β)
@@ -64,7 +66,7 @@ lorentz(β::Real) = 1 / √(1 - β^2)
 
 Get velocity β (in units of c) from Lorentz factor γ.
 """
-β(γ) = √(1 - 1/γ^2)
+β(γ) = √(1 - 1 / γ^2)
 
 
 @kwdef struct Species

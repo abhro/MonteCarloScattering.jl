@@ -22,8 +22,8 @@ const T_CMB0 = 2.725K
 export B_CMB0, T_CMB0
 
 "Threshold kinetic energy, for pion production"
-const T_th  = 0.2797GeV
-const Tₜₕ   = T_th # alias
+const T_th = 0.2797GeV
+const Tₜₕ = T_th # alias
 "Resonance mass"
 const M_res = 1.1883GeV
 "Resonance width"
