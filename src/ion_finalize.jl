@@ -1,23 +1,23 @@
 function ion_finalize(
-    outfile, nc_unit,
-    aa, esc_psd_feb_upstream, esc_psd_feb_downstream,
-    jet_rad_pc, jet_sph_frac, m_ion, aa_ion, zz_ion, T₀_ion, n₀_ion,
-    (u₀, β₀, γ₀), u₂,
-    n_ions,
-    do_multi_dNdps, do_photons,
-    mc,
-    n_grid, x_grid_cm, uₓ_sk_grid,
-    i_iter,
-    i_ion,
-    γ_sf_grid,
-    therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight, num_crossings, n_cr_count,
-    num_psd_mom_bins, psd_mom_bounds, psd_mom_axis,
-    psd, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
-    psd_bins_per_dec_mom, psd_mom_min, psd_bins_per_dec_θ, psd_cos_fine, Δcos, psd_θ_min,
-    n_shell_endpoints,
-    flux_px_upstream, flux_energy_upstream, btot_grid,
-    zone_vol, therm_energy_density, energy_density,
-)
+        outfile, nc_unit,
+        aa, esc_psd_feb_upstream, esc_psd_feb_downstream,
+        jet_rad_pc, jet_sph_frac, m_ion, aa_ion, zz_ion, T₀_ion, n₀_ion,
+        (u₀, β₀, γ₀), u₂,
+        n_ions,
+        do_multi_dNdps, do_photons,
+        mc,
+        n_grid, x_grid_cm, uₓ_sk_grid,
+        i_iter,
+        i_ion,
+        γ_sf_grid,
+        therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight, num_crossings, n_cr_count,
+        num_psd_mom_bins, psd_mom_bounds, psd_mom_axis,
+        psd, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
+        psd_bins_per_dec_mom, psd_mom_min, psd_bins_per_dec_θ, psd_cos_fine, Δcos, psd_θ_min,
+        n_shell_endpoints,
+        flux_px_upstream, flux_energy_upstream, btot_grid,
+        zone_vol, therm_energy_density, energy_density,
+    )
     println()
     println(outfile)
 
@@ -52,7 +52,8 @@ function ion_finalize(
         γ_sf_grid, i_ion, num_crossings, n_cr_count, therm_grid,
         therm_pₓ_sk, therm_ptot_sk, therm_weight,
         psd_bins_per_dec_mom, psd_mom_min, psd_bins_per_dec_θ, psd_cos_fine,
-        Δcos, psd_θ_min)
+        Δcos, psd_θ_min
+    )
 
 
     # Output the spectra associated with this ion species

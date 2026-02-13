@@ -37,19 +37,19 @@ function photon_synch(
     # particles, so no additional scaling is needed. However, it must be converted from
     # particles per momentum into pure particle count
     dN_therm = OffsetVector{Float64}(undef, 0:psd_max)
-    for i in 0:num_hist_bins-1
-        if dNdp_pf_therm[i] ≤ 1e-99
-            dN_therm[i] = 1e-99
+    for i in 0:(num_hist_bins - 1)
+        if dNdp_pf_therm[i] ≤ 1.0e-99
+            dN_therm[i] = 1.0e-99
         else
-            dN_therm[i] = dNdp_pf_therm[i] * (p_pf_therm[i+1] - p_pf_therm[i])
+            dN_therm[i] = dNdp_pf_therm[i] * (p_pf_therm[i + 1] - p_pf_therm[i])
         end
     end
     dN_cr = OffsetVector{Float64}(undef, 0:num_psd_mom_bins)
     for i in 0:num_psd_mom_bins
-        if dNdp_pf_cr[i] ≤ 1e-99
-            dN_cr[i] = 1e-99
+        if dNdp_pf_cr[i] ≤ 1.0e-99
+            dN_cr[i] = 1.0e-99
         else
-            dN_cr[i] = dNdp_pf_cr[i] * (p_pf_cr[i+1] - p_pf_cr[i])
+            dN_cr[i] = dNdp_pf_cr[i] * (p_pf_cr[i + 1] - p_pf_cr[i])
         end
     end
 
@@ -61,17 +61,18 @@ function photon_synch(
         photon_synch_min_MeV, bins_per_dec_photon,
         n_ions, aa_ion, n₀_ion, γ₀, u₀, flux_px_upstream, flux_energy_upstream, u₂,
         n_grid, btot_grid,
-        i_ion, mc)
+        i_ion, mc
+    )
 
     # Convert units of energy_γ and synch_emis
     # Note that synch_emis is energy radiated per second per logarithmic energy bin, i.e.,
     # dP/d(lnE). Its units are [erg/sec].
-    energy_γ_MeV = ustrip(MeV, energy_γ*erg)
-    emis_γ       = max.(synch_emis / (4π*dist_lum^2), 1e-99)
+    energy_γ_MeV = ustrip(MeV, energy_γ * erg)
+    emis_γ = max.(synch_emis / (4π * dist_lum^2), 1.0e-99)
 
     # Don't write out anything if emis_γ is empty; different structure compared to pion
     # and IC subroutines because synchrotron subroutine doesn't have an internal loop.
-    do_write = (count(emis_γ[1:n_photon_synch] > 1e-99) ≥ 1)
+    do_write = (count(emis_γ[1:n_photon_synch] > 1.0e-99) ≥ 1)
 
     local j_unit
 
@@ -87,10 +88,10 @@ function photon_synch(
             # This is energy flux [MeV/(cm²⋅sec)] per log energy bin d(lnE) = dE/E.
             # Energy in spectrum is area under curve when plotted with a
             # logarithmic energy axis, i.e. [dΦ/d(lnE) * d(lnE)].
-            if emis_γ[i] > 1e-99
-                emis_γ_MeV = ustrip(MeV, emis_γ[i]*erg)  # MeV/(cm²⋅s) at earth
+            if emis_γ[i] > 1.0e-99
+                emis_γ_MeV = ustrip(MeV, emis_γ[i] * erg)  # MeV/(cm²⋅s) at earth
             else
-                emis_γ_MeV = 1e-99               # "zero" emission
+                emis_γ_MeV = 1.0e-99               # "zero" emission
             end
 
             #ν_γ = energy_γ[i]/h # frequency (ν)
@@ -102,14 +103,14 @@ function photon_synch(
             # Number of photons in spectrum is area under curve when plotted
             # with a logarithmic energy axis, i.e. [dΦ/d(lnE) * d(lnE)].
             #                                  ↓ "zero" emission
-            photon_flux = emis_γ_MeV ≤ 1e-99 ? 1e-99 : emis_γ_MeV/energy_γ_MeV[i]
+            photon_flux = emis_γ_MeV ≤ 1.0e-99 ? 1.0e-99 : emis_γ_MeV / energy_γ_MeV[i]
 
 
             # Open the file and write the spectral data
             # XXX Fortran holdover
-            lopen = inquire(:isopen, file="./photon_synch_grid.dat")
+            lopen = inquire(:isopen, file = "./photon_synch_grid.dat")
             if !lopen
-                j_unit = open(status="unknown", file="./photon_synch_grid.dat")
+                j_unit = open(status = "unknown", file = "./photon_synch_grid.dat")
             end
 
             # Don't write out the last data point
@@ -117,12 +118,14 @@ function photon_synch(
 
             # TODO: incorporate redshift into this writeout; right now,
             # everything is handled in time_seq_photons so this section is irrelevant
-            write(j_unit,           # photon_synch_grid.dat
-                  n_grid, iplot,
-                  log10(photon_flux),            # 1 log10(photons/(cm²⋅sec))
-                  log10(energy_γ_MeV[i]),        # 2 log10(MeV)
-                  log10(emis_γ_MeV),             # 3 log10[MeV/(cm²⋅sec)] at earth
-                  log10(photon_flux/energy_MeV)) # 4 log10[photons/(cm²⋅sec⋅MeV)]
+            write(
+                j_unit,           # photon_synch_grid.dat
+                n_grid, iplot,
+                log10(photon_flux),             # 1 log10(photons/(cm²⋅sec))
+                log10(energy_γ_MeV[i]),         # 2 log10(MeV)
+                log10(emis_γ_MeV),              # 3 log10[MeV/(cm²⋅sec)] at earth
+                log10(photon_flux / energy_MeV) # 4 log10[photons/(cm²⋅sec⋅MeV)]
+            )
 
         end # loop over n_photon_synch
 
@@ -131,4 +134,5 @@ function photon_synch(
     end # check on do_write
 
     close(j_unit)
+    return
 end

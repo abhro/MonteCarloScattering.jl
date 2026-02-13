@@ -27,8 +27,8 @@ function get_σ_π(Tₚ, i_data, s_ECM)
 
         eq4_γ = M_res * hypot(M_res, Γ_res)
         eq4_K = √8 * M_res * Γ_res * eq4_γ / (π * √(M_res^2 + eq4_γ))
-        f_BW  = mp * eq4_K / (((√s_ECM - mp)^2 - M_res^2)^2 + M_res^2 * Γ_res^2)
-        eq3_η = √((s_ECM - E₀_π⁰^2 - 4*mp^2)^2 - (4*E₀_π⁰*mp)^2) / (2E₀_π⁰ * √s_ECM)
+        f_BW = mp * eq4_K / (((√s_ECM - mp)^2 - M_res^2)^2 + M_res^2 * Γ_res^2)
+        eq3_η = √((s_ECM - E₀_π⁰^2 - 4 * mp^2)^2 - (4 * E₀_π⁰ * mp)^2) / (2E₀_π⁰ * √s_ECM)
 
         # Equation (2)
         σ_1π = 7.66e-3 * eq3_η^1.95 * (1 + eq3_η + eq3_η^5) * f_BW^1.86
@@ -46,10 +46,10 @@ function get_σ_π(Tₚ, i_data, s_ECM)
     if Tₚ < 5
 
         eq6_Q = (Tₚ - Tₜₕ) / mp
-        n_π0 = -6e-3 + 0.237*eq6_Q - 0.023*eq6_Q^2  # Neutral pion multiplicity
+        n_π0 = -6.0e-3 + 0.237 * eq6_Q - 0.023 * eq6_Q^2  # Neutral pion multiplicity
         eq1_ratio = Tₚ / Tₜₕ
         log_ratio = log(eq1_ratio)
-        σ_inel = (30.7 - 0.96*log_ratio + 0.18*log_ratio^2) * (1 - eq1_ratio^(-1.9))^3 # Total inelastic cross section
+        σ_inel = (30.7 - 0.96 * log_ratio + 0.18 * log_ratio^2) * (1 - eq1_ratio^(-1.9))^3 # Total inelastic cross section
         # Combine to get σ_π
         return n_π0 * σ_inel
     end
@@ -59,21 +59,21 @@ function get_σ_π(Tₚ, i_data, s_ECM)
     # depend on values of Tₚ and i_data
     #-------------------------------------------------------------------------
 
-    if i_data == 2 && Tₚ > 5e1
+    if i_data == 2 && Tₚ > 5.0e1
         # Use PYTHIA 8 parametrization
         a₁ = 0.652
         a₂ = 0.0016
         a₃ = 0.488
         a₄ = 0.1928
         a₅ = 0.483
-    elseif i_data == 3 && Tₚ > 1e2
+    elseif i_data == 3 && Tₚ > 1.0e2
         # Use SIBYLL 2.1 parametrization
         a₁ = 5.436
         a₂ = 0.254
         a₃ = 0.072
         a₄ = 0.075
         a₅ = 0.166
-    elseif i_data == 4 && Tₚ > 1e2
+    elseif i_data == 4 && Tₚ > 1.0e2
         # Use QGSJET-I parametrization
         a₁ = 0.908
         a₂ = 0.0009
@@ -96,7 +96,7 @@ function get_σ_π(Tₚ, i_data, s_ECM)
 
     eq1_ratio = Tₚ / Tₜₕ
     log_ratio = log(eq1_ratio)
-    σ_inel = (30.7 - 0.96*log_ratio + 0.18*log_ratio^2) * (1 - eq1_ratio^(-1.9))^3 # Total inelastic cross section
+    σ_inel = (30.7 - 0.96 * log_ratio + 0.18 * log_ratio^2) * (1 - eq1_ratio^(-1.9))^3 # Total inelastic cross section
     # Combine to get σ_π
     return n_π0 * σ_inel
 end
@@ -171,7 +171,7 @@ function get_Ffunc(Tₚ, Eᵧ, i_data, Eᵧ_max)
         μ = 1.25 * q^1.25 * exp(-1.25 * q)
         λ = 3.0
         α = 1.0
-        β = 1.50*μ + 4.95
+        β = 1.5 * μ + 4.95
         γ = μ + 1.5
     elseif i_data == 1 && Tₚ > 100
         # Use parametrization based on highest energy GEANT 4 fit
@@ -228,13 +228,13 @@ function get_Amax(Tₚ, i_data, s_ECM, σ_π)
     # Maximum π-0 energy in center-of-mass frame
     E_π_CM = (s_ECM - 4mp^2 + E₀_π⁰^2) / (2 * √s_ECM)
     # Lorentz factor of proton in center-of-mass frame; associated β
-    γ_CM  = (Tₚ + 2mp) / √s_ECM
+    γ_CM = (Tₚ + 2mp) / √s_ECM
     β_CM = √(1 - 1 / γ_CM^2)
     # Maximum π-0 momentum in center-of-mass frame. Note the unusual units
     # of GeV, which will allow easier calculation of Emax_π_LAB
     P_π_CM = √(E_π_CM^2 - E₀_π⁰^2)
 
-    Emax_π_LAB = γ_CM * (E_π_CM + P_π_CM*β_CM)
+    Emax_π_LAB = γ_CM * (E_π_CM + P_π_CM * β_CM)
     #-------------------------------------------------------------------------
     # Emax_π_LAB calculated
 
@@ -243,9 +243,9 @@ function get_Amax(Tₚ, i_data, s_ECM, σ_π)
     #-------------------------------------------------------------------------
     # Maximum π-0 Lorentz factor in laboratory frame; associated β
     γ_LAB = Emax_π_LAB / E₀_π⁰
-    β_LAB = √(1 - 1/γ_LAB^2)
+    β_LAB = √(1 - 1 / γ_LAB^2)
 
-    Eᵧ_max = E₀_π⁰/2 * γ_LAB * (1 + β_LAB)
+    Eᵧ_max = E₀_π⁰ / 2 * γ_LAB * (1 + β_LAB)
     #-------------------------------------------------------------------------
     # Eᵧ_max found
 

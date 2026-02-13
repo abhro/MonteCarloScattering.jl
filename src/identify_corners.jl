@@ -30,10 +30,14 @@ total momenta and the lower/higher of the two remaining cos(θ) values.
 function identify_corners(i, j, transform_corner_pt, transform_corner_cθ, ii_sk_pf)
 
     # Get momentum and cos(θ) values from the grid
-    corner_pts = [transform_corner_pt[i,   j],   transform_corner_pt[i+1, j],
-                  transform_corner_pt[i,   j+1], transform_corner_pt[i+1, j+1]]
-    corner_cθs = [transform_corner_cθ[i,   j],   transform_corner_cθ[i+1, j],
-                  transform_corner_cθ[i,   j+1], transform_corner_cθ[i+1, j+1]]
+    corner_pts = [
+        transform_corner_pt[i, j],     transform_corner_pt[i + 1, j],
+        transform_corner_pt[i, j + 1], transform_corner_pt[i + 1, j + 1],
+    ]
+    corner_cθs = [
+        transform_corner_cθ[i, j],     transform_corner_cθ[i + 1, j],
+        transform_corner_cθ[i, j + 1], transform_corner_cθ[i + 1, j + 1],
+    ]
 
     # Pre-set logical array
     mask = fill(true, 4)
@@ -89,12 +93,12 @@ function identify_corners(i, j, transform_corner_pt, transform_corner_cθ, ii_sk
     # If the two values aren't identical, one corner will be cθ_hi and other will be cθ_lo.
     # NOTE: in event that cθ_hi_cθ and cθ_lo_cθ are equal, assign corner with lower total momentum as cθ_lo
     #----------------------------------------------------------------------------
-    j_cθ_hi  = maxloc(corner_cθs, 1, mask) # FIXME
+    j_cθ_hi = maxloc(corner_cθs, 1, mask) # FIXME
     cθ_hi_pt = corner_pts[j_cθ_hi]
     cθ_hi_cθ = corner_cθs[j_cθ_hi]
     mask[j_cθ_hi] = false
 
-    j_cθ_lo  = minloc(corner_cθs, 1, mask) # FIXME
+    j_cθ_lo = minloc(corner_cθs, 1, mask) # FIXME
     cθ_lo_pt = corner_pts[j_cθ_lo]
     cθ_lo_cθ = corner_cθs[j_cθ_lo]
 
@@ -148,9 +152,11 @@ function identify_corners(i, j, transform_corner_pt, transform_corner_cθ, ii_sk
             elseif pt_lo_cθ < cθ_lo_cθ
                 # Nothing to do here. Assignment is correct
             else
-                error("pt_lo and cθ_lo identical\n",
-                      i, j, pt_lo_pt, pt_lo_cθ, cθ_lo_pt, cθ_lo_cθ,
-                      "\nIf $i = 0, reduce EMNFC in mc_in.dat")
+                error(
+                    "pt_lo and cθ_lo identical\n",
+                    i, j, pt_lo_pt, pt_lo_cθ, cθ_lo_pt, cθ_lo_cθ,
+                    "\nIf $i = 0, reduce EMNFC in mc_in.dat"
+                )
             end
 
         elseif pt_lo_tied == 3
@@ -165,8 +171,10 @@ function identify_corners(i, j, transform_corner_pt, transform_corner_cθ, ii_sk
             elseif pt_lo_cθ < cθ_hi_cθ
                 # Nothing to do here. Assignment is correct
             else
-                error("pt_lo and cθ_hi identical", i, j, pt_lo_pt, pt_lo_cθ, cθ_hi_pt, cθ_hi_cθ,
-                      "If $i = 0, reduce EMNFC in mc_in.dat")
+                error(
+                    "pt_lo and cθ_hi identical", i, j, pt_lo_pt, pt_lo_cθ, cθ_hi_pt, cθ_hi_cθ,
+                    "If $i = 0, reduce EMNFC in mc_in.dat"
+                )
             end
 
         end
@@ -197,9 +205,11 @@ function identify_corners(i, j, transform_corner_pt, transform_corner_cθ, ii_sk
             elseif pt_hi_cθ < cθ_lo_cθ
                 # Nothing to do here. Assignment is correct
             else
-                error("pt_hi and cθ_lo identical",
-                      i, j, pt_hi_pt, pt_hi_cθ, cθ_lo_pt, cθ_lo_cθ,
-                      "\nIf $i = 0, reduce EMNFC in mc_in.dat")
+                error(
+                    "pt_hi and cθ_lo identical",
+                    i, j, pt_hi_pt, pt_hi_cθ, cθ_lo_pt, cθ_lo_cθ,
+                    "\nIf $i = 0, reduce EMNFC in mc_in.dat"
+                )
             end
 
         elseif pt_hi_tied == 3
@@ -214,9 +224,11 @@ function identify_corners(i, j, transform_corner_pt, transform_corner_cθ, ii_sk
             elseif pt_hi_cθ < cθ_hi_cθ
                 # Nothing to do here. Assignment is correct
             else
-                error("pt_hi and cθ_lo identical",
-                      i, j, pt_hi_pt, pt_hi_cθ, cθ_hi_pt, cθ_hi_cθ,
-                      "If $i = 0, reduce EMNFC in mc_in.dat")
+                error(
+                    "pt_hi and cθ_lo identical",
+                    i, j, pt_hi_pt, pt_hi_cθ, cθ_hi_pt, cθ_hi_cθ,
+                    "If $i = 0, reduce EMNFC in mc_in.dat"
+                )
             end
 
         end # check on pt_hi having lower momentum
@@ -225,7 +237,9 @@ function identify_corners(i, j, transform_corner_pt, transform_corner_cθ, ii_sk
     #-------------------------------------------------------------------------
     # Ties handled
 
-    return (pt_lo_pt, pt_lo_cθ, pt_hi_pt, pt_hi_cθ,
-            cθ_lo_pt, cθ_lo_cθ, cθ_hi_pt, cθ_hi_cθ,
-            pt_lo_tied, pt_hi_tied)
+    return (
+        pt_lo_pt, pt_lo_cθ, pt_hi_pt, pt_hi_cθ,
+        cθ_lo_pt, cθ_lo_cθ, cθ_hi_pt, cθ_hi_cθ,
+        pt_lo_tied, pt_hi_tied,
+    )
 end

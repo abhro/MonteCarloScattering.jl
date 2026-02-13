@@ -22,14 +22,16 @@ function get_psd_bin_momentum(ptot_sk, psd_bins_per_dec_mom::Integer, psd_mom_mi
     else
         # Particle falls into logarithmic spacing region
         #@debug("", ptot_sk, psd_mom_min, psd_bins_per_dec_mom)
-        bin = trunc(Int, log10(ptot_sk/psd_mom_min) * psd_bins_per_dec_mom) + 1
+        bin = trunc(Int, log10(ptot_sk / psd_mom_min) * psd_bins_per_dec_mom) + 1
     end
 
     # Sanity check
     if bin > num_psd_mom_bins
-        @warn("Particle momentum exceeded PSD's bounds",
-              bin, num_psd_mom_bins, ptot_sk/(mp*c),
-              psd_mom_min * exp10(num_psd_mom_bins) / (mp*c))
+        @warn(
+            "Particle momentum exceeded PSD's bounds",
+            bin, num_psd_mom_bins, ptot_sk / (mp * c),
+            psd_mom_min * exp10(num_psd_mom_bins) / (mp * c)
+        )
         bin = num_psd_mom_bins
     end
 
@@ -80,7 +82,7 @@ function get_psd_bin_angle(pₓ_sk, ptot_sk, psd_bins_per_dec_θ::Integer, num_p
     else
         θ = acos(p_cos) # Particle falls into logarithmic spacing region
         bin = θ < psd_θ_min ? 0 : # θ is close enough to zero that it might as well be
-            trunc(Int, log10(θ/psd_θ_min) * psd_bins_per_dec_θ) + 1
+            trunc(Int, log10(θ / psd_θ_min) * psd_bins_per_dec_θ) + 1
     end
 
     # Check to avert floating point error

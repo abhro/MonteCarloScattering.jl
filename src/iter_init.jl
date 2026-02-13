@@ -9,8 +9,9 @@ function populate_ε_target!(ε_target, z_max, γ_sf_grid, uₓ_sk_grid, u₀, �
 end
 
 # A little bit of type piracy here to make things go smoother
-function Base.fill!(arrs::NTuple{N,<:AbstractArray{T}}, x::T) where {N,T}
+function Base.fill!(arrs::NTuple{N, <:AbstractArray{T}}, x::T) where {N, T}
     for arr in arrs
         fill!(arr, x)
     end
+    return
 end

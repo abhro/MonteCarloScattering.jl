@@ -41,11 +41,11 @@ Shock must be parallel (not oblique).
 - `θᵤ`: angle[deg] between downstream fluid velocity and shock normal
 """
 function calc_downstream(B₀, r_comp, β₀)
-    β   = β₀ / r_comp
-    γ   = 1 / √(1 - β^2)
-    B   = B₀
+    β = β₀ / r_comp
+    γ = 1 / √(1 - β^2)
+    B = B₀
     θ_B = 0.0
-    θᵤ  = 0.0
+    θᵤ = 0.0
     return β, γ, B, θ_B, θᵤ
 end
 
@@ -102,13 +102,13 @@ function calc_rRH_nonrelativistic(P₀, ρ₀, β₀)
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal
     # gas, to calculate the far upstream sound speed and Mach number   #assumecold
     Γ_sph = 5//3
-    cₛ    = √(Γ_sph * P₀ / ρ₀)
-    M_Z   = β₀ * Unitful.c / cₛ |> NoUnits
+    cₛ = √(Γ_sph * P₀ / ρ₀)
+    M_Z = β₀ * Unitful.c / cₛ |> NoUnits
 
     # Finally, use Equation (11) from Ellison (1985) to calculate r_RH.
     # Note that q = 0 here because we assume no escaping flux. This
     # simplifies the denominator quite a bit from the equation.
-    r_RH = 8 / (2 + 6/M_Z^2)
+    r_RH = 8 / (2 + 6 / M_Z^2)
 
     # In non-relativistic case, downstream adiabatic index is pegged to 5/3
     Γ₂_RH = 5//3
@@ -147,10 +147,13 @@ function calc_rRH_relativistic(species, ρ₀, P₀, (β₀, γ₀))
     # Calculate two quantities to be used during loop to find r_RH: the
     # rest mass-energy of each species, and the (number) density relative to protons
     relative_ion_energy = (
-        dot(mass.(species), # rest energy of each species (to be multiplied by c²)
-            n₀_ion)         # density relative to protons (to be divided by n₀_proton)
+        dot(
+            mass.(species), # rest energy of each species (to be multiplied by c²)
+            n₀_ion          # density relative to protons (to be divided by n₀_proton)
+        )
         * c^2               # turn mass into rest energy of all species
-        / first(n₀_ion))    # turn densities into density relative to protons
+        / first(n₀_ion)     # turn densities into density relative to protons
+    )
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal gas,
     # to calculate the far upstream enthalpy      #assumecold
@@ -162,11 +165,11 @@ function calc_rRH_relativistic(species, ρ₀, P₀, (β₀, γ₀))
     upstream_num_flux = γ₀ * n₀_ion[1] * β₀ # Protons only here; not strictly correct but appropriate for later use
 
     function F(p)
-        γβ = p / (mp*c) # since p is relativistic, p/mc = γmv/mc = γ⋅β
+        γβ = p / (mp * c) # since p is relativistic, p/mc = γmv/mc = γ⋅β
         γ = √(1 + γβ^2)
-        P = relative_ion_energy/3 * γβ^2/γ # pressure
-        w = relative_ion_energy*(γ + γβ^2/3γ)
-        return upstream_num_flux/γ * (w*γ^2 + P) - upstream_mom_flux
+        P = relative_ion_energy / 3 * γβ^2 / γ # pressure
+        w = relative_ion_energy * (γ + γβ^2 / 3γ)
+        return upstream_num_flux / γ * (w * γ^2 + P) - upstream_mom_flux
     end
 
     # Now use Newton's method to determine the downstream momentum that satisfies the
@@ -175,21 +178,21 @@ function calc_rRH_relativistic(species, ρ₀, P₀, (β₀, γ₀))
     p₂_found = find_zero(F, 0, Newton())
 
     # Calculate the compression ratio β₀/β₂ associated with p₂_found
-    γβ = p₂_found / (mp*c)  # Protons only here because of how the math in w_fac works out
+    γβ = p₂_found / (mp * c)  # Protons only here because of how the math in w_fac works out
 
     # Pressure, internal energy, and enthalpy with proton density factored out
-    P_fac = relative_ion_energy/3 * γβ^2 / √(1 + γβ^2)
+    P_fac = relative_ion_energy / 3 * γβ^2 / √(1 + γβ^2)
     e_fac = relative_ion_energy * (√(1 + γβ^2) - 1)
-    w_fac = relative_ion_energy * (√(1 + γβ^2) + 1/3 * γβ^2 / √(1 + γβ^2))
+    w_fac = relative_ion_energy * (√(1 + γβ^2) + 1 / 3 * γβ^2 / √(1 + γβ^2))
 
     # Calculate adiabatic index downstream
-    Γ₂_RH = 1 + P_fac/e_fac
+    Γ₂_RH = 1 + P_fac / e_fac
 
     # Finally, get downstream speed and compression ratio
-    β₂ = √(1 - (n₀_ion[1] * w_fac/γ₀ * w₀)^2)  # Using only proton density is correct
+    β₂ = √(1 - (n₀_ion[1] * w_fac / γ₀ * w₀)^2)  # Using only proton density is correct
 
 
-    r_RH = β₀/β₂
+    r_RH = β₀ / β₂
     #------------------------------------------------------------------------
     # r_RH found using Newton's method
 
@@ -216,18 +219,22 @@ Values less than the minimum are equivalent to 0.0.
 - `psd_mom_bounds`: boundaries between bins, and upper edge of final bin
 """
 function set_psd_mom_bins(psd_mom_min, psd_mom_max, psd_bins_per_dec_mom)
-    num_psd_mom_bins = trunc(Int, log10(psd_mom_max / psd_mom_min) *  psd_bins_per_dec_mom)
+    num_psd_mom_bins = trunc(Int, log10(psd_mom_max / psd_mom_min) * psd_bins_per_dec_mom)
     num_psd_mom_bins += 2   # Add two extra bins just to be safe
 
     # Fill in the array psd_mom_bounds, remembering that the array holds LOWER boundaries
     # of that bin
     psd_mom_bounds = Origin(0)(Float64[-99.0])
-    append!(psd_mom_bounds,
-            range(start  = log10(psd_mom_min/(mp*c)),
-                  step   = 1/psd_bins_per_dec_mom,
-                  length = num_psd_mom_bins+1))
+    append!(
+        psd_mom_bounds,
+        range(
+            start = log10(psd_mom_min / (mp * c)),
+            step = 1 / psd_bins_per_dec_mom,
+            length = num_psd_mom_bins + 1
+        )
+    )
 
-    length(psd_mom_bounds) == num_psd_mom_bins+2 || error() # sanity check
+    length(psd_mom_bounds) == num_psd_mom_bins + 2 || error() # sanity check
 
     return num_psd_mom_bins, psd_mom_bounds
 end
@@ -262,17 +269,17 @@ function set_psd_angle_bins(psd_bins_per_dec_θ, psd_lin_cos_bins, psd_cos_fine,
     psd_θ_fine = acos(psd_cos_fine)
     ten_root_θ = exp10(1 / psd_bins_per_dec_θ)
 
-    psd_log_θ_bins = trunc(Int, log10(psd_θ_fine/psd_θ_min) * psd_bins_per_dec_θ)
+    psd_log_θ_bins = trunc(Int, log10(psd_θ_fine / psd_θ_min) * psd_bins_per_dec_θ)
     #num_psd_θ_bins = psd_log_θ_bins + psd_lin_cos_bins
 
     # Fill the logarithmic part of psd_θ_bounds using the angle (in radians), NOT its logarithm
-    psd_θ_bounds = Origin(0)(Float64[1e-99])
-    append!(psd_θ_bounds, psd_θ_min * ten_root_θ.^range(0, length=psd_log_θ_bins))
+    psd_θ_bounds = Origin(0)(Float64[1.0e-99])
+    append!(psd_θ_bounds, psd_θ_min * ten_root_θ .^ range(0, length = psd_log_θ_bins))
 
     # Now fill in the linear part of psd_θ_bounds.
     # Note that the lower boundary of the first cell is psd_cos_fine
     Δcos = (psd_cos_fine + 1) / psd_lin_cos_bins
-    append!(psd_θ_bounds, range(start=psd_cos_fine, step=-Δcos, length=psd_lin_cos_bins+1))
+    append!(psd_θ_bounds, range(start = psd_cos_fine, step = -Δcos, length = psd_lin_cos_bins + 1))
 
     sort!(psd_θ_bounds)
 
@@ -303,16 +310,18 @@ function set_photon_shells(
         use_prp, feb_upstream, feb_downstream, rg₀, x_grid_stop_rg,
     )
 
-    total_shells = num_upstream_shells+num_downstream_shells
+    total_shells = num_upstream_shells + num_downstream_shells
     x_shell_midpoints = zeros(total_shells)
-    x_shell_endpoints = zeros(total_shells+1) # fencepost problem
+    x_shell_endpoints = zeros(total_shells + 1) # fencepost problem
 
     # Handle upstream shells first
     set_upstream_photon_shells!(x_shell_midpoints, x_shell_endpoints, num_upstream_shells, feb_upstream, rg₀)
 
     # And repeat the process for the downstream shells.
-    set_downstream_photon_shells!(x_shell_midpoints, x_shell_endpoints, num_upstream_shells, num_downstream_shells,
-                           use_prp, feb_downstream, rg₀, x_grid_stop_rg)
+    set_downstream_photon_shells!(
+        x_shell_midpoints, x_shell_endpoints, num_upstream_shells, num_downstream_shells,
+        use_prp, feb_downstream, rg₀, x_grid_stop_rg
+    )
 
     # Convert from units of rg₀ to cm
     @. x_shell_endpoints *= rg₀
@@ -328,15 +337,15 @@ function set_upstream_photon_shells!(
         x_shell_midpoints, x_shell_endpoints,
         num_upstream_shells, feb_upstream, rg₀,
     )
-    x_section_width = (log10(abs(feb_upstream/rg₀))+1) / num_upstream_shells
+    x_section_width = (log10(abs(feb_upstream / rg₀)) + 1) / num_upstream_shells
     for i in 1:num_upstream_shells
         # Calculate upstream and downstream endpoints of each region,
         # as well as midpoint in log space
         if i == 1
             # Special case when i = 1, since our region starts at the shock.
             x_region_start = 0.0
-            x_region_end   = exp10(-1 + x_section_width)
-            x_region_mid   = exp10(-1 + x_section_width/2)
+            x_region_end = exp10(-1 + x_section_width)
+            x_region_mid = exp10(-1 + x_section_width / 2)
         else
             # In the general case, note that x_region_start should be the same as
             # the previous region's x_region_end. This can be checked with print
@@ -350,10 +359,12 @@ function set_upstream_photon_shells!(
         # count downstream from the upstream FEB (so some array index juggling is necessary)
         # Also, add in the factor of -1 here, since upstream coordinates should be negative
         # in the MC code.
-        x_shell_midpoints[num_upstream_shells+1 - i]     = -x_region_mid
-        x_shell_endpoints[num_upstream_shells+1 - i]     = -x_region_end
-        x_shell_endpoints[num_upstream_shells+1 - i + 1] = -x_region_start
+        N = num_upstream_shells + 1 - i
+        x_shell_midpoints[N] = -x_region_mid
+        x_shell_endpoints[N] = -x_region_end
+        x_shell_endpoints[N + 1] = -x_region_start
     end
+    return
 end
 """
     set_downstream_photon_shells!(...)
@@ -365,8 +376,8 @@ function set_downstream_photon_shells!(
         num_upstream_shells, num_downstream_shells, use_prp, feb_downstream, rg₀, x_grid_stop_rg,
     )
     # The downstream limit is set differently if using a PRP or a FEB
-    limitdownstream = use_prp ? x_grid_stop_rg : feb_downstream/rg₀
-    x_section_width = (log10(limitdownstream)+1) / num_downstream_shells
+    limitdownstream = use_prp ? x_grid_stop_rg : feb_downstream / rg₀
+    x_section_width = (log10(limitdownstream) + 1) / num_downstream_shells
 
     for i in 1:num_downstream_shells
         # Calculate upstream and downstream endpoints of each region, as well as midpoint in log space
@@ -376,33 +387,38 @@ function set_downstream_photon_shells!(
         else
             # In the general case, note that x_region_start should be the same as the previous
             # region's x_region_end. This can be checked with print statements at runtime.
-            x_region_start = exp10(-1 + x_section_width * (i-1)  )
+            x_region_start = exp10(-1 + x_section_width * (i - 1))
         end
-        x_region_mid = exp10(-1 + x_section_width * (i-1//2))
-        x_region_end = exp10(-1 + x_section_width *  i)
+        x_region_mid = exp10(-1 + x_section_width * (i - 1 // 2))
+        x_region_end = exp10(-1 + x_section_width * i)
 
         # Update the arrays with the information. Less index juggling here
-        x_shell_endpoints[num_upstream_shells + i]     = x_region_start
-        x_shell_midpoints[num_upstream_shells + i]     = x_region_mid
+        x_shell_endpoints[num_upstream_shells + i] = x_region_start
+        x_shell_midpoints[num_upstream_shells + i] = x_region_mid
         x_shell_endpoints[num_upstream_shells + i + 1] = x_region_end
     end
+    return
 end
 
 # Many grid zones are set manually; zones can easily be added/removed, but
 # make sure to change the number in the log-spaced regions upstream or downstream
-const FIRST_ZONE = SVector(-9.0, -8.0, -7.0, -6.0, -5.0, -4.5, -4.0, -3.5, -3.0,
-                           -2.5, -2.0, -1.8, -1.6, -1.4, -1.2, -1.0,
-                           -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2,
-                           -0.15, -0.1,
-                           -0.07, -0.05, -0.04, -0.03, -0.02, -0.015, -0.01,
-                           -3e-3, -1e-3)
+const FIRST_ZONE = SVector(
+    -9.0, -8.0, -7.0, -6.0, -5.0, -4.5, -4.0, -3.5, -3.0,
+    -2.5, -2.0, -1.8, -1.6, -1.4, -1.2, -1.0,
+    -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2,
+    -0.15, -0.1,
+    -0.07, -0.05, -0.04, -0.03, -0.02, -0.015, -0.01,
+    -3.0e-3, -1.0e-3
+)
 # Extremely fine spacing right around the shock
-const EXTREMELY_FINE_SPACING = SVector(-1e-4, -1e-7, 0.0, 1e-7, 1e-4)
+const EXTREMELY_FINE_SPACING = SVector(-1.0e-4, -1.0e-7, 0.0, 1.0e-7, 1.0e-4)
 
 # Downstream from the shock, spacing doesn't need to be quite so fine
 # because velocity gradients aren't as extreme, if they exist at all
-const DOWNSTREAM_SPACING = SVector(1e-3, 1e-2, 2e-2, 3e-2, 5e-2, 7e-2, 0.10,
-                                   0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0)
+const DOWNSTREAM_SPACING = SVector(
+    1.0e-3, 1.0e-2, 2.0e-2, 3.0e-2, 5.0e-2, 7.0e-2, 0.1,
+    0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0
+)
 
 """
     setup_grid(...)
@@ -423,14 +439,14 @@ function setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_downstream, rg
 
     # Logarithmically-spaced grid zones run from x_grid_start_rg to -10rg₀. Set them here.
     n_log_upstream = 27
-    Δlog = (log10(-x_grid_start_rg) - 1) / n_log_upstream-1
+    Δlog = (log10(-x_grid_start_rg) - 1) / n_log_upstream - 1
 
     # we build this chunk-by-chunk, which is inefficient
     x_grid_rg = Origin(0)(Float64[])
 
-    push!(x_grid_rg, -1e30) # set left boundary of grid
+    push!(x_grid_rg, -1.0e30) # set left boundary of grid
 
-    append!(x_grid_rg, -exp10.(range(start=log10(-x_grid_start_rg), step=-Δlog, length=n_log_upstream)))
+    append!(x_grid_rg, -exp10.(range(start = log10(-x_grid_start_rg), step = -Δlog, length = n_log_upstream)))
     append!(x_grid_rg, FIRST_ZONE)
     append!(x_grid_rg, EXTREMELY_FINE_SPACING)
     append!(x_grid_rg, DOWNSTREAM_SPACING)
@@ -439,11 +455,11 @@ function setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_downstream, rg
     # Downstream from there, more log-spaced zones.
     n_log_downstream = 16
     x_end_man = x_grid_rg[end]
-    Δlog      = (log10(x_grid_stop_rg) - log10(x_end_man)) / n_log_downstream
+    Δlog = (log10(x_grid_stop_rg) - log10(x_end_man)) / n_log_downstream
 
-    append!(x_grid_rg, exp10.(range(start=log10(x_end_man), step=Δlog, length=n_log_downstream)))
+    append!(x_grid_rg, exp10.(range(start = log10(x_end_man), step = Δlog, length = n_log_downstream)))
 
-    push!(x_grid_rg, 1e30)  # set right boundary of the grid
+    push!(x_grid_rg, 1.0e30)  # set right boundary of the grid
 
     return x_grid_rg, x_grid_start, x_grid_stop
 end
@@ -483,15 +499,15 @@ function upstream_fluxes(n₀_ion, T₀_ion, m_ion, B₀, θ_B₀, u₀, β₀, 
     # Upstream internal energy density and pressure, assuming isotropic particle distribution.
     # Note that this INCLUDES the mass-energy density, which is typically omitted in
     # nonrelativistic calculations
-    P₀ = dot(n₀_ion, T₀_ion) * kB |> dyn/cm^2 # pressure
-    ρ₀ = dot(n₀_ion, m_ion)       |> g/cm^3   # mass density
+    P₀ = dot(n₀_ion, T₀_ion) * kB |> dyn / cm^2 # pressure
+    ρ₀ = dot(n₀_ion, m_ion)       |> g / cm^3   # mass density
     @debug "calculated params" P₀ ρ₀
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal gas,
     # to calculate the far upstream internal energy             #assumecold
     Γ_sph = 5//3
     # internal energy density
-    e₀ = ρ₀*c^2 + 1/(Γ_sph - 1) * P₀ |> erg/cm^3
+    e₀ = ρ₀ * c^2 + 1 / (Γ_sph - 1) * P₀ |> erg / cm^3
 
     # Quantities related to the upstream magnetic field. Note that B_z is the
     # z-component of the magnetic field, not B₀
@@ -523,15 +539,15 @@ function upstream_momentum_flux_relativistic(β₀, γ₀, e₀, P₀, B₀, B_x
 
     # Momentum flux, x-component
     # Fluid part (Double+ Eq 23)
-    F_pₓ_fl = (γ₀*β₀)^2 * (e₀ + P₀) + P₀ |> g/(cm*s^2)
+    F_pₓ_fl = (γ₀ * β₀)^2 * (e₀ + P₀) + P₀ |> g / (cm * s^2)
     # EM part (Double+ Eq 25)
-    F_pₓ_EM = γ₀^2 * ((β₀*B₀)^2 + B_z^2 - B_x^2) / 8π |> g/(cm*s^2)
+    F_pₓ_EM = γ₀^2 * ((β₀ * B₀)^2 + B_z^2 - B_x^2) / 8π |> g / (cm * s^2)
     @debug "Found partial fluxes" F_pₓ_fl F_pₓ_EM
     flux_px_upstream = F_pₓ_fl + F_pₓ_EM                         # Total
 
     # Momentum flux, z-component (Fluid Part = 0, from Double+ Eq 24)
     # Total = EM part (Double+ Eq 26)
-    flux_pz_upstream = -γ₀/4π * B_x * B_z
+    flux_pz_upstream = -γ₀ * B_x * B_z / 4π
 
     return flux_px_upstream, flux_pz_upstream
 end
@@ -542,9 +558,11 @@ end
 TODO
 """
 function upstream_momentum_flux_nonrelativistic(u₀, β₀, ρ₀, P₀, B_x, B_z, Γ_sph)
-    flux_px_upstream = ρ₀ * u₀^2 * (1 + β₀^2) +
-                       P₀ * (1 + Γ_sph/(Γ_sph-1)*β₀^2) +
-                       B_z^2/8π
+    flux_px_upstream = (
+        ρ₀ * u₀^2 * (1 + β₀^2) +
+            P₀ * (1 + Γ_sph / (Γ_sph - 1) * β₀^2) +
+            B_z^2 / 8π
+    )
     flux_pz_upstream = - B_x * B_z / 4π
     return flux_px_upstream, flux_pz_upstream
 end
@@ -555,7 +573,7 @@ end
 TODO
 """
 function upstream_energy_flux_nonrelativistic(u₀, β₀, ρ₀, P₀, Γ_sph, B_z)
-    return ρ₀ * u₀^3 * (1 + 1.25*β₀^2)/2 + P₀ * u₀ * Γ_sph/(Γ_sph-1) * (1+β₀^2) + u₀*B_z^2/4π
+    return ρ₀ * u₀^3 * (1 + 1.25 * β₀^2) / 2 + P₀ * u₀ * Γ_sph / (Γ_sph - 1) * (1 + β₀^2) + u₀ * B_z^2 / 4π
 end
 
 """
@@ -565,13 +583,13 @@ TODO
 """
 function upstream_energy_flux_relativistic(u₀, β₀, γ₀, e₀, ρ₀, P₀, B_z)
     F_energy_fl = γ₀^2 * β₀ * (e₀ + P₀) # Fluid part (Double+ Eq 20)
-    F_energy_EM = γ₀^2 * β₀ * B_z^2/4π  # EM part (Double+ Eq 21)
+    F_energy_EM = γ₀^2 * β₀ * B_z^2 / 4π  # EM part (Double+ Eq 21)
     # Total -- convert to cgs units!
     flux_energy_upstream = c * (F_energy_fl + F_energy_EM)
 
     # And subtract off the mass-energy flux to bring it in line with nonrelativistic
     # calculations and what the MC code actually tracks
-    flux_energy_upstream -= γ₀ * u₀ * ρ₀*c^2
+    flux_energy_upstream -= γ₀ * u₀ * ρ₀ * c^2
 
     return flux_energy_upstream
 end
@@ -604,8 +622,10 @@ function upstream_machs(β₀, species, B₀)
 
     relativistic = (β₀ ≥ β_rel_fl)
 
-    return (mach_sonic_func(β₀*c, P₀, ρ₀, Γ, relativistic),
-            mach_alfven_func(β₀*c, P₀, ρ₀, Γ, B₀, relativistic))
+    return (
+        mach_sonic_func(β₀ * c, P₀, ρ₀, Γ, relativistic),
+        mach_alfven_func(β₀ * c, P₀, ρ₀, Γ, B₀, relativistic),
+    )
 end
 
 # TODO name these functions better. the `_func` suffix is because there are
@@ -628,8 +648,8 @@ Return Alfvénic mach number (ratio of speed to Alfvén wave group velocity)
 """
 function mach_alfven_func(u, P, ρ, Γ, B, relativistic)
     v_A = relativistic ?
-            alfven_speed(Val(:relativistic), ρ, B, P, Γ) :
-            alfven_speed(Val(:classical), ρ, B)
+        alfven_speed(Val(:relativistic), ρ, B, P, Γ) :
+        alfven_speed(Val(:classical), ρ, B)
     return u / v_A |> NoUnits
 end
 
@@ -652,7 +672,7 @@ function sound_speed(::Val{:relativistic}, P, ρ, Γ)
     # Compute the speed of sound using Fujimura & Kennel
     #     cₛ²/c² = ΓR/(aR + 1)                              FK1979 Eq. 13
     a = Γ / (Γ - 1)     # defined near FK1979 Equation (6)
-    return c * √(Γ * R / (a*R + 1))
+    return c * √(Γ * R / (a * R + 1))
 end
 sound_speed(::Val{:classical}, P, ρ, Γ) = √(Γ * P / ρ) # cₛ = √(K/ρ), where K = ΓP is the bulk modulus
 
@@ -732,11 +752,11 @@ function setup_profile(
 
     uₓ_sk_grid = OffsetVector{typeof(u₀)}(undef, grid_axis)
     uz_sk_grid = zeros(typeof(u₀), grid_axis)
-    γ_sf_grid  = OffsetVector{Float64}(undef, grid_axis)
-    β_ef_grid  = OffsetVector{Float64}(undef, grid_axis)
-    γ_ef_grid  = OffsetVector{Float64}(undef, grid_axis)
-    btot_grid  = OffsetVector{BFieldCGS}(undef, grid_axis)
-    θ_grid     = fill(deg2rad(θ_B₀), grid_axis)
+    γ_sf_grid = OffsetVector{Float64}(undef, grid_axis)
+    β_ef_grid = OffsetVector{Float64}(undef, grid_axis)
+    γ_ef_grid = OffsetVector{Float64}(undef, grid_axis)
+    btot_grid = OffsetVector{BFieldCGS}(undef, grid_axis)
+    θ_grid = fill(deg2rad(θ_B₀), grid_axis)
 
     comp_fac = 0.0
     for i in grid_axis
@@ -751,15 +771,16 @@ function setup_profile(
             β = u / c |> NoUnits
             uₓ_sk_grid[i] = u
             γ_sf_grid[i] = 1 / √(1 - β^2)
-            β_ef_grid[i] = (β₀ - β) /  (1 - β₀*β)
+            β_ef_grid[i] = (β₀ - β) / (1 - β₀ * β)
             γ_ef_grid[i] = 1 / √(1 - β_ef_grid[i]^2)
 
             # When initializing magnetic field, include necessary corrections for turbulence compression
-            z_comp         = (γ₀ * u₀) / (γ_sf_grid[i] * u)
-            local comp_fac = 1 + (√((1 + 2*z_comp^2)/3) - 1) * bturb_comp_frac
+            z_comp = (γ₀ * u₀) / (γ_sf_grid[i] * u)
+            aux_fac = √((1 + 2 * z_comp^2) / 3)
+            local comp_fac = 1 + (aux_fac - 1) * bturb_comp_frac
             # Also include any additional amplification specified
-            amp_fac        = 1 + (comp_fac - 1) * bfield_amp
-            btot_grid[i]   = B₀ * amp_fac
+            amp_fac = 1 + (comp_fac - 1) * bfield_amp
+            btot_grid[i] = B₀ * amp_fac
         end
     end
 
@@ -771,21 +792,25 @@ function setup_profile(
     # If directed in data_input, use a custom-defined ε_B to set btot_grid.
     #-------------------------------------------------------------------------------
     if use_custom_εB
-        set_custom_εB!(εB_grid, btot_grid, grid_axis,
-                       n_ions, species, B₀,
-                       flux_px_upstream, flux_energy_upstream, uₓ_sk_grid, x_grid_rg,
-                       comp_fac,
-                       γ₀, β₀, u₀)
+        set_custom_εB!(
+            εB_grid, btot_grid, grid_axis,
+            n_ions, species, B₀,
+            flux_px_upstream, flux_energy_upstream, uₓ_sk_grid, x_grid_rg,
+            comp_fac,
+            γ₀, β₀, u₀
+        )
     else
-        fill!(εB_grid, 1e-99)
+        fill!(εB_grid, 1.0e-99)
     end
     #-------------------------------------------------------------------------
     # Custom εB_grid defined if needed
 
     B₂ = btot_grid[end]
 
-    return (uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
-            β_ef_grid, γ_ef_grid, btot_grid, θ_grid, εB_grid, B₂)
+    return (
+        uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid,
+        β_ef_grid, γ_ef_grid, btot_grid, θ_grid, εB_grid, B₂,
+    )
 end
 
 """
@@ -799,14 +824,17 @@ function set_custom_εB!(
         n_ions, species, B₀,
         flux_px_upstream, flux_energy_upstream, uₓ_sk_grid, x_grid_rg,
         comp_fac,
-        γ₀, β₀, u₀)
+        γ₀, β₀, u₀
+    )
 
-    @debug("Input parameters", εB_grid, btot_grid, grid_axis, n_ions, species, B₀,
-           flux_px_upstream, flux_energy_upstream, uₓ_sk_grid, x_grid_rg, comp_fac, γ₀, β₀, u₀)
+    @debug(
+        "Input parameters", εB_grid, btot_grid, grid_axis, n_ions, species, B₀,
+        flux_px_upstream, flux_energy_upstream, uₓ_sk_grid, x_grid_rg, comp_fac, γ₀, β₀, u₀
+    )
 
     # Calculate ε_B₀ which depends on far upstream magnetic field and mass density.
     # If electrons aren't a separate species, they don't contribute enough mass to be important.
-    n₀ = dot(density.(species), mass.(species))/mp # total number density
+    n₀ = dot(density.(species), mass.(species)) / mp # total number density
     εB₀ = B₀^2 / (8π * n₀ * E₀ₚ) |> NoUnits
 
     # The Monte Carlo length is rg₀ = γ₀ ⋅ β₀ ⋅ E₀ₚ / (e ⋅ B₀). The plasma skin
@@ -818,19 +846,19 @@ function set_custom_εB!(
     #     λ_SD = β₀ / √(σ ⋅ density_p/density_e) ⋅ rg₀.
     n₀_electron = density(species[end]) # electron number density
     σ = 2εB₀ / γ₀
-    rg2sd = β₀ / √(σ*n₀/n₀_electron) |> NoUnits
+    rg2sd = β₀ / √(σ * n₀ / n₀_electron) |> NoUnits
 
     # Also need the final value of ε_B downstream, in case our downstream region is long enough
     # that the magnetic field can decay to this value. Note that the R-H relations can be
     # rearranged to read
     #     energy_density(x) = F_en₀/u(x) - F_px₀
     # assuming flux conservation everywhere.
-    energy_density₂ = (flux_energy_upstream + γ₀*u₀*n₀*E₀ₚ) / uₓ_sk_grid[end] - flux_px_upstream
-    εB₂ = (B₀*comp_fac)^2 / (8π * energy_density₂) |> NoUnits
+    energy_density₂ = (flux_energy_upstream + γ₀ * u₀ * n₀ * E₀ₚ) / uₓ_sk_grid[end] - flux_px_upstream
+    εB₂ = (B₀ * comp_fac)^2 / (8π * energy_density₂) |> NoUnits
     # Use this value to compute the distance downstream at which the field will have decayed to it.
     # Per the Blandford-McKee solution, energy ∝ 1/χ ∝ 1/distance downstream. Since we do not actually
     # modify our pressures and densities according to the BM solution, instead modify εB
-    end_decay_rg = (5e-3 / εB₂) / rg2sd |> NoUnits
+    end_decay_rg = (5.0e-3 / εB₂) / rg2sd |> NoUnits
 
     @debug("Setting custom εB", n₀, εB₀, n₀_electron, σ, rg2sd, energy_density₂, εB₂, end_decay_rg)
 
@@ -838,17 +866,17 @@ function set_custom_εB!(
     # solution, energy ∝ 1/χ ∝ 1/distance downstream. Since we do not actually modify our
     # pressures and densities according to the BM solution, instead modify ε_B
     for i in grid_axis
-        x_grid_sd = x_grid_rg[i]*rg2sd
+        x_grid_sd = x_grid_rg[i] * rg2sd
         if x_grid_sd < -50
             εB_grid[i] = max(1.04e-5 / abs(x_grid_sd)^0.6, εB₀)
         elseif x_grid_sd < 50
-            εB_grid[i] = 1e-4
+            εB_grid[i] = 1.0e-4
         elseif x_grid_rg[i] < end_decay_rg
-            εB_grid[i] = 5e-3 / x_grid_sd
+            εB_grid[i] = 5.0e-3 / x_grid_sd
         else
             εB_grid[i] = εB₂
         end
-        energy_density = (flux_energy_upstream + γ₀*u₀*n₀*E₀ₚ) / uₓ_sk_grid[i] - flux_px_upstream
+        energy_density = (flux_energy_upstream + γ₀ * u₀ * n₀ * E₀ₚ) / uₓ_sk_grid[i] - flux_px_upstream
         #@debug("Setting εB_grid array elements", i, εB_grid[i], energy_density)
         # FIXME this tries to be a square root of a negative number sometimes
         #btot_grid[i] = √(8π * εB_grid[i] * energy_density)
@@ -909,21 +937,24 @@ function init_pop(
             error("not set to handle inp_distr > 2")
         end
 
-        ptot_inj[:,i_ion], weight_inj[:,i_ion], n_pts_MB[i_ion] = set_inj_dist(
-            inj_weight, n_pts_inj, inp_distr, T_or_E, m, n₀_ion[i_ion])
+        ptot_inj[:, i_ion], weight_inj[:, i_ion], n_pts_MB[i_ion] = set_inj_dist(
+            inj_weight, n_pts_inj, inp_distr, T_or_E, m, n₀_ion[i_ion]
+        )
 
         n_pts_use = n_pts_MB[i_ion]
         weight_in = weight_inj[1:n_pts_use, i_ion]
         ptot_pf_in = ptot_inj[1:n_pts_use, i_ion]
-        pb_pf_in = ptot_pf_in[1:n_pts_use] .* 2*(rand(rng, n_pts_use) .- 0.5)
-        x_PT_cm_in = fill(x_grid_start - 10*rg₀*η_mfp, n_pts_use)
+        pb_pf_in = ptot_pf_in[1:n_pts_use] .* 2 * (rand(rng, n_pts_use) .- 0.5)
+        x_PT_cm_in = fill(x_grid_start - 10 * rg₀ * η_mfp, n_pts_use)
         pxx_flux = zeros(MomentumDensityFluxCGS, n_grid)
         pxz_flux = zeros(MomentumDensityFluxCGS, n_grid)
         energy_flux = zeros(EnergyDensityFluxCGS, n_grid)
 
         i_grid_in = zeros(Int, n_pts_use)
-        return (n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in,
-                x_PT_cm_in, pxx_flux, pxz_flux, energy_flux)
+        return (
+            n_pts_use, i_grid_in, weight_in, ptot_pf_in, pb_pf_in,
+            x_PT_cm_in, pxx_flux, pxz_flux, energy_flux,
+        )
     end
 
 
@@ -955,9 +986,11 @@ function init_pop(
 
     temp_ratio = density_ratio^Γ_sph / density_ratio
 
-    if (kB * T₀_ion[i_ion] * temp_ratio) > (4 * m*c^2 * E_rel_pt)
-        error("Fast push cannot work because highest energy thermal particles become mildly relativistic. ",
-              "Move fast push location upstream or disable entirely.")
+    if (kB * T₀_ion[i_ion] * temp_ratio) > (4 * m * c^2 * E_rel_pt)
+        error(
+            "Fast push cannot work because highest energy thermal particles become mildly relativistic. ",
+            "Move fast push location upstream or disable entirely."
+        )
     end
     pxx_flux = zeros(MomentumDensityFluxCGS, n_grid)
     pxz_flux = zeros(MomentumDensityFluxCGS, n_grid)
@@ -980,14 +1013,15 @@ function init_pop(
     # that will be injected at x_fast_stop
     T_or_E = T₀_ion[i_ion] * temp_ratio
 
-    ptot_inj[:,i_ion], weight_inj[:,i_ion], n_pts_MB[i_ion] = set_inj_dist(
-        inj_weight, n_pts_inj, inp_distr, T_or_E, m, n₀_ion[i_ion])
+    ptot_inj[:, i_ion], weight_inj[:, i_ion], n_pts_MB[i_ion] = set_inj_dist(
+        inj_weight, n_pts_inj, inp_distr, T_or_E, m, n₀_ion[i_ion]
+    )
     n_pts_use = n_pts_MB[i_ion]
 
-    weight_in  = weight_inj[1:n_pts_use, i_ion]
+    weight_in = weight_inj[1:n_pts_use, i_ion]
     ptot_pf_in = ptot_inj[1:n_pts_use, i_ion]
     x_PT_cm_in = fill(x_fast_stop_rg * rg₀, n_pts_use)
-    i_grid_in  = fill(i_stop, n_pts_use)
+    i_grid_in = fill(i_stop, n_pts_use)
 
     pb_pf_in = zeros(MomentumCGS, n_pts_use)
     for i_prt in 1:n_pts_use
@@ -997,16 +1031,16 @@ function init_pop(
         #------------------------------------------------------------------------
 
         if relativistic
-            γₚ_pf = hypot(1, ptot_pf_in[i_prt] / (m*c))
+            γₚ_pf = hypot(1, ptot_pf_in[i_prt] / (m * c))
             vt_pf = ptot_pf_in[i_prt] / (γₚ_pf * m)
 
-            vmin² = ((uₓ_sk_grid[i_stop] - vt_pf) / (1 - uₓ_sk_grid[i_stop]*vt_pf/c^2))^2
-            vmax² = ((uₓ_sk_grid[i_stop] + vt_pf) / (1 + uₓ_sk_grid[i_stop]*vt_pf/c^2))^2
+            vmin² = ((uₓ_sk_grid[i_stop] - vt_pf) / (1 - uₓ_sk_grid[i_stop] * vt_pf / c^2))^2
+            vmax² = ((uₓ_sk_grid[i_stop] + vt_pf) / (1 + uₓ_sk_grid[i_stop] * vt_pf / c^2))^2
             # Unitful distributions not yet supported :(
-            dist_v_sf = Uniform(ustrip(cm^2/s^2, vmin²), ustrip(cm^2/s^2, vmax²))
+            dist_v_sf = Uniform(ustrip(cm^2 / s^2, vmin²), ustrip(cm^2 / s^2, vmax²))
 
-            vx_sf = cm/s * √(rand(rng, dist_v_sf))
-            vx_pf = (vx_sf - uₓ_sk_grid[i_stop]) / (1 - vx_sf*uₓ_sk_grid[i_stop]/c^2)
+            vx_sf = cm / s * √(rand(rng, dist_v_sf))
+            vx_pf = (vx_sf - uₓ_sk_grid[i_stop]) / (1 - vx_sf * uₓ_sk_grid[i_stop] / c^2)
         else
             γₚ_pf = 1.0
             vt_pf = ptot_pf_in[i_prt] / m
@@ -1055,12 +1089,12 @@ function flux_update!(
     for i in 1:i_stop
 
         density_ratio = (γ₀ * u₀) / (γ_sf_grid[i] * uₓ_sk_grid[i])
-        ρ_curr        = ρ₀ * density_ratio          # current mass density
+        ρ_curr = ρ₀ * density_ratio          # current mass density
 
         # Note assumption that Γ_sph doesn't change from zone to zone: #assumecold
         P_curr = P₀ * density_ratio^Γ_sph           # current pressure
 
-        β_curr   = uₓ_sk_grid[i] / c                # current speed (in units of c)
+        β_curr = uₓ_sk_grid[i] / c                # current speed (in units of c)
         γβ_curr = γ_sf_grid[i] * uₓ_sk_grid[i] / c
 
         # Determine fluxes while handling different possible orientations and shock speeds.
@@ -1069,21 +1103,27 @@ function flux_update!(
         # WARNING: these fluxes do not include contributions from a strong
         # magnetic field. This is incorporated during the smoothing process.
         #----------------------------------------------------------------------
-        flux_pz = 0.0erg/cm^3
+        flux_pz = 0.0erg / cm^3
         if !relativistic
-            flux_pₓ = (ρ_curr * uₓ_sk_grid[i]^2 * (1 + β_curr^2)
-                       + P_curr * (1 + Γ_sph/(Γ_sph-1) * β_curr^2))
-            flux_energy = (ρ_curr/2 * uₓ_sk_grid[i]^3 * (1 + 1.25*β_curr^2)
-                           + P_curr * uₓ_sk_grid[i] * Γ_sph/(Γ_sph-1) * (1 + β_curr^2))
+            flux_pₓ = (
+                ρ_curr * uₓ_sk_grid[i]^2 * (1 + β_curr^2)
+                    + P_curr * (1 + Γ_sph / (Γ_sph - 1) * β_curr^2)
+            )
+            flux_energy = (
+                ρ_curr / 2 * uₓ_sk_grid[i]^3 * (1 + 1.25 * β_curr^2)
+                    + P_curr * uₓ_sk_grid[i] * Γ_sph / (Γ_sph - 1) * (1 + β_curr^2)
+            )
         else
-            e_curr = ρ_curr*c^2 # energy density
+            e_curr = ρ_curr * c^2 # energy density
 
-            flux_pₓ = P_curr + γβ_curr^2 * (e_curr + Γ_sph/(Γ_sph-1)*P_curr)
-            flux_energy = (γβ_curr^2 * c / (uₓ_sk_grid[i]/c) *
-                           (e_curr + Γ_sph/(Γ_sph-1)*P_curr)
-                           # Subtract mass-energy flux from flux_energy to bring
-                           # it in line with non-relativistic calculations
-                           - γβ_curr*c * e_curr)
+            flux_pₓ = P_curr + γβ_curr^2 * (e_curr + Γ_sph / (Γ_sph - 1) * P_curr)
+            flux_energy = (
+                γβ_curr^2 * c / (uₓ_sk_grid[i] / c) *
+                    (e_curr + Γ_sph / (Γ_sph - 1) * P_curr)
+                    # Subtract mass-energy flux from flux_energy to bring
+                    # it in line with non-relativistic calculations
+                    - γβ_curr * c * e_curr
+            )
         end
         #--------------------------------------------------------------------
         # Fluxes calculated
@@ -1095,6 +1135,7 @@ function flux_update!(
     end  # loop over grid location
     #------------------------------------------------------------------------
     # Arrays updated through i_fast_stop
+    return
 end
 
 """
@@ -1151,13 +1192,13 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     #------------------------------------------------------------------------
     rm_energy = m * c^2
 
-    kT      = kB * T_or_E  # Working under assumption of thermal dist now
+    kT = kB * T_or_E  # Working under assumption of thermal dist now
     # Minimum, maximum extent of Maxwell-Boltzmann distribution
-    kT_min  = 2e-3 * kT
-    kT_max  = 10   * kT
+    kT_min = 2.0e-3 * kT
+    kT_max = 10 * kT
 
     kT_rel_div = E_rel_pt
-    relativistic = (kT/rm_energy ≥ kT_rel_div)
+    relativistic = (kT / rm_energy ≥ kT_rel_div)
 
     # Find min and max momenta of M-B curve
     if !relativistic
@@ -1172,12 +1213,12 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     end
 
     Δp = (p_max - p_min) / num_therm_bins
-    p_range = range(start = p_min, step = Δp, length = num_therm_bins+1)
+    p_range = range(start = p_min, step = Δp, length = num_therm_bins + 1)
     # define energy over kT
     if !relativistic
-        E_range = p_range.^2 / (2m * kT)
+        E_range = p_range .^ 2 / (2m * kT)
     else
-        E_range = hypot.(p_range*c, rm_energy) / kT
+        E_range = hypot.(p_range * c, rm_energy) / kT
     end
     #------------------------------------------------------------------------
     # End of constants section
@@ -1191,15 +1232,15 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     #------------------------------------------------------------------------
     # Find total area under M-B curve
     area_tot = 0.0g*cm/s
-    for (i, p1) in enumerate(p_range[begin:end-1])
-        p2 = p_range[i+1]
+    for (i, p1) in enumerate(p_range[begin:(end - 1)])
+        p2 = p_range[i + 1]
 
         energy_o_kT1 = E_range[i]
-        energy_o_kT2 = E_range[i+1]
+        energy_o_kT2 = E_range[i + 1]
 
         # Start working in log space because of potentially huge exponents
-        f1 = exp(2log(p1/(g*cm/s)) - energy_o_kT1)
-        f2 = exp(2log(p2/(g*cm/s)) - energy_o_kT2)
+        f1 = exp(2 * log(p1 / (g*cm/s)) - energy_o_kT1)
+        f2 = exp(2 * log(p2 / (g*cm/s)) - energy_o_kT2)
         #@debug "In log space" i p1 p2 f1 f2
 
         area_tot += Δp * 0.5 * (f1 + f2) # Integrate using the trapezoid rule
@@ -1212,10 +1253,12 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     # similarities, since particle weights are handled differently based on value of inj_weight
     if inj_weight # First, particles have equal weight
         n_pts_tot = set_inj_dist_particle_equal_weight!(
-            ptot_out, weight_out, p_range, E_range, area_tot, n_pts_inj, Δp, n₀)
+            ptot_out, weight_out, p_range, E_range, area_tot, n_pts_inj, Δp, n₀
+        )
     else # Bins have equal weight
         set_inj_dist_bin_equal_weight!(
-            ptot_out, weight_out, p_range, E_range, area_tot, Δp, n₀, n_per_bin)
+            ptot_out, weight_out, p_range, E_range, area_tot, Δp, n₀, n_per_bin
+        )
     end  # test of inj_weight
 
     n_pts_use = n_pts_tot
@@ -1228,10 +1271,10 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     if inp_distr == 2
         n_pts_use = n_pts_inj
 
-        rm_energy      = m * c^2
-        energy_inj = ustrip(erg, T_or_E*keV)
+        rm_energy = m * c^2
+        energy_inj = ustrip(erg, T_or_E * keV)
 
-        if energy_inj/rm_energy < E_rel_pt
+        if energy_inj / rm_energy < E_rel_pt
             p1 = √(2m * energy_inj)
         else
             p1 = √(energy_inj^2 - rm_energy^2) / c
@@ -1250,22 +1293,23 @@ end
 
 function set_inj_dist_particle_equal_weight!(
         ptot_out, weight_out,
-        p_range, E_range, area_tot, n_pts_inj, Δp, n₀)
+        p_range, E_range, area_tot, n_pts_inj, Δp, n₀
+    )
 
     area_per_pt = area_tot / n_pts_inj # Area each particle gets if inj_weight = T
-    n_pts_tot   = 1                    # Total number of particles in M-B distribution
+    n_pts_tot = 1  # Total number of particles in M-B distribution
 
-    for (i, p1) in enumerate(@view p_range[begin:end-1])
-        p2 = p_range[i+1]
+    for (i, p1) in enumerate(@view p_range[begin:(end - 1)])
+        p2 = p_range[i + 1]
 
         energy_o_kT1 = E_range[i]
-        energy_o_kT2 = E_range[i+1]
+        energy_o_kT2 = E_range[i + 1]
 
         # Work in log space because of potentially huge exponents
-        f1 = exp(2log(p1/(g*cm/s)) - energy_o_kT1)
-        f2 = exp(2log(p2/(g*cm/s)) - energy_o_kT2)
+        f1 = exp(2 * log(p1 / (g*cm/s)) - energy_o_kT1)
+        f2 = exp(2 * log(p2 / (g*cm/s)) - energy_o_kT2)
 
-        bin_area = Δp * (f1 + f2)/2 # Calculate bin area using trapezoid rule
+        bin_area = Δp * (f1 + f2) / 2 # Calculate bin area using trapezoid rule
 
         area_frac = bin_area / area_per_pt
 
@@ -1274,7 +1318,7 @@ function set_inj_dist_particle_equal_weight!(
 
         # Geometric center of bin; particles in this bin will receive this momentum
         # particles in this bin will have momentum = the geometric center of the bin
-        ptot_out[n_pts_tot:n_pts_tot+n_pts_this_bin] .= √(p1*p2)
+        ptot_out[n_pts_tot:(n_pts_tot + n_pts_this_bin)] .= √(p1 * p2)
         n_pts_tot += n_pts_this_bin
     end
 
@@ -1291,25 +1335,26 @@ end
 TODO
 """
 function set_inj_dist_bin_equal_weight!(ptot_out, weight_out, p_range, E_range, area_tot, Δp, n₀, n_per_bin)
-    for (i, p1) in enumerate(@view p_range[begin:end-1])
-        p2 = p_range[i+1]
+    for (i, p1) in enumerate(@view p_range[begin:(end - 1)])
+        p2 = p_range[i + 1]
 
         energy_o_kT1 = E_range[i]
-        energy_o_kT2 = E_range[i+1]
+        energy_o_kT2 = E_range[i + 1]
 
         # Work in log space because of potentially huge exponents
-        f1 = exp(2log(p1/(g*cm/s)) - energy_o_kT1)
-        f2 = exp(2log(p2/(g*cm/s)) - energy_o_kT2)
+        f1 = exp(2 * log(p1 / (g*cm/s)) - energy_o_kT1)
+        f2 = exp(2 * log(p2 / (g*cm/s)) - energy_o_kT2)
 
-        bin_area = Δp * (f1 + f2)/2 # Calculate bin area using trapezoid rule
+        bin_area = Δp * (f1 + f2) / 2 # Calculate bin area using trapezoid rule
 
         area_frac = bin_area / area_tot
 
         # particles in this bin will have momentum = the geometric center of the bin
-        jstart = (i-1)*n_per_bin + 1
-        jend   = jstart + (n_per_bin-1)
-        ptot_out[jstart:jend] .= √(p1*p2)
+        jstart = (i - 1) * n_per_bin + 1
+        jend = jstart + (n_per_bin - 1)
+        ptot_out[jstart:jend] .= √(p1 * p2)
         weight_out[jstart:jend] .= area_frac / n_per_bin * n₀
     end  # loop over i
+    return
 end
 end # module

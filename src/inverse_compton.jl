@@ -51,10 +51,10 @@ function photon_IC(
     d²N_slice = OffsetMatrix{Float64}(undef, 0:num_psd_mom_bins, 0:num_psd_θ_bins)
     dp = diff(p_pf_cr)
     for i in 0:num_psd_mom_bins, j in 0:num_psd_θ_bins
-        if d²Ndp_slice[j,i] ≤ 1e-99
-            d²N_slice[j,i] = 1e-99
+        if d²Ndp_slice[j, i] ≤ 1.0e-99
+            d²N_slice[j, i] = 1.0e-99
         else
-            d²N_slice[j,i] = d²Ndp_slice[j,i] * dp_pf_cr[i]
+            d²N_slice[j, i] = d²Ndp_slice[j, i] * dp_pf_cr[i]
         end
     end
 
@@ -66,15 +66,15 @@ function photon_IC(
     # TODO: have access to synchrotron photon field. Use it.
     # TODO: investigate interplay between j3 and n_IC_specs if more than
     #  one field is used. Not sure current code is right
-    for j3 in 1:1# i_photon_fields
+    for j3 in 1:1 # i_photon_fields
 
         # Set number of inverse Compton spectra here. Will be 1 unless more than one photon
         # field was used. Also, zero out the column of ic_photon_sum that would hold the
         # summed emission if more than one photon field is used.
         n_IC_specs = j3
         if j3 == 1
-            ic_photon_sum[:,n_grid] = 1e-99
-            energy_IC_MeV .= 1e-99
+            ic_photon_sum[:, n_grid] = 1.0e-99
+            energy_IC_MeV .= 1.0e-99
         end
 
         # Compute the spectra
@@ -82,7 +82,8 @@ function photon_IC(
             num_psd_mom_bins, p_pf_cr,
             num_psd_θ_bins, cos_bounds, d²N_slice, n_photon_IC, j3,
             photon_ic_min_MeV, bins_per_dec_photon, dist_lum, redshift,
-            jet_sph_frac, mc)
+            jet_sph_frac, mc
+        )
 
         # Convert units of energy_γ and ic_emis
         # NOTE: unlike the other two photon production subroutines, ic_emis comes out of
@@ -90,18 +91,18 @@ function photon_IC(
         # log energy bin, i.e. dP/(d(lnE)-dA). Pion production and synchrotron both require
         # processing from dP/d(lnE). The units of ic_emis are [erg/s⋅cm²].
         for i in 1:n_photon_IC
-            energy_γ_MeV[i] = ustrip(MeV, energy_γ[i]*erg)
+            energy_γ_MeV[i] = ustrip(MeV, energy_γ[i] * erg)
 
             # Add the current photon flux to the running total over all fields
-            if ic_emis[i] > 1e-99
-                ic_photon_sum[i,n_grid] += ic_emis[i] / energy_γ[i]
+            if ic_emis[i] > 1.0e-99
+                ic_photon_sum[i, n_grid] += ic_emis[i] / energy_γ[i]
             end
             energy_IC_MeV[i] = energy_γ_MeV[i]
 
         end   # units on emis_γ: erg/(cm²⋅s)
 
         # Don't write out anything if ic_emis is empty
-        count(ic_emis .> 1e-99) < 1 && continue
+        count(ic_emis .> 1.0e-99) < 1 && continue
 
         # Do necessary unit conversion and write out results to file
         iplot = 0
@@ -111,26 +112,26 @@ function photon_IC(
             # Above is energy flux [MeV/(cm²⋅s)] per log energy bin d(lnE) = dE/E.
             # Energy in spectrum is area under curve when plotted with a
             # logarithmic energy axis, i.e. [dΦ/d(lnE) * d(lnE)].
-            if ic_emis[i] > 1e-99
-                emis_γ_MeV = ustrip(MeV, ic_emis[i]*erg)  # MeV/(cm²⋅s) at earth
+            if ic_emis[i] > 1.0e-99
+                emis_γ_MeV = ustrip(MeV, ic_emis[i] * erg)  # MeV/(cm²⋅s) at earth
             else
-                emis_γ_MeV = 1e-99               # "zero" emission
+                emis_γ_MeV = 1.0e-99               # "zero" emission
             end
 
             # This is photon flux [#/(cm²⋅sec)] per log energy bin d(lnE) = dE/E.
             # Number of photons in spectrum is area under curve when plotted
             # with a logarithmic energy axis, i.e. [dΦ/d(lnE) * d(lnE)].
-            if emis_γ_MeV ≤ 1e-99
-                photon_flux = 1e-99                  # "zero" emission
+            if emis_γ_MeV ≤ 1.0e-99
+                photon_flux = 1.0e-99                  # "zero" emission
             else
-                photon_flux = emis_γ_MeV/energy_γ_MeV[i]
+                photon_flux = emis_γ_MeV / energy_γ_MeV[i]
             end
 
             # Open the file to which we will write the spectral data.
             if j3 == 1
-                lopen = inquire(:isopen, file="./photon_IC_grid.dat")
+                lopen = inquire(:isopen, file = "./photon_IC_grid.dat")
                 if !lopen
-                    j_unit = open(status="unknown", file="./photon_IC_grid.dat")
+                    j_unit = open(status = "unknown", file = "./photon_IC_grid.dat")
                 end
             end
 
@@ -139,12 +140,14 @@ function photon_IC(
 
             ##TODO: incorporate redshift into this write-out;
             # right now, everything is handled in time_seq_photons so this section is irrelevant
-            write(j_unit, n_grid, iplot, # photon_IC_grid.dat
-                  j3,                                   # 1 photon source
-                  log10(photon_flux),                   # 2 log10(photons/(cm²⋅s))
-                  log10(energy_γ_MeV[i]),               # 3 log10(MeV)
-                  log10(emis_γ_MeV),                    # 4 log[MeV/(cm²⋅s)] at earth
-                  log10(photon_flux/energy_γ_MeV[i]))   # 5 log10[photons/(cm²⋅s⋅MeV)]
+            write(
+                j_unit, n_grid, iplot, # photon_IC_grid.dat
+                j3,                                   # 1 photon source
+                log10(photon_flux),                   # 2 log10(photons/(cm²⋅s))
+                log10(energy_γ_MeV[i]),               # 3 log10(MeV)
+                log10(emis_γ_MeV),                    # 4 log[MeV/(cm²⋅s)] at earth
+                log10(photon_flux / energy_γ_MeV[i]), # 5 log10[photons/(cm²⋅s⋅MeV)]
+            )
 
         end # loop over n_photon_IC
 
@@ -153,6 +156,7 @@ function photon_IC(
     end # Loop over photon fields
 
     close(j_unit)
+    return
 end
 
 """
@@ -190,11 +194,11 @@ function IC_emission_FCJ(
 
     # Constants that will be used during the calculation
     #----------------------------------------------------------------------------
-    photon_out_erg_min = ustrip(erg, photon_ic_min_MeV*MeV) # Minimum photon energy in erg
+    photon_out_erg_min = ustrip(erg, photon_ic_min_MeV * MeV) # Minimum photon energy in erg
 
-    photon_out_min_rm  = photon_out_erg_min/E₀ₑ  # minimum en/(mₑc²)
+    photon_out_min_rm = photon_out_erg_min / E₀ₑ  # minimum en/(mₑc²)
     photon_out_min_log = log10(photon_out_min_rm)
-    Δphoton_out        = 1 / bins_per_dec_photon
+    Δphoton_out = 1 / bins_per_dec_photon
 
     # α_out here is outgoing photon energy in units of electron rest mass;
     # calculated here to save time during loops to follow
@@ -207,7 +211,7 @@ function IC_emission_FCJ(
     jθ_max = findfirst(>(2jet_sph_frac - 1), cos_bounds)
 
     # for Eq.(9), Frank Jones, PhysRev. 1968, V.167, p.1159
-    r_z = qcgs^2/E₀ₑ
+    r_z = qcgs^2 / E₀ₑ
     #-------------------------------------------------------------------------
     # End constants section
 
@@ -226,17 +230,17 @@ function IC_emission_FCJ(
     freq_peak_Hz = 5.879e10 * photon_temp_IC
 
     # More constants related to the photon field
-    n_freq       = 60   # 100 maximum
-    freq_min     = freq_peak_Hz/30
-    freq_max     = freq_peak_Hz*20   ##*10
+    n_freq = 60   # 100 maximum
+    freq_min = freq_peak_Hz / 30
+    freq_max = freq_peak_Hz * 20   ##*10
     freq_min_log = log10(freq_min)
-    Δfreq        = (log10(freq_max) - freq_min_log)/n_freq
+    Δfreq = (log10(freq_max) - freq_min_log) / n_freq
 
-    ∑xnum_photons          = 0.0
-    ∑energy_photons        = 0.0
+    ∑xnum_photons = 0.0
+    ∑energy_photons = 0.0
     ∑photon_energy_density = 0.0
 
-    photon_energy_rm   = Vector{Float64}(undef, na_photons)
+    photon_energy_rm = Vector{Float64}(undef, na_photons)
     xnum_photons_p_vol = Vector{Float64}(undef, na_photons)
     # Now actually populate the photon distribution. If j3 = -1, we are reading
     # in a distribution from a file that should be specified here. This
@@ -256,26 +260,26 @@ function IC_emission_FCJ(
     else
         # Below are constants for spectral energy density of CMB in units of
         # energy per volume per Hz taken from Wikipedia
-        con_f1 = 8π*h/(c^3)
-        con_f2 = h/(kB*photon_temp_IC)
+        con_f1 = 8π * h / (c^3)
+        con_f2 = h / (kB * photon_temp_IC)
 
         for j_in in 1:n_freq     # loop over incoming photon energy density
-            f1 = exp10(freq_min_log + (j_in-1)*Δfreq) # = freq_min (freq_max/freq_min)^[(j-1)/n_freq]
-            f2 = exp10(freq_min_log + (j_in)*Δfreq)   # = freq_min (freq_max/freq_min)^[ j   /n_freq]
-            f_avg = √(f1*f2) # = freq_min ⋅ (freq_max/freq_min)*[(2j-1)/2n_freq]
-            exp_fac = exp(min(con_f2*f_avg, 200.0))
+            f1 = exp10(freq_min_log + (j_in - 1) * Δfreq) # = freq_min (freq_max/freq_min)^[(j-1)/n_freq]
+            f2 = exp10(freq_min_log +  j_in      * Δfreq) # = freq_min (freq_max/freq_min)^[ j   /n_freq]
+            f_avg = √(f1 * f2) # = freq_min ⋅ (freq_max/freq_min)*[(2j-1)/2n_freq]
+            exp_fac = exp(min(con_f2 * f_avg, 200.0))
 
             # Below is incoming photon energy density derived from CMB energy density
-            photon_energy_density   = (f2 - f1) * con_f1 * f_avg^3 / (exp_fac - 1)
+            photon_energy_density = (f2 - f1) * con_f1 * f_avg^3 / (exp_fac - 1)
             ∑photon_energy_density += photon_energy_density
 
-            photon_energy_erg      = h*f_avg      # incoming photon energy (erg)
-            photon_energy_rm[j_in] = photon_energy_erg/E₀ₑ
+            photon_energy_erg = h * f_avg      # incoming photon energy (erg)
+            photon_energy_rm[j_in] = photon_energy_erg / E₀ₑ
 
             # Below is number density of incoming photons [/cm³] in frequency bin
-            xnum_photons_p_vol[j_in] = photon_energy_density/photon_energy_erg
-            ∑xnum_photons   += xnum_photons_p_vol[j_in]
-            ∑energy_photons += photon_energy_erg*xnum_photons_p_vol[j_in]
+            xnum_photons_p_vol[j_in] = photon_energy_density / photon_energy_erg
+            ∑xnum_photons += xnum_photons_p_vol[j_in]
+            ∑energy_photons += photon_energy_erg * xnum_photons_p_vol[j_in]
         end
     end
     #-------------------------------------------------------------------------
@@ -284,18 +288,18 @@ function IC_emission_FCJ(
 
     # Now loop over momenta (i.e. energy) of electrons and calculate the inverse Compton emission.
     #-------------------------------------------------------------------------
-    d²N_o_dtda = fill(1e-99, na_photons) # initialize output spectrum
+    d²N_o_dtda = fill(1.0e-99, na_photons) # initialize output spectrum
 
     for i_el in 0:num_psd_mom_bins
 
         # Skip empty rows of PSD, as each one requires significant computation
-        maximum(d²N_slice[begin:jθ_max,i_el]) ≤ 1e-99 && continue
+        maximum(d²N_slice[begin:jθ_max, i_el]) ≤ 1.0e-99 && continue
 
         # Otherwise, sum number of electrons at this energy, since that's all equation (9) needs
-        xnum_electron = sum(d²N_slice[begin:jθ_max,i_el])
+        xnum_electron = sum(d²N_slice[begin:jθ_max, i_el])
 
-        p1 = √(p_pf_cr[i_el] * p_pf_cr[i_el+1])
-        γ = p1/mc < E_rel_pt ? 1.0 : hypot(p1/mc, 1)
+        p1 = √(p_pf_cr[i_el] * p_pf_cr[i_el + 1])
+        γ = p1 / mc < E_rel_pt ? 1.0 : hypot(p1 / mc, 1)
 
         # Loop over incoming photons, then over outgoing photons, then over angle.
         # Fill d²N_o_dtdα as defined by equation (9) in the process.
@@ -306,8 +310,8 @@ function IC_emission_FCJ(
             # for Eq.(9), Jones, PhysRev. 1968, V.167, p.1159
             #   d²N/dtdα ≈ 2πr₀²c/α₁γ² [2q″ ln q″ + (1+2q″)(1−q″) + ½(1-q″)(4α₁γq″)²/(1+4α₁γq″)]
             # where q″ = α/4α₁γ²(1−α/γ) and 1/4γ² < q″ ≤ 1
-            α₁       = photon_energy_rm[j_in]
-            norm_fac = xnum_photons_p_vol[j_in] * 2π* r_z^2 * c / (α₁ * γ^2)
+            α₁ = photon_energy_rm[j_in]
+            norm_fac = xnum_photons_p_vol[j_in] * 2π * r_z^2 * c / (α₁ * γ^2)
 
             # Loop over outgoing photons. After collision, "α_out" is α in Eq. (9):
             # outgoing photon energy in units of electron rest mass
@@ -318,15 +322,17 @@ function IC_emission_FCJ(
                 α_out[k] ≥ γ && continue
 
                 # Determine q″ in equation (9)
-                q″ = α_out[k] / (4α₁*γ^2 * (1 - α_out[k] / γ))
+                q″ = α_out[k] / (4α₁ * γ^2 * (1 - α_out[k] / γ))
 
                 # Equation (9) in Jones (1968)
-                d²N_cur = norm_fac * xnum_electron * (2q″*log(q″) + (1+2q″)*(1-q″)
-                                                      + 8*(α₁*γ*q″)^2*(1-q″)/(1+4α₁*γ*q″))
+                d²N_cur = norm_fac * xnum_electron * (
+                    2q″ * log(q″) + (1 + 2q″) * (1 - q″)
+                        + 8 * (α₁ * γ * q″)^2 * (1 - q″) / (1 + 4α₁ * γ * q″)
+                )
 
                 # Only include photon production if it's sufficiently positive;
                 # otherwise, assume it's zero
-                if d²N_cur > 1e-60
+                if d²N_cur > 1.0e-60
                     d²N_o_dtda[k] += d²N_cur
                 end
             end
@@ -358,10 +364,10 @@ function IC_emission_FCJ(
     # To get d²N/(dt dE) we multiply d²N/(dt dα) by dα/dE = 1 / mₑc²
     # photon_IC() expects energy production rate per logarithmic energy bin, dP/d(lnE).
     # Multiply d²N/(dt dE) by E once to make it dP/dE, then again to make it dP/d(lnE).
-    ic_emis = @. d²N_o_dtda/E₀ₑ * energy_γ^2  # erg/(s⋅cm²)
+    ic_emis = @. d²N_o_dtda / E₀ₑ * energy_γ^2  # erg/(s⋅cm²)
     for k in eachindex(ic_emis)
-        if ic_emis[k] ≤ 1e-55
-            ic_emis[k] = 1e-99
+        if ic_emis[k] ≤ 1.0e-55
+            ic_emis[k] = 1.0e-99
         end
     end
 
