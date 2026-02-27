@@ -80,22 +80,22 @@ function scattering(
 
     φ_p_old = φ_rad + π / 2
 
+    φ_p_new = φ_p_old
     if sin_new_pitch != 0
-
-        sin_Δφ = sin(φ_scat) * sin_Δθ / sin_new_pitch
-
-        if abs(sin_Δφ) > sin_upper_limit
-            sin_Δφ = copysign(sin_upper_limit, sin_Δφ)
-        end
-
-        φ_p_new = φ_p_old + asin(sin_Δφ)
-
-    else
-        # sin_new_pitch = 0, so no change at all
-        φ_p_new = φ_p_old
+        φ_p_new += get_sine_adjustment(sin_new_pitch, sin_Δθ, φ_scat)
     end
 
     φ_rad = φ_p_new - π / 2
 
     return gyro_period_sec, pb_pf, p_perp_b_pf, φ_rad
+end
+
+function get_sine_adjustment(sin_new_pitch, sin_Δθ, φ_scat)
+    sin_Δφ = sin(φ_scat) * sin_Δθ / sin_new_pitch
+
+    if abs(sin_Δφ) > sin_upper_limit
+        sin_Δφ = copysign(sin_upper_limit, sin_Δφ)
+    end
+
+    return asin(sin_Δφ)
 end
