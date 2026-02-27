@@ -43,7 +43,7 @@ function scattering(
         gyro_rad_tot_cm = ptot_pf * c * gyro_denom
         gyro_period_sec = 2π * γₚ_pf * mc * gyro_denom
     end
-    vp_tg = 2π * gyro_rad_tot_cm
+    vp_tg = 2π * gyro_rad_tot_cm    # distance traveled in one gyration
 
     # To calculate collision time, need to know how MFP depends on gyro radius. Can either
     # use η_mfp⋅r_g (the default) or a user-specified custom f(r_g). Note that instead of
