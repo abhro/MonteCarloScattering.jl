@@ -138,7 +138,7 @@ function particle_loop(
     i_reason = 0
     lose_pt = false
 
-    local t_step = 0.0
+    local t_step = 0.0s
     local p_perp_b_pf, gyro_rad_cm
 
     # Code Block 1: start of helix loop; minor setup
