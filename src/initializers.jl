@@ -1190,15 +1190,14 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
 
     # Set a mess of constants to be referred to routinely
     #------------------------------------------------------------------------
-    rm_energy = m * c^2
+    E₀ = m * c^2
 
     kT = kB * T_or_E  # Working under assumption of thermal dist now
     # Minimum, maximum extent of Maxwell-Boltzmann distribution
     kT_min = 2.0e-3 * kT
     kT_max = 10 * kT
 
-    kT_rel_div = E_rel_pt
-    relativistic = (kT / rm_energy ≥ kT_rel_div)
+    relativistic = (kT / E₀) ≥ E_rel_pt
 
     # Find min and max momenta of M-B curve
     if !relativistic
@@ -1208,8 +1207,8 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     else
         # Once particles are relativistic, rest-mass energy becomes important:
         #     E² = p²c² + m²c⁴  ≈  (kT + mc²)²
-        p_min = √((kT_min + rm_energy)^2 - rm_energy^2) / c
-        p_max = √((kT_max + rm_energy)^2 - rm_energy^2) / c
+        p_min = √((kT_min + E₀)^2 - E₀^2) / c
+        p_max = √((kT_max + E₀)^2 - E₀^2) / c
     end
 
     Δp = (p_max - p_min) / num_therm_bins
@@ -1218,7 +1217,7 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     if !relativistic
         E_range = p_range .^ 2 / (2m * kT)
     else
-        E_range = hypot.(p_range * c, rm_energy) / kT
+        E_range = hypot.(p_range * c, E₀) / kT
     end
     #------------------------------------------------------------------------
     # End of constants section
@@ -1270,19 +1269,9 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
     #--------------------------------------------------------------------------
     if inp_distr == 2
         n_pts_use = n_pts_inj
-
-        rm_energy = m * c^2
-        energy_inj = ustrip(erg, T_or_E * keV)
-
-        if energy_inj / rm_energy < E_rel_pt
-            p1 = √(2m * energy_inj)
-        else
-            p1 = √(energy_inj^2 - rm_energy^2) / c
-        end
-
-        ptot_out[1:n_pts_inj] .= p1
-        weight_out[1:n_pts_inj] .= ustrip(cm^-3, n₀) / n_pts_tot
-
+        set_δ_distr_inj_weights!(
+            ptot_out, weight_out, n_pts_inj, n_pts_tot, m, n₀, T_or_E, E_rel_pt,
+        )
     end  # check of inp_distr
     #--------------------------------------------------------------------------
     # δ-function handled
@@ -1316,9 +1305,11 @@ function set_inj_dist_particle_equal_weight!(
         # Rounded particle count for this bin
         n_pts_this_bin = round(Int, area_frac)
 
+        slice = n_pts_tot:(n_pts_tot + n_pts_this_bin)
+
         # Geometric center of bin; particles in this bin will receive this momentum
         # particles in this bin will have momentum = the geometric center of the bin
-        ptot_out[n_pts_tot:(n_pts_tot + n_pts_this_bin)] .= √(p1 * p2)
+        ptot_out[slice] .= √(p1 * p2)
         n_pts_tot += n_pts_this_bin
     end
 
@@ -1332,9 +1323,15 @@ end
 """
     set_inj_dist_bin_equal_weight!(...)
 
+### Arguments
+TODO
+
+### Returns
 TODO
 """
-function set_inj_dist_bin_equal_weight!(ptot_out, weight_out, p_range, E_range, area_tot, Δp, n₀, n_per_bin)
+function set_inj_dist_bin_equal_weight!(
+        ptot_out, weight_out, p_range, E_range, area_tot, Δp, n₀, n_per_bin,
+    )
     for (i, p1) in enumerate(@view p_range[begin:(end - 1)])
         p2 = p_range[i + 1]
 
@@ -1355,6 +1352,24 @@ function set_inj_dist_bin_equal_weight!(ptot_out, weight_out, p_range, E_range, 
         ptot_out[jstart:jend] .= √(p1 * p2)
         weight_out[jstart:jend] .= area_frac / n_per_bin * n₀
     end  # loop over i
+    return
+end
+
+function set_δ_distr_inj_weights!(
+        ptot_out, weight_out, n_pts_inj, n_pts_tot, m, n₀, T_or_E, E_rel_pt,
+    )
+    E₀ = m * c^2
+    energy_inj = ustrip(erg, T_or_E * keV)
+
+    if energy_inj / E₀ < E_rel_pt
+        p = √(2m * energy_inj)
+    else
+        p = √(energy_inj^2 - E₀^2) / c
+    end
+
+    ptot_out[1:n_pts_inj] .= p
+    weight_out[1:n_pts_inj] .= ustrip(cm^-3, n₀) / n_pts_tot
+
     return
 end
 end # module

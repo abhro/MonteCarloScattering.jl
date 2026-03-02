@@ -50,10 +50,10 @@ function iter_finalize(
     # slight variations in the smoothing algorithm across different runs.
     # Correct for that here by rounding off the last two decimal places
     # (the second place is a fudge factor).
-    pxx_flux[1:n_grid] .= round(pxx_flux[1:n_grid], digits = 13)
+    pxx_flux[1:n_grid] .= round(eltype(pxx_flux[begin]), pxx_flux[1:n_grid], digits = 13)
     # Commented out because it's not necessary for smoothing parallel shocks
     #pxz_flux[1:n_grid] = round(pxz_flux[1:n_grid], digits=13)
-    energy_flux[1:n_grid] = round(energy_flux[1:n_grid], digits = 13)
+    energy_flux[1:n_grid] = round(eltype(energy_flux), energy_flux[1:n_grid], digits = 13)
 
     # Output grid data for this iteration, and smooth the grid for the next iteration
     smooth_grid_par(
