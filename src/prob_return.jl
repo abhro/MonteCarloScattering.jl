@@ -12,7 +12,7 @@ of tests to determine whether it will be culled from the simulation.
 - `aa`: atomic mass number of ion species
 - `gyro_denom`: denominator of gyroradius fraction, q⋅B
 - `helix_count`: counter for number of times through main propagation loop for current particle
-- `i_cut`: current pcut; needed when electrons are undergoing radiative losses
+- `i_pcut`: current pcut; needed when electrons are undergoing radiative losses
 - `pcut_prev`: momentum of previous pcut; needed when electrons are undergoing radiative losses
 - `weight`: current particle weight; passed to retro_time if called
 

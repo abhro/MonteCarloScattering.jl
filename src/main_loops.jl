@@ -6,7 +6,7 @@
   Loops are set in the following sequence of nesting
    1. loop_itr:   i_iter   Iteration number
    2. loop_ion:   i_ion    Particle species number
-   3. loop_pcut:  i_cut    Particle splitting (pcut) number
+   3. loop_pcut:  i_pcut   Particle splitting (pcut) number
    4. loop_pt:    i_prt    Individual particle number
 """
 function main_loops(
@@ -172,9 +172,9 @@ function main_loops(
             #  Particle splitting and resetting of n_pts_use is handled by the call
             #  to "new_pcut" at the end of each iteration of loop_pcut.
             #----------------------------------------------------------------------
-            for i_cut in eachindex(pcuts) # loop_pcut
+            for i_pcut in eachindex(pcuts) # loop_pcut
 
-                @debug("Starting pcut loop", i_cut, pcuts[i_cut])
+                @debug("Starting pcut loop", i_pcut, pcuts[i_pcut])
 
                 # Initialize all of the *_saved arrays to help prevent bleeding over between pcuts or ion species
                 l_save .= false  # Whole array must be initialized in case number of particles changes from pcut to pcut
@@ -198,7 +198,7 @@ function main_loops(
 
                 # For high-energy electrons in a strong magnetic field, need to know
                 # previous cutoff momentum for calculating new PRP downstream
-                pcut_prev = i_cut > 1 ? pcuts[i_cut - 1] : 0.0g*c
+                pcut_prev = i_pcut > 1 ? pcuts[i_pcut - 1] : 0.0g*c
 
                 #--------------------------------------------------------------------
                 #  Start of loop over particles
@@ -228,7 +228,7 @@ function main_loops(
                         uₓ_sk, uz_sk, utot, φ_rad,
                         ∑P_downstream, ∑KEdensity_downstream,
                     ) = particle_loop(
-                        i_iter, i_ion, i_cut, i_prt, i_grid_feb, i_shock,
+                        i_iter, i_ion, i_pcut, i_prt, i_grid_feb, i_shock,
                         n_ions, n_pts_max, n_xspec, n_grid, n_print_pt, num_psd_mom_bins, num_psd_θ_bins,
                         psd_cos_fine, Δcos, psd_θ_min,
                         species,
@@ -274,7 +274,7 @@ function main_loops(
                     end
 
                     # Particle counting
-                    if i_cut == 1 && (i_prt == 1 || i_prt % n_print_pt == 0)
+                    if i_pcut == 1 && (i_prt == 1 || i_prt % n_print_pt == 0)
                         @info("Particle = $i_prt")
                     end
 
@@ -289,7 +289,7 @@ function main_loops(
                 # Conclusion of particle loop
 
                 break_pcut, n_pts_target, n_saved = pcut_finalize(
-                    i_iter, i_ion, i_cut, p_pcut_hi, n_pts_pcut, n_pts_pcut_hi, n_pts_use,
+                    i_iter, i_ion, i_pcut, p_pcut_hi, n_pts_pcut, n_pts_pcut_hi, n_pts_use,
                     weight_running, l_save, t_start, pcuts, outfile
                 )
                 if break_pcut
