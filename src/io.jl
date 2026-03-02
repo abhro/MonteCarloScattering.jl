@@ -27,18 +27,18 @@ function tcut_print(
 
     # Set a floor on the array values, and normalize spectra_coupled so that each spectrum
     # has a total weight of 1 (actual weight, of course, is the entry in weight_coupled)
-    for i_ion in 1:n_ions, i_cut in 1:n_tcuts
-        if weight_coupled[i_cut, i_ion] < 1.0e-60
-            weight_coupled[i_cut, i_ion] = 1.0e-99
+    for i_ion in 1:n_ions, i_pcut in 1:n_tcuts
+        if weight_coupled[i_pcut, i_ion] < 1.0e-60
+            weight_coupled[i_pcut, i_ion] = 1.0e-99
         end
 
-        if sum(spectra_coupled[:, i_cut, i_ion]) > 1.0e-99
-            spectra_coupled[:, i_cut, i_ion] = spectra_coupled[:, i_cut, i_ion] / sum(spectra_coupled[:, i_cut, i_ion])
+        if sum(spectra_coupled[:, i_pcut, i_ion]) > 1.0e-99
+            spectra_coupled[:, i_pcut, i_ion] = spectra_coupled[:, i_pcut, i_ion] / sum(spectra_coupled[:, i_pcut, i_ion])
         end
 
         for i_pt in 0:num_psd_mom_bins
-            if spectra_coupled[i_pt, i_cut, i_ion] < 1.0e-60
-                spectra_coupled[i_pt, i_cut, i_ion] = 1.0e-99
+            if spectra_coupled[i_pt, i_pcut, i_ion] < 1.0e-60
+                spectra_coupled[i_pt, i_pcut, i_ion] = 1.0e-99
             end
         end
     end

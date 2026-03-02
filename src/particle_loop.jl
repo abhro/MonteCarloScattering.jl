@@ -1,5 +1,5 @@
 function particle_loop(
-        i_iter::Int, i_ion::Int, i_cut::Int, i_prt::Int, i_grid_feb::Int, i_shock::Int,
+        i_iter::Int, i_ion::Int, i_pcut::Int, i_prt::Int, i_grid_feb::Int, i_shock::Int,
         n_ions::Int, n_pts_max::Int, n_xspec::Int, n_grid::Int,
         n_print_pt::Int, num_psd_mom_bins::Int, num_psd_θ_bins::Int,
         psd_cos_fine, Δcos, psd_θ_min,
@@ -35,7 +35,7 @@ function particle_loop(
     iseed_mod = (
          (i_iter - 1) * n_pts_max * n_pcuts * n_ions
         + (i_ion - 1) * n_pts_max * n_pcuts
-        + (i_cut - 1) * n_pts_max
+        + (i_pcut - 1) * n_pts_max
         + i_prt
     )
     rng = Random.Xoshiro(iseed_mod)
@@ -351,10 +351,10 @@ function particle_loop(
                 end
 
                 # Remove ions at splitting momentum
-                if ptot_pf > pcuts[i_cut]
+                if ptot_pf > pcuts[i_pcut]
                     @debug(
                         "Removing ions at splitting momentum",
-                        pcuts[i_cut], i_cut, ptot_pf
+                        pcuts[i_pcut], i_pcut, ptot_pf
                     )
                     l_save[i_prt] = true
 
