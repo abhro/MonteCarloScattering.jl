@@ -11,7 +11,7 @@ using Roots: find_zero, Newton
 using Unitful, UnitfulAstro
 using Unitful: g, cm, s, dyn, erg, keV
 using Unitful: mp, c, k as kB
-using Distributions: Uniform
+using Distributions: TriangularDist
 using ..constants: E₀ₚ
 using ..parameters: num_therm_bins, na_particles, E_rel_pt, β_rel_fl
 import ..density, ..temperature, ..mass, ..number_density
@@ -1023,6 +1023,9 @@ function init_pop(
     x_PT_cm_in = fill(x_fast_stop_rg * rg₀, n_pts_use)
     i_grid_in = fill(i_stop, n_pts_use)
 
+    u = uₓ_sk_grid[i_stop]
+    βᵤ = u / c |> NoUnits
+
     pb_pf_in = zeros(MomentumCGS, n_pts_use)
     for i_prt in 1:n_pts_use
 
@@ -1031,30 +1034,39 @@ function init_pop(
         #------------------------------------------------------------------------
 
         if relativistic
-            γₚ_pf = hypot(1, ptot_pf_in[i_prt] / (m * c))
-            vt_pf = ptot_pf_in[i_prt] / (γₚ_pf * m)
+            γ_pf = hypot(1, ptot_pf_in[i_prt] / (m * c))
+            β_pf = sqrt(1 - 1 / γ_pf^2)
 
-            vmin² = ((uₓ_sk_grid[i_stop] - vt_pf) / (1 - uₓ_sk_grid[i_stop] * vt_pf / c^2))^2
-            vmax² = ((uₓ_sk_grid[i_stop] + vt_pf) / (1 + uₓ_sk_grid[i_stop] * vt_pf / c^2))^2
-            # Unitful distributions not yet supported :(
-            dist_v_sf = Uniform(ustrip(cm^2 / s^2, vmin²), ustrip(cm^2 / s^2, vmax²))
+            # We want v² to have a uniform distribution, so v must have a
+            # triangular/linear distribution (with parameter b=c, i.e., triangle
+            # peaks at right vertex)
+            # Unitful distributions aren't yet supported, so do calculations as
+            # β. Also saves having to divide/multiply a lot by c.
+            βmin = abs((βᵤ - β_pf) / (1 - βᵤ * β_pf))
+            βmax = abs((βᵤ + β_pf) / (1 + βᵤ * β_pf))
+            dist_β_sf = TriangularDist(βmin, βmax, βmax)
 
-            vx_sf = cm / s * √(rand(rng, dist_v_sf))
-            vx_pf = (vx_sf - uₓ_sk_grid[i_stop]) / (1 - vx_sf * uₓ_sk_grid[i_stop] / c^2)
+            βx_sf = rand(rng, dist_β_sf)
+
+            vx_pf = (βx_sf - βᵤ) / (1 - βx_sf * βᵤ) * c
         else
-            γₚ_pf = 1.0
+            γ_pf = 1.0
             vt_pf = ptot_pf_in[i_prt] / m
 
-            vmin² = (uₓ_sk_grid[i_stop] - vt_pf)^2
-            vmax² = (uₓ_sk_grid[i_stop] + vt_pf)^2
+            # We want v² to have a uniform distribution, so v must have a
+            # triangular/linear distribution (with parameter b=c, i.e., triangle
+            # peaks at right vertex)
             # Unitful distributions not yet supported :(
-            dist_v_sf = Uniform(ustrip(cm^2/s^2, vmin²), ustrip(cm^2/s^2, vmax²))
+            vmin = ustrip(cm / s, abs(u - vt_pf))
+            vmax = ustrip(cm / s, abs(u + vt_pf))
+            dist_v_sf = TriangularDist(vmin, vmax, vmax)
 
-            vx_sf = cm/s * √(rand(rng, dist_v_sf))
-            vx_pf = vx_sf - uₓ_sk_grid[i_stop]
+            vx_sf = cm / s * rand(rng, dist_v_sf)
+
+            vx_pf = vx_sf - u
         end
 
-        pb_pf_in[i_prt] = γₚ_pf * m * vx_pf
+        pb_pf_in[i_prt] = γ_pf * m * vx_pf
         #------------------------------------------------------------------------
         # Velocity-weighted pitch angles finished
     end
