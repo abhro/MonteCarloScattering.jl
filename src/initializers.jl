@@ -661,8 +661,8 @@ Return the speed of sound in a plasma.
 ### Arguments
 - `regime`: Must be one of `Val(:classical)` or `Val(:relativistic)`
 - `P`: plasma pressure
-- `ρ`: plasma number density
-- `Γ`: plasma Lorentz factor
+- `ρ`: plasma mass density
+- `Γ`: plasma adiabatic index
 """
 function sound_speed end
 function sound_speed(::Val{:relativistic}, P, ρ, Γ)
