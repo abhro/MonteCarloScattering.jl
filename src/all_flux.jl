@@ -134,7 +134,7 @@ function all_flux!(
         inj_check = true
         sign_fac = -1
     end  # check on direction of motion
-    n_cr_count = flux_stream!(
+    n_cr_count = F_stream!(
         i_range, num_crossings, γ₀, u₀, inj_check, sign_fac,
         pxx_flux, pxz_flux, energy_flux,
         p_sk, ptot_sk, weight, energy_flux_add, inj, n_cr_count, abs_inv_vx_sk,
@@ -185,23 +185,23 @@ function calculate_x_spec_spectra!(
             # Spectrum in shock frame
             spectra_sf[i_pt, i] += weight * pt_o_pₓ_sk
 
-            # Spectrum in plasma frame; flux_weight_fac corresponds to vₓ_pf/vₓ_sk and
+            # Spectrum in plasma frame; F_weight_fac corresponds to vₓ_pf/vₓ_sk and
             # measures relative likelihood of crossing in the plasma frame
             # given a known crossing in the shock frame
-            flux_weight_fac = abs(pb_pf / p_sk.x) * (γₚ_sk / γₚ_pf)
+            F_weight_fac = abs(pb_pf / p_sk.x) * (γₚ_sk / γₚ_pf)
 
-            spectra_pf[i_pt_pf, i] += weight * pt_o_pₓ_pf * flux_weight_fac
+            spectra_pf[i_pt_pf, i] += weight * pt_o_pₓ_pf * F_weight_fac
         end
     end
     return
 end
 
 """
-    flux_stream!(...)
+    F_stream!(...)
 
 TODO
 """
-function flux_stream!(
+function F_stream!(
         i_range, num_crossings, γ₀, u₀, inj_check, sign_fac,
         pxx_flux, pxz_flux, energy_flux,
         p_sk, ptot_sk, weight, energy_flux_add, inj, n_cr_count, abs_inv_vx_sk,

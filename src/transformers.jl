@@ -412,7 +412,7 @@ Transformation formulas are correct for all obliquities.
 
 Notes from Glen Double (31 Oct 2002):
 Method: define flow velocity and particle momentum in component vectors with respect to
-the plasma xyz frame. Find p_para (with respect to u) component of particle momentum
+the plasma xyz frame. Find `p_para` (with respect to u) component of particle momentum
 using scalar product of p and u. Then `p_perp = p - p_para` (using vectors).
 Next, make relativistic transformation on p_para while `p_perp` remains constant.
 Finally, recreate `p_rel = p_rel_para + p_perp`, and find `p_rel` components in the

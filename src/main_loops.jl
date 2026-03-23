@@ -40,7 +40,7 @@ function main_loops(
         inj_fracs, spectra_pf, spectra_sf, tcuts, age_max, spectra_coupled,
         esc_energy_eff, esc_num_eff, esc_flux, electron_weight_fac,
         n_pts_pcut, n_pts_pcut_hi, t_start, weights_file, spectra_file, outfile,
-        pₓ_esc_flux_upstream, flux_px_upstream, flux_energy_upstream, energy_esc_flux_upstream,
+        pₓ_esc_flux_upstream, F_px_upstream, F_energy_upstream, energy_esc_flux_upstream,
         Γ_downstream, q_esc_cal_pₓ, q_esc_cal_energy,
         do_multi_dNdps, do_photons,
         jet_rad_pc, jet_sph_frac, m_ion, aa_ion, zz_ion, T₀_ion, n₀_ion,
@@ -329,7 +329,7 @@ function main_loops(
                 psd, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
                 psd_bins_per_dec_mom, psd_mom_min, psd_bins_per_dec_θ, psd_cos_fine, Δcos, psd_θ_min,
                 n_shell_endpoints,
-                flux_px_upstream, flux_energy_upstream, btot_grid,
+                F_px_upstream, F_energy_upstream, btot_grid,
                 zone_vol, therm_energy_density, energy_density,
             )
 
@@ -356,9 +356,9 @@ function main_loops(
         iter_finalize(
             i_iter, i_shock, n_grid, outfile, Γ₂_RH, x_grid_cm, x_grid_rg,
             Γ_grid, uz_sk_grid, θ_grid,
-            pxx_flux, energy_flux, pₓ_esc_flux_upstream, pₓ_esc_upstream, flux_px_upstream,
+            pxx_flux, energy_flux, pₓ_esc_flux_upstream, pₓ_esc_upstream, F_px_upstream,
             energy_esc_flux_upstream, energy_esc_upstream, energy_density_psd,
-            flux_energy_upstream,
+            F_energy_upstream,
             pressure_psd_par, pressure_psd_perp,
             Γ_downstream, ∑P_downstream, ∑KEdensity_downstream,
             q_esc_cal_pₓ, q_esc_cal_energy,

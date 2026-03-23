@@ -746,9 +746,9 @@ function get_normalized_dNdp(
         # particles in this grid zone
         dwell_time = x_grid_cm_diff[i] / uₓ_sk_grid[i]
 
-        flux_upstream = γ₀ * n₀_ion[i_ion] * β₀ * c
+        F_upstream = γ₀ * n₀_ion[i_ion] * β₀ * c
 
-        zone_pop[i] = flux_upstream * surf_area[i] * dwell_time
+        zone_pop[i] = F_upstream * surf_area[i] * dwell_time
 
         #DEBUGLINE
         density_pf = γ₀ * uₓ_sk_grid[1] / (γ_sf_grid[i] * uₓ_sk_grid[i])

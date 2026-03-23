@@ -15,7 +15,7 @@ function ion_finalize(
         psd, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
         psd_bins_per_dec_mom, psd_mom_min, psd_bins_per_dec_θ, psd_cos_fine, Δcos, psd_θ_min,
         n_shell_endpoints,
-        flux_px_upstream, flux_energy_upstream, btot_grid,
+        F_px_upstream, F_energy_upstream, btot_grid,
         zone_vol, therm_energy_density, energy_density,
     )
     println()
@@ -68,7 +68,7 @@ function ion_finalize(
             dNdp_therm_pvals, dNdp_therm, dNdp_cr, aa, n_shell_endpoints, d²N_dpdcos_ef,
             i_ion, mc,
             aa_ion, n₀_ion, u₀, γ₀, u₂,
-            flux_px_upstream, flux_energy_upstream, btot_grid,
+            F_px_upstream, F_energy_upstream, btot_grid,
         )
     end
 
