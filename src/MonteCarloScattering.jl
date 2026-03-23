@@ -467,7 +467,7 @@ function (@main)(args)
     #energy_esc_flux_upstream_tot = 0.0
     pₓ_esc_flux_upstream = zeros(n_itrs)
     energy_esc_flux_upstream = zeros(n_itrs)
-    flux_px_upstream, flux_pz_upstream, flux_energy_upstream = upstream_fluxes(
+    F_px_upstream, F_pz_upstream, F_energy_upstream = upstream_fluxes(
         number_density.(species), temperature.(species), mass.(species),
         bmag₀, θ_B₀, u₀, β₀, γ₀
     )
@@ -483,7 +483,7 @@ function (@main)(args)
             β_ef_grid, γ_ef_grid, btot_grid, θ_grid, εB_grid, bmag₂,
         ) = setup_profile(
             u₀, β₀, γ₀, bmag₀, θ_B₀, r_comp, bturb_comp_frac, bfield_amp, use_custom_εB,
-            n_ions, species, flux_px_upstream, flux_energy_upstream, grid_axis,
+            n_ions, species, F_px_upstream, F_energy_upstream, grid_axis,
             x_grid_cm, x_grid_rg,
         )
     else
@@ -491,7 +491,7 @@ function (@main)(args)
         (
             x_grid_rg, x_grid_cm, uₓ_sk_grid, uz_sk_grid, utot_grid, γ_sf_grid, β_ef_grid, γ_ef_grid,
             btot_grid, εB_grid, θ_grid, n_grid, u₀, γ₀, rg₀, r_comp, r_RH, β₀, bmag₀,
-            u₂, β₂, γ₂, θᵤ₂, bmag₂, θ_B₀, θ_B₂, flux_px_upstream, flux_pz_upstream, flux_energy_upstream,
+            u₂, β₂, γ₂, θᵤ₂, bmag₂, θ_B₀, θ_B₂, F_px_upstream, F_pz_upstream, F_energy_upstream,
         ) = read_old_prof(n_old_skip, n_old_profs, n_old_per_prof)
 
         # Must set far upstream and downstream limits manually, since they won't be read in from the file
@@ -654,7 +654,7 @@ function (@main)(args)
         inj_fracs, spectra_pf, spectra_sf, tcuts, age_max, spectra_coupled,
         esc_energy_eff, esc_num_eff, esc_flux, electron_weight_fac,
         n_pts_pcut, n_pts_pcut_hi, t_start, weights_file, spectra_file, outfile,
-        pₓ_esc_flux_upstream, flux_px_upstream, flux_energy_upstream, energy_esc_flux_upstream,
+        pₓ_esc_flux_upstream, F_px_upstream, F_energy_upstream, energy_esc_flux_upstream,
         Γ_downstream, q_esc_cal_pₓ, q_esc_cal_energy,
         do_multi_dNdps, do_photons,
         jet_rad_pc, jet_sph_frac, m_ion, aa_ion, zz_ion, T₀_ion, n₀_ion,

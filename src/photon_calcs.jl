@@ -32,7 +32,7 @@ function photon_calcs(
         psd_mom_bounds, psd_θ_bounds, num_psd_mom_bins, num_psd_θ_bins,
         i_ion, mc,
         aa_ion, n₀_ion, u₀, γ₀, u₂,
-        flux_px_upstream, flux_energy_upstream, btot_grid,
+        F_px_upstream, F_energy_upstream, btot_grid,
     )
 
     # Before doing any photon calculations, calculate the luminosity distance
@@ -108,7 +108,7 @@ function photon_calcs(
                     n, num_hist_bins, p_pf_therm, dNdp_pf_therm,
                     num_psd_mom_bins, p_pf_cr, dNdp_pf_cr, n_photon_synch,
                     Eᵧ_synch_min, bins_per_dec_photon, dist_lum, redshift,
-                    n_ions, aa_ion, n₀_ion, γ₀, u₀, flux_px_upstream, flux_energy_upstream, u₂, btot_grid,
+                    n_ions, aa_ion, n₀_ion, γ₀, u₀, F_px_upstream, F_energy_upstream, u₂, btot_grid,
                     i_ion, mc,
                 )
             end

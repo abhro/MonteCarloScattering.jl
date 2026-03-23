@@ -1,9 +1,9 @@
 function iter_finalize(
         i_iter, i_shock, n_grid, outfile, Γ₂_RH, x_grid_cm, x_grid_rg,
         Γ_grid, uz_sk_grid, θ_grid,
-        pxx_flux, energy_flux, pₓ_esc_flux_upstream, pₓ_esc_upstream, flux_px_upstream,
+        pxx_flux, energy_flux, pₓ_esc_flux_upstream, pₓ_esc_upstream, F_px_upstream,
         energy_esc_flux_upstream, energy_esc_upstream, energy_density_psd,
-        flux_energy_upstream,
+        F_energy_upstream,
         pressure_psd_par, pressure_psd_perp,
         Γ_downstream, ∑P_downstream, ∑KEdensity_downstream,
         q_esc_cal_pₓ, q_esc_cal_energy,
@@ -12,8 +12,8 @@ function iter_finalize(
         r_comp, r_RH, u₀, β₀, γ₀, species, γ₂, β₂, u₂,
     )
     # Compute the escaping flux for this iteration
-    pₓ_esc_flux_upstream[i_iter] = pₓ_esc_upstream / flux_px_upstream
-    energy_esc_flux_upstream[i_iter] = energy_esc_upstream / flux_energy_upstream
+    pₓ_esc_flux_upstream[i_iter] = pₓ_esc_upstream / F_px_upstream
+    energy_esc_flux_upstream[i_iter] = energy_esc_upstream / F_energy_upstream
 
     # Compute the adiabatic index everywhere on grid now that all particles are accounted
     # for. First store value from previous iteration, since both the pre- and post-iteration
@@ -60,7 +60,7 @@ function iter_finalize(
         i_iter, i_shock, n_grid, x_grid_rg, x_grid_cm,
         Γ_grid, uz_sk_grid, θ_grid,
         pressure_psd_par, pressure_psd_perp,
-        flux_px_upstream, flux_energy_upstream,
+        F_px_upstream, F_energy_upstream,
         Γ₂_RH, q_esc_cal_pₓ_avg,
         q_esc_cal_energy_avg, pxx_flux, energy_flux,
         uₓ_sk_grid, γ_sf_grid, btot_grid, utot_grid,

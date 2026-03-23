@@ -30,7 +30,7 @@ function photon_synch(
         n_grid, num_hist_bins, p_pf_therm,
         dNdp_pf_therm, num_psd_mom_bins, p_pf_cr, dNdp_pf_cr, n_photon_synch,
         photon_synch_min_MeV, bins_per_dec_photon, dist_lum, redshift,
-        n_ions, aa_ion, n₀_ion, γ₀, u₀, flux_px_upstream, flux_energy_upstream, u₂, btot_grid, i_ion, mc,
+        n_ions, aa_ion, n₀_ion, γ₀, u₀, F_px_upstream, F_energy_upstream, u₂, btot_grid, i_ion, mc,
     )
 
     # Our distribution function has already been normalized to the total number of emitting
@@ -59,7 +59,7 @@ function photon_synch(
         n_grid, num_hist_bins, p_pf_therm, dN_therm,
         num_psd_mom_bins, p_pf_cr, dN_cr, n_photon_synch,
         photon_synch_min_MeV, bins_per_dec_photon,
-        n_ions, aa_ion, n₀_ion, γ₀, u₀, flux_px_upstream, flux_energy_upstream, u₂,
+        n_ions, aa_ion, n₀_ion, γ₀, u₀, F_px_upstream, F_energy_upstream, u₂,
         n_grid, btot_grid,
         i_ion, mc
     )
