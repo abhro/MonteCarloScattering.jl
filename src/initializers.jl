@@ -1194,7 +1194,7 @@ function F_update!(
 
             F_pₓ = P_curr + γβ_curr^2 * (e_curr + Ξ_sph * P_curr)
             F_energy = (
-                γβ_curr * γ_curr * c^2 * (e_curr + Ξ_sph * P_curr)
+                γβ_curr * γ_curr * c * (e_curr + Ξ_sph * P_curr)
                     # Subtract mass-energy flux from F_energy to bring
                     # it in line with non-relativistic calculations
                     - γβ_curr * c * e_curr
