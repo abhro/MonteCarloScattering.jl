@@ -7,7 +7,6 @@ using Unitful: mp, c    # physical constants
 
 using MonteCarloScattering: identify_corners
 using ..parameters: psd_max
-using ..constants: E₀ₚ
 
 export transform_p_PS, transform_p_PSP, transform_psd_corners, get_transform_dN
 
