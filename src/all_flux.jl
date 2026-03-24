@@ -152,8 +152,8 @@ function all_flux!(
     # don't forget that flux must be rescaled
     #$omp critical
     if inj && x_PT_cm < feb_upstream && x_PT_old ≥ feb_upstream
-        energy_esc_upstream += energy_flux_add * γ₀*u₀
-        pₓ_esc_upstream     -= p_sk.x * weight * γ₀*u₀
+        energy_esc_upstream += energy_flux_add * γ₀ * u₀
+        pₓ_esc_upstream     -= p_sk.x * weight * γ₀ * u₀
     end
     #$omp end critical
 
@@ -165,16 +165,8 @@ function calculate_x_spec_spectra!(
         ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins,
         weight, pt_o_pₓ_sk, pt_o_pₓ_pf, ptot_pf, pb_pf, p_sk, γₚ_sk, γₚ_pf,
     )
-    i_pt = get_psd_bin_momentum(
-        ptot_sk, psd_bins_per_dec_mom,
-        # from some module
-        psd_mom_min, num_psd_mom_bins
-    )
-    i_pt_pf = get_psd_bin_momentum(
-        ptot_pf, psd_bins_per_dec_mom,
-        # from some module
-        psd_mom_min, num_psd_mom_bins
-    )
+    i_pt = get_psd_bin_momentum(ptot_sk, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
+    i_pt_pf = get_psd_bin_momentum(ptot_pf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
 
     for i in 1:n_xspec
         if (

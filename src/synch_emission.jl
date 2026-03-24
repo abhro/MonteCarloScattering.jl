@@ -1,9 +1,9 @@
 using LinearAlgebra: dot
-using Unitful: ustrip, MeV, erg, c, ħ
+using Unitful: ustrip, MeV, erg, c, ħ, me, c
 using UnitfulGaussian: qcgs
 using QuadGK: quadgk
 using SpecialFunctions: besselk
-using .constants: E₀ₚ, E₀ₑ
+using .constants: E₀ₚ
 
 """
     synch_emission(...)
@@ -57,7 +57,7 @@ function synch_emission(
     # Rybicki & Lightman eq. 6.18 without F factor.
     # units are power per unit frequency per electron (cgs)
     # Above: Note there is no sin(α) factor
-    p_fac = √3 / 2π * (qcgs^3 * bmag_curr / E₀ₑ)
+    p_fac = √3 / 2π * (qcgs^3 * bmag_curr / (me * c^2))
 
 
     # Initialize emission array and set energy of output photons

@@ -61,7 +61,7 @@ include("ion_finalize.jl")
 
 # to shut the linter up
 using .parameters: na_c, na_photons, psd_max
-using .constants: B_CMB0, E₀ₑ
+using .constants: B_CMB0
 using .initializers: set_photon_shells
 using .particle_counter: get_normalized_dNdp
 
@@ -450,7 +450,7 @@ function (@main)(args)
 
 
     # Set a handful of constants related to radiative losses. electron_rm will not be the same
-    # as E₀ₑ in module "constants" unless (a) there are electrons in the run, and
+    # as the actual physical constant mₑc² unless (a) there are electrons in the run, and
     # (b) they are true electrons, with aa = mₑ/mₚ. (electron_rm may in fact = E₀ₚ,
     # but in that case it won't be used because radiative losses will never be calculated.)
     # To convert rad_loss_fac to dp/dt, multiply by p²B², both in cgs. Prefactor of rad_loss_fac
