@@ -2,6 +2,9 @@ using Documenter
 using DocumenterCitations
 using MonteCarloScattering
 
-makedocs(
+bib = CitationBibliography(joinpath(@__DIR__, "refs.bib"))
+
+makedocs(;
     sitename = "MonteCarloScattering",
+    plugins = [bib],
 )

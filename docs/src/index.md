@@ -1,5 +1,15 @@
 # MonteCarloScattering
 
+## API Reference
+### Constants
+```@autodocs
+Modules = [MonteCarloScattering, MonteCarloScattering.constants,
+           MonteCarloScattering.parameters]
+Private = true
+Order = [:constant]
+```
+
+### Functions
 ```@autodocs
 Modules = [MonteCarloScattering, MonteCarloScattering.constants,
            MonteCarloScattering.cosmo_calc, MonteCarloScattering.initializers,
@@ -9,4 +19,9 @@ Modules = [MonteCarloScattering, MonteCarloScattering.constants,
            MonteCarloScattering.particle_counter,
            MonteCarloScattering.smoothers, MonteCarloScattering.transformers]
 Private = true
+Order = [:function]
+```
+
+## Bibliography
+```@bibliography
 ```

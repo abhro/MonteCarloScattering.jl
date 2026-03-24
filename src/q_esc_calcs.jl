@@ -39,7 +39,7 @@ end
 """
     q_esc_calcs_nonrelativistic(...)
 
-Solution comes from Ellison (1985) [1985JGR....90...29E] (Eqs 8-10).
+Solution comes from [Ellison (1985) 1985JGR....90...29E](@cite ellison_shock_1985) (Eqs 8-10).
 Note assumption of zero escaping momentum flux, which is good to
 within a couple percent for strong nonrelativistic shocks.
 #TODO: check how much of a difference this assumption makes

@@ -120,7 +120,7 @@ end
 
 Relativistic, parallel.
 
-Solution comes from Ellison & Reynolds (1990) [1991ApJ...378..214E].
+Solution comes from [Ellison & Reynolds (1990) 1991ApJ...378..214E](@cite ellison_determination_1991).
 Uses relativistic Rankine-Hugoniot relations. See that paper for
 details of equations and associated quantities. Briefly,
 ```math
