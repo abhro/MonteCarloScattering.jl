@@ -53,12 +53,14 @@ function assign_particle_properties_to_population!(
 end
 
 function get_pmax_cutoff(Emax, Emax_per_aa, pmax, aa)
+    m = aa * mp
+    E₀ = m * c^2
     if Emax > 0keV
-        γ = 1 + Emax / (aa * E₀ₚ)
-        pmax_cutoff = aa * mp * c * √(γ^2 - 1)
+        γ = 1 + Emax / E₀
+        pmax_cutoff = m * c * √(γ^2 - 1)
     elseif Emax_per_aa > 0keV
-        γ = 1 + Emax_per_aa / E₀ₚ
-        pmax_cutoff = aa * mp * c * √(γ^2 - 1)
+        γ = 1 + Emax_per_aa / E₀
+        pmax_cutoff = m * c * √(γ^2 - 1)
     elseif pmax > 0g*cm/s
         pmax_cutoff = pmax
     else
@@ -70,7 +72,7 @@ function get_pmax_cutoff(Emax, Emax_per_aa, pmax, aa)
 end
 
 function pcut_hi(energy_pcut_hi, E_rel_pt, m)
-    E_pcut_hi_rmproton = energy_pcut_hi * keV / E₀ₚ # FIXME pick better name
+    E_pcut_hi_rmproton = energy_pcut_hi * keV / (mp * c^2) # FIXME pick better name
     if E_pcut_hi_rmproton < E_rel_pt
         p_pcut_hi = √(2 * E_pcut_hi_rmproton)
     else

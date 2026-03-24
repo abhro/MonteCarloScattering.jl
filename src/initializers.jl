@@ -12,7 +12,6 @@ using Unitful, UnitfulAstro
 using Unitful: g, cm, s, dyn, erg, keV
 using Unitful: mp, c, k as kB
 using Distributions: TriangularDist
-using ..constants: E₀ₚ
 using ..parameters: num_therm_bins, na_particles, E_rel_pt, β_rel_fl
 import ..density, ..temperature, ..mass, ..number_density
 using ..CGSTypes: MomentumCGS, BFieldCGS, MomentumDensityFluxCGS, EnergyDensityFluxCGS
@@ -821,8 +820,9 @@ function setup_profile(
             γ₀, β₀, u₀
         )
         n₀ = dot(density.(species), mass.(species)) / mp # total number density
+        e₀ = n₀ * mp * c^2  # rest energy density
         for i in grid_axis
-            energy_density = (F_energy_upstream + γ₀ * u₀ * n₀ * E₀ₚ) / uₓ_sk_grid[i] - F_px_upstream
+            energy_density = (F_energy_upstream + γ₀ * u₀ * e₀) / uₓ_sk_grid[i] - F_px_upstream
             # FIXME this tries to be a square root of a negative number sometimes
             #btot_grid[i] = √(8π * εB_grid[i] * energy_density)
             btot_grid[i] = √abs(8π * εB_grid[i] * energy_density)
@@ -874,13 +874,13 @@ function set_custom_εB!(
     # Calculate ε_B₀ which depends on far upstream magnetic field and mass density.
     # If electrons aren't a separate species, they don't contribute enough mass to be important.
     n₀ = dot(density.(species), mass.(species)) / mp # total number density
-    e₀ = n₀ * E₀ₚ   # upstream rest energy density
+    e₀ = n₀ * mp * c^2   # upstream rest energy density
     εB₀ = B₀^2 / (8π * e₀) |> NoUnits
 
-    # The Monte Carlo length is rg₀ = γ₀ ⋅ β₀ ⋅ E₀ₚ / (q ⋅ B₀). The plasma skin
-    # depth is λ_SD = γ₀ ⋅ E₀ₚ / (4π ⋅ q² ⋅ den₀), where den₀ refers to the upstream
+    # The Monte Carlo length is rg₀ = γ₀ ⋅ β₀ ⋅ mₚc² / (q ⋅ B₀). The plasma skin
+    # depth is λ_SD = γ₀ ⋅ mₚc² / (4π ⋅ q² ⋅ den₀), where den₀ refers to the upstream
     # number density of electrons. With the definition
-    #     σ = 2εB₀/γ₀ = B₀² / (4π ⋅ γ₀ ⋅ n₀ ⋅ E₀ₚ),
+    #     σ = 2εB₀/γ₀ = B₀² / (4π ⋅ γ₀ ⋅ n₀ ⋅ mₚc²),
     # where n₀ here refers to the number density of *protons*, one can show that in
     # the shock frame (where grid exists),
     #     λ_SD = β₀ / √(σ ⋅ density_p/density_e) ⋅ rg₀.

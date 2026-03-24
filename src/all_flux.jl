@@ -1,4 +1,4 @@
-using .constants: E₀ₚ
+using Unitful: mp, c
 using .parameters: E_rel_pt, na_cr
 
 const all_flux_spike_away = 1000.0 # Max value for 1/cosine
@@ -88,6 +88,8 @@ function all_flux!(
         b_cosθ, b_sinθ, mc
     )
 
+    m = aa * mp
+
     if ptot_sk > abs(p_sk.x * all_flux_spike_away)
         pt_o_pₓ_sk = all_flux_spike_away
         # Minimum shock frame velocity is a small fraction of local bulk flow speed
@@ -101,9 +103,9 @@ function all_flux!(
 
     # Kinetic energy only; rest mass energy NOT included
     if (γₚ_sk - 1) > E_rel_pt
-        energy_flux_add = (γₚ_sk - 1) * aa * E₀ₚ * weight
+        energy_flux_add = (γₚ_sk - 1) * m * c^2 * weight
     else
-        energy_flux_add = ptot_sk^2 / (2 * aa * mp) * weight
+        energy_flux_add = ptot_sk^2 / 2m * weight
     end
 
 
