@@ -47,13 +47,13 @@ end
 
 function parse_electron_critical_energy(Eₑ_crit)
     if isnothing(Eₑ_crit) || Eₑ_crit ≤ 0
-        return (-1.0 * me * c, -1.0)
+        return (-me * c, -1.0)
     end
 
     Eₑ_crit *= keV # attach units
-    # Convert input energy to momentum and Lorentz factor
-    Eₑ_crit_rm = Eₑ_crit / E₀ₑ
+    Eₑ_crit_rm = Eₑ_crit / (me * c^2)   # in units of electron rest energy
 
+    # Convert input energy to momentum and Lorentz factor
     # Different forms for nonrelativistic and relativstic momenta
     if Eₑ_crit_rm < 1.0e-2
         pₑ_crit = √(2 * me * Eₑ_crit)

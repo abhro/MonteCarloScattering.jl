@@ -10,9 +10,7 @@ using UnitfulGaussian: G
 
 "Proton rest energy"
 const E₀ₚ = mp * c^2 |> erg
-"Electron rest energy"
-const E₀ₑ = me * c^2 |> erg
-export E₀ₚ, E₀ₑ
+export E₀ₚ
 
 
 "Equivalent B field to CMB energy density at a redshift of 0"
