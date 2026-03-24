@@ -13,3 +13,4 @@ build/
 *.he5
 *.png
 *.svg
+mc_*.csv
