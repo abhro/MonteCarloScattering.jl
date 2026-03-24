@@ -22,11 +22,23 @@ Handles particles that leave the system during loop_helix for any reason.
 - `b_cosθ`: component of magnetic field along x axis
 - `b_sinθ`: component of magnetic field along z axis
 - `i_reason`: integer reason for why particle left system
+- `i_iter`
+- `i_ion`
 - `weight`: particle's weight
-TODO Add the other arguments
+- `num_psd_mom_bins`, `num_psd_θ_bins`
+- `psd_bins_per_dec_mom`, `psd_bins_per_dec_θ`
+- `psd_mom_min`, `psd_θ_min`
+- `psd_cos_fine`, `Δcos`,
+- `mc`
 
 ### Modifies
-TODO
+- `pₓ_esc_feb`
+- `energy_esc_feb`
+- `esc_energy_eff`
+- `esc_num_eff`
+- `esc_flux`
+- `esc_psd_feb_downstream`
+- `esc_psd_feb_upstream`
 
 ### Returns
 Nothing; modifies input argument arrays as needed.
@@ -46,6 +58,8 @@ function particle_finish!(
     #       pₓ_esc_feb, energy_esc_feb, esc_energy_eff, esc_num_eff,
     #       i_iter, i_ion, mc)
 
+    m = aa * mp
+    E₀ = m * c^2
 
     # Transform plasma frame momentum into shock frame for binning
     ptot_sk, p_sk, γₚ_sk = transform_p_PS(
@@ -59,28 +73,20 @@ function particle_finish!(
     jθ = get_psd_bin_angle(p_sk.x, ptot_sk, psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min)
 
     if ptot_sk > abs(_pf_spike_away * p_sk.x)
-        weight_factor = γₚ_sk * aa * mp * _pf_spike_away / ptot_sk
+        weight_factor = γₚ_sk * m * _pf_spike_away / ptot_sk
     else
-        weight_factor = γₚ_sk * ustrip(s / cm, aa * mp / abs(p_sk.x)) # FIXME dimensionality
+        weight_factor = γₚ_sk * ustrip(s / cm, m / abs(p_sk.x)) # FIXME dimensionality
     end
 
     # Now take additional action based on *how* the particle left the grid
     if i_reason == 1     # Particle escape: downstream, with or without scattering enabled
         esc_psd_feb_downstream[ip, jθ] += weight * weight_factor
-
     elseif i_reason == 2 # Particle escape: p_max, upstream FEB, transverse distance
-
         esc_flux[i_ion] += weight
         esc_psd_feb_upstream[ip, jθ] += weight * weight_factor
-
-        m = aa * mp
-        E₀ = m * c^2
-
-        if (γₚ_sk - 1) < (E_rel_pt / E₀)
-            energy_flux_add = ptot_sk^2 / 2m * weight
-        else
-            energy_flux_add = (γₚ_sk - 1) * E₀ * weight
-        end
+        relativistic = (γₚ_sk - 1) ≥ (E_rel_pt / E₀)
+        E_kin = relativistic ? (γₚ_sk - 1) * E₀ : ptot_sk^2 / 2m
+        energy_flux_add = E_kin * weight
 
         # Update escape arrays that will be averaged over consecutive iterations
         pₓ_esc_feb[i_ion, i_iter] += abs(p_sk.x) * weight
@@ -91,14 +97,10 @@ function particle_finish!(
         esc_num_eff[ip, i_ion] += weight
 
     elseif i_reason == 3 # Particle escape: age_max
-
         # TODO: write out particles to be read in during a later run, i.e. a pre-existing
         # population of cosmic rays. Also include new keyword for this purpose
-
     elseif i_reason == 4 # Zero energy after radiative losses
-
         # Do nothing
-
     else
         error("Unknown i_reason passed: $i_reason. Can only handle 1-4")
     end

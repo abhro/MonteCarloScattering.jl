@@ -255,7 +255,7 @@ function particle_loop(
                 # Transform plasma frame momentum into shock frame to test there also
                 ptot_sk, p_sk, γₚ_sk = transform_p_PS(
                     aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                    uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ, mc
+                    uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
                 )
 
                 if ptot_sk > pmax_cutoff
@@ -713,7 +713,7 @@ function do_energy_transfer(
     ptot_sk, p_sk, γₚ_sk = transform_p_PS(
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
         uₓ_sk, uz_sk, utot, γᵤ_sf,
-        b_cosθ, b_sinθ, mc
+        b_cosθ, b_sinθ,
     )
     pₓ_sk = p_sk.x
     pz_sk = p_sk.z

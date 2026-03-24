@@ -103,7 +103,7 @@ function get_dNdp_cr(
 
             transform_corner_pt, transform_corner_ct = transform_psd_corners(
                 γᵤ, rest_energy, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
-                num_psd_mom_bins, psd_mom_bounds
+                psd_mom_bounds
             )
             #----------------------------------------------------------------------
             # corners transformed
@@ -458,9 +458,18 @@ function get_dNdp_2D(
     # particles. Note that the slices of psd need to be transposed from (ptot,θ) to (θ,ptot)
     # order. Once that is taken care of, convert dN into dN/dp by dividing by dp
     #-------------------------------------------------------------------------
-    for i in 1:(n_grid + 1), k in 0:(psd_max - 1), jθ in 0:(psd_max - 1)
-        if psd[k, jθ, i] > 1.0e-66
-            d²N_dpdcos_sf[jθ, k, i] = psd[k, jθ, i]
+    for i in 1:(n_grid + 1)
+        for k in 0:(psd_max - 1), jθ in 0:(psd_max - 1)
+            if psd[k, jθ, i] > 1.0e-66
+                d²N_dpdcos_sf[jθ, k, i] += psd[k, jθ, i]
+            end
+        end
+
+        # Can convert from dN to dN/dp now
+        for k in 0:(psd_max - 1), jθ in 0:psd_max
+            if d²N_dpdcos_sf[jθ, k, i] > 1.0e-66
+                d²N_dpdcos_sf[jθ, k, i] /= Δp[k]
+            end
         end
     end
     #-------------------------------------------------------------------------
@@ -472,15 +481,6 @@ function get_dNdp_2D(
     for i in 1:n_grid
         mask = (d²N_dpdcos_sf[:, 0:(psd_max - 1), i] .> 1.0e-66)
         density_tot[i] = sum(d²N_dpdcos_sf[mask..., i])
-    end
-
-
-    # Can convert from dN to dN/dp now
-    for k in 0:(psd_max - 1), jθ in 0:psd_max
-        # FIXME use of i as an index variable
-        if d²N_dpdcos_sf[jθ, k, i] > 1.0e-66
-            d²N_dpdcos_sf[jθ, k, i] /= Δp[k]
-        end
     end
 
 
@@ -522,24 +522,7 @@ function get_dNdp_2D(
     # center-point re-binning that currently happens
     #----------------------------------------------------------------------------
     # Calculate the center points of all the bins to save time later
-    cos_center = zeros(0:psd_max)
-    for jθ in 0:num_psd_θ_bins
-        # Determine current cosines, remembering that psd_θ_bounds has both a
-        # linearly-spaced region in cosine and logarithmically-spaced region in θ.
-        if jθ > (num_psd_θ_bins - psd_lin_cos_bins)
-            cos_hi = psd_θ_bounds[jθ]
-            cos_lo = psd_θ_bounds[jθ + 1]
-        elseif jθ == (num_psd_θ_bins - psd_lin_cos_bins)
-            cos_hi = cos(psd_θ_bounds[jθ])
-            cos_lo = psd_θ_bounds[jθ + 1]
-        else
-            cos_hi = cos(psd_θ_bounds[jθ])
-            cos_lo = cos(psd_θ_bounds[jθ + 1])
-        end
-
-        # Minus sign needed because finest gradations actually point upstream
-        cos_center[jθ] = -(cos_lo + cos_hi) / 2
-    end
+    cos_center = cos_centers(num_psd_θ_bins, psd_lin_cos_bins, psd_θ_bounds)
     ptot_center = zeros(0:(num_psd_mom_bins + 1))
     for k in 0:num_psd_mom_bins
         # Convert from log to linear space
@@ -624,6 +607,37 @@ function get_dNdp_2D(
     #deallocate(d²N_pf)
     return d²N_dpdcos_ef
 end # get_dNdp_2D
+
+"""
+Get the cosine of the centers of the θ bins of the phase space distribution
+"""
+function cos_centers(num_psd_θ_bins, psd_lin_cos_bins, psd_θ_bounds)
+    if length(psd_θ_bounds) != num_psd_θ_bounds + 2
+        error(
+          "Incompatible values for num_psd_θ_bins=$num_psd_θ_bins and ",
+          "psd_θ_bounds (length=$(length(psd_θ_bounds))) passed"
+        )
+    end
+    cos_center = zeros(axes(psd_θ_bounds))
+    for jθ in 0:num_psd_θ_bins
+        # Determine current cosines, remembering that psd_θ_bounds has both a
+        # linearly-spaced region in cosine and logarithmically-spaced region in θ.
+        if jθ > (num_psd_θ_bins - psd_lin_cos_bins)
+            cos_hi = psd_θ_bounds[jθ]
+            cos_lo = psd_θ_bounds[jθ + 1]
+        elseif jθ == (num_psd_θ_bins - psd_lin_cos_bins)
+            cos_hi = cos(psd_θ_bounds[jθ])
+            cos_lo = psd_θ_bounds[jθ + 1]
+        else
+            cos_hi = cos(psd_θ_bounds[jθ])
+            cos_lo = cos(psd_θ_bounds[jθ + 1])
+        end
+
+        # Minus sign needed because finest gradations actually point upstream
+        cos_center[jθ] = -(cos_lo + cos_hi) / 2
+    end
+    return cos_center
+end
 
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
@@ -1260,13 +1274,11 @@ function get_dNdp_therm(
         #    3  -  ISM frame
         for k in 1:num_hist_bins
             # Shock frame
-            dNdp_therm[k - 1, i, 1] = iszero(ptot_sk_vals[k]) ? 1.0e-99 : ptot_sk_vals[k]
-
+            dNdp_therm[k - 1, i, 1] = max(1.0e-99, ptot_sk_vals[k])
             # Plasma frame
-            dNdp_therm[k - 1, i, 2] = iszero(ptot_pf_vals[k]) ? 1.0e-99 : ptot_pf_vals[k]
-
+            dNdp_therm[k - 1, i, 2] = max(1.0e-99, ptot_pf_vals[k])
             # ISM frame
-            dNdp_therm[k - 1, i, 3] = iszero(ptot_ef_vals[k]) ? 1.0e-99 : ptot_ef_vals[k]
+            dNdp_therm[k - 1, i, 3] = max(1.0e-99, ptot_ef_vals[k])
 
             # Set bin boundaries
             dNdp_therm_pvals[k - 1, i, 1] = ptot_sk_bins[k]

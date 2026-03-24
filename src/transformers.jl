@@ -440,8 +440,9 @@ original xyz frame by taking scalar products along the xyz axes.
 function transform_p_PS(
         aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot,
         γᵤ_sf, b_cosθ, b_sinθ,
-        mc
     )
+    m = aa * mp
+    mc = m * c
 
     φ_p = φ_rad + π / 2
 
@@ -457,7 +458,7 @@ function transform_p_PS(
         pb_pf * b_sinθ + p_p_cos * b_cosθ
     )
 
-    Δpₓ = (γᵤ_sf - 1) * p_pf.x + γᵤ_sf * γₚ_pf * aa * mp * uₓ_sk
+    Δpₓ = (γᵤ_sf - 1) * p_pf.x + γᵤ_sf * γₚ_pf * m * uₓ_sk
     # xyz shock frame components
     p_sk = SVector(p_pf.x + Δpₓ, p_pf.y, p_pf.z)
 
@@ -511,24 +512,24 @@ scalar products along the xyz axes.
 - `pb_sk`: component of ptot_sk parallel to magnetic field
 - `p_perp_b_sk`: component of ptot_sk perpendicular to magnetic field
 - `γₚ_sk`: Lorentz factor associated with ptot_sk
+- `γ_pf`: Lorentz factor in plasma frame, associated with `ptot_pf`
 
 ### Modifies
 
 - `pb_pf`: component of `ptot_pf` parallel to magnetic field
 - `p_perp_b_pf`: component of `ptot_pf` perpendicular to magnetic field
-- `γₚ_pf`: Lorentz factor associated with `ptot_pf`
 - `φ_rad`: phase angle of gyration; looking upstream, counts clockwise from +z axis
 """
 function transform_p_PSP(
-        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
+        aa, pb_pf, p_perp_b_pf, γ_pf, φ_rad,
         uₓ_sk_old, uz_sk_old, utot_old, γᵤ_sf_old, b_cos_old, b_sin_old,
         uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
-        mc
     )
 
     φ_p = φ_rad + π / 2
 
     m = aa * mp
+    mc = m * c
 
     p_p_cos = p_perp_b_pf * cos(φ_p)
 
@@ -544,13 +545,13 @@ function transform_p_PSP(
         (
             ((γᵤ_sf_old - 1) * (uₓ_sk_old / utot_old)^2 + 1) * p_pf.x +
                 (γᵤ_sf_old - 1) * (uₓ_sk_old * uz_sk_old / utot_old^2) * p_pf.z +
-                γᵤ_sf_old * γₚ_pf * m * uₓ_sk_old
+                γᵤ_sf_old * γ_pf * m * uₓ_sk_old
         ),
         p_pf.y,
         (
             (γᵤ_sf_old - 1) * (uₓ_sk_old * uz_sk_old / utot_old^2) * p_pf.x +
                 ((γᵤ_sf_old - 1) * (uz_sk_old / utot_old)^2 + 1) * p_pf.z +
-                γᵤ_sf_old * γₚ_pf * m * uz_sk_old
+                γᵤ_sf_old * γ_pf * m * uz_sk_old
         )
     )
 
@@ -596,13 +597,13 @@ function transform_p_PSP(
         p_perp_b_pf = √(ptot_pf^2 - pb_pf^2)
     end
 
-    γₚ_pf = hypot(ptot_pf / mc, 1)
+    γ_pf = hypot(ptot_pf / mc, 1)
 
     # See Figure 14 of Ellison, Baring, Jones (1996) [1996ApJ...473.1029E] for more details on φ_p
     φ_p = atan(p_pf.y, -p_pf.x * b_sinθ + p_pf.z * b_cosθ)
     φ_rad = φ_p - π / 2
 
-    return ptot_pf, ptot_sk, p_sk, pb_sk, p_perp_b_sk, γₚ_sk, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad
+    return ptot_pf, ptot_sk, p_sk, pb_sk, p_perp_b_sk, γₚ_sk, pb_pf, p_perp_b_pf, γ_pf, φ_rad
 end
 
 #----------------------------------------------------------------------------
@@ -614,11 +615,16 @@ end
 Given a relative Lorentz factor between two frames, transform the corners of the PSD into
 the new frame. Outputs total momentum as log of cgs values.
 
-TODO: remove conversion to/from log space here and in `get_dndp_cr`
+TODO: remove conversion to/from log space here and in `get_dNdp_CR`
 
 ### Arguments
-FIXME with actual argument list
-- `γ_in`: relative Lorentz factor between shock and resultant frame
+
+- `γ`: relative Lorentz factor between shock and resultant frame
+- `E₀`: Rest energy of particle
+- `psd_lin_cos_bins`
+- `num_psd_θ_bins`
+- `psd_θ_bounds`
+- `psd_mom_bounds`
 
 ### Returns
 
@@ -626,16 +632,15 @@ FIXME with actual argument list
 - `transform_corner_ct`: cos(θ) (NOT θ!!!) values at the corners
 """
 function transform_psd_corners(
-        γ_in, E₀, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
-        num_psd_mom_bins, psd_mom_bounds
+        γ, E₀, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds, psd_mom_bounds
     )
 
     # Administrative constants
-    βᵤ = γ_in ≥ 1.000001 ? √(1 - 1 / γ_in^2) : 0.0 # Prevent floating point issues
+    β = γ ≥ 1.000001 ? √(1 - 1 / γ^2) : 0.0 # Prevent floating point issues
 
     # Fill transform_corner_** arrays, looping over angle outermost
-    transform_corner_pt = OffsetMatrix{Float64}(undef, 0:(num_psd_mom_bins + 1), 0:(num_psd_θ_bins + 1))
-    transform_corner_ct = OffsetMatrix{Float64}(undef, 0:(num_psd_mom_bins + 1), 0:(num_psd_θ_bins + 1))
+    transform_corner_pt = OffsetMatrix{Float64}(undef, axes(psd_mom_bounds, 1), axes(psd_θ_bounds, 1))
+    transform_corner_ct = OffsetMatrix{Float64}(undef, axes(psd_mom_bounds, 1), axes(psd_θ_bounds, 1))
     for j in eachindex(psd_θ_bounds)
 
         # Determine current cosine, remembering that psd_θ_bounds has both a linearly-spaced
@@ -662,12 +667,12 @@ function transform_psd_corners(
             pₓ_sk = pt_sk * cosθ
             etot_sk = hypot(pt_sk * c, E₀)
 
-            pₓ_Xf = γ_in * (pₓ_sk - βᵤ * etot_sk / c)
-            pt_Xf = √(pt_sk^2 + pₓ_Xf^2 - pₓ_sk^2)
+            pₓ_transformed = γ * (pₓ_sk - β * etot_sk / c)
+            pt_transformed = √(pt_sk^2 + pₓ_transformed^2 - pₓ_sk^2)
 
             # Transform to log space because get_dNdp_cr expects it
-            transform_corner_pt[i, j] = log10(pt_Xf)
-            transform_corner_ct[i, j] = pₓ_Xf / pt_Xf
+            transform_corner_pt[i, j] = log10(pt_transformed)
+            transform_corner_ct[i, j] = pₓ_transformed / pt_transformed
 
 
         end # loop over momentum
