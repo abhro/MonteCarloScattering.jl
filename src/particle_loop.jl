@@ -79,7 +79,7 @@ function particle_loop(
     gyro_rad_tot_cm = ptot_pf * c * gyro_denom |> cm
 
     # Gyroperiod in seconds
-    gyro_period_sec = 2π * γₚ_pf * aa * mp * c * gyro_denom
+    gyro_period_sec = 2π * γₚ_pf * m * c * gyro_denom
 
 
     # Get the properties of the grid zone the particle's in
@@ -398,7 +398,7 @@ function particle_loop(
         # Odd little loop that only matters if DSA has been disabled per the input file
         #------------------------------------------------------------------------------
         (; pb_pf, φ_rad, x_move_bpar, r_PT_cm) = no_DSA_loop(
-            φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA, inj_fracs,
+            φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, dont_DSA, inj_fracs,
             r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion, gyro_rad_cm, rng
         )
         #----------------------------------------------------------------
@@ -418,7 +418,7 @@ function particle_loop(
             #    particles in the downstream frame, ⟨u⟩ = u₂ since the average thermal *velocity* of
             #    the population is 0.
             #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
-            L_diff = η_mfp / 3 * gyro_rad_tot_cm * ptot_pf / (aa * mp * γₚ_pf * u₂) |> cm
+            L_diff = η_mfp / 3 * gyro_rad_tot_cm * ptot_pf / (m * γₚ_pf * u₂) |> cm
 
             @debug(
                 "Particle crossing shock going upstream → downstream",
@@ -476,13 +476,13 @@ function particle_loop(
         # If particle escaped downstream, handle final calculations here
         if i_return == 0
 
-            vel = ptot_pf / (aa * mp) |> cm / s
+            vel = ptot_pf / m |> cm / s
             if (γₚ_pf - 1) ≥ E_rel_pt
                 vel /= γₚ_pf
             end
 
             ∑P_downstream += ptot_pf / 3 * vel * weight * density(species[i_ion]) # downstream pressure
-            ∑KEdensity_downstream += (γₚ_pf - 1) * aa * E₀ₚ * weight * density(species[i_ion])
+            ∑KEdensity_downstream += (γₚ_pf - 1) * m * c^2 * weight * density(species[i_ion])
 
             i_reason = 1
             if lose_pt
@@ -506,10 +506,11 @@ function particle_loop(
 end
 
 function no_DSA_loop(
-        φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, mp, dont_DSA,
+        φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, dont_DSA,
         inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion,
         gyro_rad_cm, rng
     )
+    m = aa * mp
     local x_move_bpar
     while true # loop_no_DSA
 
@@ -525,7 +526,7 @@ function no_DSA_loop(
         # Remember to take gyration about magnetic field into account
         φ_rad = mod2pi(φ_rad + 2π / xn_per)
 
-        x_move_bpar = pb_pf * t_step / (γₚ_pf * aa * mp) |> cm
+        x_move_bpar = pb_pf * t_step / (γₚ_pf * m) |> cm
 
         Δx_PT_cm = γᵤ_sf * (
             x_move_bpar * b_cosθ
@@ -605,6 +606,8 @@ function downstream_test(
 
     elseif r_PT_cm.x > 1.1 * prp_x_cm
 
+        m = aa * mp
+
         # The following simple equation is decidedly non-trivial, and comes from two
         # assumptions:
         # 1. The particle's diffusion coefficient D may be described by D = ⅓⋅η_mfp⋅r_g⋅v_pt
@@ -616,9 +619,9 @@ function downstream_test(
         #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
         if aa < 1 && ptot_pf < pₑ_crit
             gyro_fac = pₑ_crit * c * gyro_denom
-            v_fac = gyro_fac * pₑ_crit / (aa * mp * γₑ_crit * u₂)
+            v_fac = gyro_fac * pₑ_crit / (m * γₑ_crit * u₂)
         else
-            v_fac = gyro_rad_tot_cm * ptot_pf / (aa * mp * γₚ_pf * u₂)
+            v_fac = gyro_rad_tot_cm * ptot_pf / (m * γₚ_pf * u₂)
         end
         L_diff = η_mfp / 3 * v_fac
 
@@ -654,6 +657,8 @@ function do_energy_transfer(
     i_stop = min(i_grid, i_shock)
 
     scale_momenta = false
+    m = aa * mp
+    E₀ = m * c^2
 
     # Subtract energy from the ions and add it to the pool of energy for this grid zone.
     #@debug "" i_start i_stop i_grid i_shock
@@ -668,7 +673,7 @@ function do_energy_transfer(
         # this scattering step; the donated energy is weighted by weight.
         n_split = count(ε_target[(i_start + 1):i_stop] .> 0)
         #$omp critical
-        energy_increment = (γ_pf_i - γ_pf_f) * aa * E₀ₚ * weight / n_split
+        energy_increment = (γ_pf_i - γ_pf_f) * E₀ * weight / n_split
         for i in (i_start + 1):i_stop
             if ε_target[i] > 0
                 energy_transfer_pool[i] += energy_increment
@@ -686,7 +691,7 @@ function do_energy_transfer(
         energy_to_transfer = sum(@view(energy_recv_pool[(i_start + 1):i_stop])) * electron_weight_fac
 
         γ_pf_i = hypot(1, ptot_pf / mc)
-        γ_pf_f = γ_pf_i + energy_to_transfer / (aa * E₀ₚ)
+        γ_pf_f = γ_pf_i + energy_to_transfer / E₀
 
         scale_momenta = true
     end  # check on particle species
@@ -694,7 +699,7 @@ function do_energy_transfer(
     if scale_momenta
         # Calculate the new momentum based on the new energy, and
         # rescale components accordingly
-        ptot_pf_f = aa * mp * c * √(γ_pf_f^2 - 1) |> (g * cm / s)
+        ptot_pf_f = mc * √(γ_pf_f^2 - 1) |> (g * cm / s)
         scale_fac = ptot_pf_f / ptot_pf
 
         pb_pf *= scale_fac

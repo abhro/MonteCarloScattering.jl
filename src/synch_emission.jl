@@ -1,9 +1,8 @@
 using LinearAlgebra: dot
-using Unitful: ustrip, MeV, erg, c, ħ, me, c
+using Unitful: ustrip, MeV, erg, c, ħ, mp, me
 using UnitfulGaussian: qcgs
 using QuadGK: quadgk
 using SpecialFunctions: besselk
-using .constants: E₀ₚ
 
 """
     synch_emission(...)
@@ -49,8 +48,9 @@ function synch_emission(
     if i_grid ≤ n_grid
         bmag_curr = btot_grid[i_grid]
     else
-        n₀ = dot(n₀_ion, aa_ion)
-        energy_density = (F_energy_upstream + γ₀ * u₀ * n₀ * E₀ₚ) / u₂ - F_px_upstream
+        n₀ = dot(n₀_ion, aa_ion)    # mass density in units of proton mass
+        e₀ = n₀ * mp * c^2          # rest energy density
+        energy_density = (F_energy_upstream + γ₀ * u₀ * e₀) / u₂ - F_px_upstream
         bmag_curr = √(8π * 1.0e-3 * energy_density)
     end
 

@@ -95,7 +95,7 @@ function (@main)(args)
     bmag₀ = cfg_toml["B-mag-upstream"] * G
     # rg₀ below is the gyroradius of a proton whose speed is u₀ that is gyrating in a field
     # of strength bmag₀. Note that this formula is relativistically correct
-    rg₀ = (γ₀ * E₀ₚ * β₀) / (qcgs * bmag₀) |> cm
+    rg₀ = (γ₀ * mp * c^2 * β₀) / (qcgs * bmag₀) |> cm
 
     θ_B₀ = cfg_toml["theta-B0"] # must be zero
     check_shock_angle(θ_B₀)
@@ -331,7 +331,7 @@ function (@main)(args)
             γ = 1 + Emax / rest_energy_max
             rest_mass_max * c * √(γ^2 - 1)
         elseif Emax_per_aa > 0keV
-            γ = 1 + Emax_per_aa / E₀ₚ
+            γ = 1 + Emax_per_aa / (mp * c^2)
             rest_mass_max * c * √(γ^2 - 1)
         elseif pmax > 0g * cm / s
             pmax
@@ -451,7 +451,7 @@ function (@main)(args)
 
     # Set a handful of constants related to radiative losses. electron_rm will not be the same
     # as the actual physical constant mₑc² unless (a) there are electrons in the run, and
-    # (b) they are true electrons, with aa = mₑ/mₚ. (electron_rm may in fact = E₀ₚ,
+    # (b) they are true electrons, with aa = mₑ/mₚ. (electron_rm may in fact = proton rest energy,
     # but in that case it won't be used because radiative losses will never be calculated.)
     # To convert rad_loss_fac to dp/dt, multiply by p²B², both in cgs. Prefactor of rad_loss_fac
     # comes from average over pitch and is Eq (16) of Sturner+ (1997) [1997ApJ...490..619S].

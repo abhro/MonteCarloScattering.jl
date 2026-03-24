@@ -1,4 +1,4 @@
-using .constants: E₀ₚ
+using Unitful: mp, c
 using .parameters: E_rel_pt
 using .transformers: transform_p_PS
 
@@ -73,10 +73,13 @@ function particle_finish!(
         esc_flux[i_ion] += weight
         esc_psd_feb_upstream[ip, jθ] += weight * weight_factor
 
-        if (γₚ_sk - 1) < (E_rel_pt / (aa * E₀ₚ))
-            energy_flux_add = ptot_sk^2 / (2 * aa * mp) * weight
+        m = aa * mp
+        E₀ = m * c^2
+
+        if (γₚ_sk - 1) < (E_rel_pt / E₀)
+            energy_flux_add = ptot_sk^2 / 2m * weight
         else
-            energy_flux_add = (γₚ_sk - 1) * aa * E₀ₚ * weight
+            energy_flux_add = (γₚ_sk - 1) * E₀ * weight
         end
 
         # Update escape arrays that will be averaged over consecutive iterations

@@ -1,7 +1,7 @@
 using Unitful, UnitfulAstro
-using Unitful: MeV, GeV, erg, mp
+using Unitful: MeV, GeV, erg, mp, c
 include("constants.jl")
-using .constants: E₀ₚ, T_th
+using .constants: T_th
 include("KATV2014.jl")
 using .KATV2014: get_σ_π, get_Ffunc, get_Amax
 
@@ -85,6 +85,8 @@ function pion_kafexhiu(
             )
         )
     end
+    m = aa * mp     # particle rest mass
+    E₀ = m * c^2    # particle rest energy
     #-------------------------------------------------------------------------
     # Constants fixed
 
@@ -98,16 +100,16 @@ function pion_kafexhiu(
         bin_count ≤ 1.0e-99 && continue # skip empty bins
 
         p²_pf = p_pf_therm[i_fp] * p_pf_therm[i_fp + 1] # Geometric mean (squared)
-        γ = √(p²_pf / mc^2 + 1)
-        Tₚ = (γ - 1) * aa * ustrip(GeV, E₀ₚ * erg) # particle kinetic energy in GeV
+        γ = √(1 + p²_pf / mc^2)
+        Tₚ = (γ - 1) * ustrip(GeV, E₀) # particle kinetic energy in GeV
         Tₚ /= aa  # kinetic energy per nucleon
-        vel = √p²_pf / (γ * aa * mp)
+        vel = √p²_pf / (γ * m)
 
         # Tₚ must be at T_th; otherwise no possibility to produce pions/photons
         Tₚ < T_th && continue
 
         # Square of proton energy in center-of-mass frame will be used repeatedly
-        s_ECM = 2E₀ₚ * (Tₚ + 2E₀ₚ)
+        s_ECM = 2 * mp * c^2 * (Tₚ + 2 * mp * c^2)
 
         # Calculate inclusive pion production cross section using material from section 4
         σ_π = get_σ_π(Tₚ, i_data, s_ECM)
@@ -166,16 +168,16 @@ function pion_kafexhiu(
         bin_count ≤ 1.0e-99 && continue # skip empty bins
 
         p²_pf = p_pf_cr[i_fp] * p_pf_cr[i_fp + 1] # Geometric mean (squared)
-        γ = √(p²_pf / mc^2 + 1)
-        Tₚ = (γ - 1) * aa * ustrip(GeV, E₀ₚ * erg) # particle kinetic energy in GeV
+        γ = √(1 + p²_pf / mc^2)
+        Tₚ = (γ - 1) * ustrip(GeV, E₀) # particle kinetic energy in GeV
         Tₚ /= aa  # kinetic energy per nucleon
-        vel = √(p²_pf) / (γ * aa * mp)
+        vel = √p²_pf / (γ * aa * mp)
 
         # Tₚ must be at T_th; otherwise no possibility to produce pions/photons
         Tₚ < T_th && continue
 
         # Square of proton energy in center-of-mass frame will be used repeatedly
-        s_ECM = 2E₀ₚ * (Tₚ + 2E₀ₚ)
+        s_ECM = 2 * mp * c^2 * (Tₚ + 2 * mp * c^2)
 
         # Calculate inclusive pion production cross section using material from section 4
         σ_π = get_σ_π(Tₚ, i_data, s_ECM)

@@ -6,13 +6,6 @@ using Unitful: g, K, s, erg, GeV
 using Unitful: mp, me, c, q, k as kB, h, ħ    # physical constants
 using UnitfulGaussian: G
 
-# Physical or arithmetic constants
-
-"Proton rest energy"
-const E₀ₚ = mp * c^2 |> erg
-export E₀ₚ
-
-
 "Equivalent B field to CMB energy density at a redshift of 0"
 const B_CMB0 = 3.27e-6G
 "Temperature of CMB at a redshift of 0"
