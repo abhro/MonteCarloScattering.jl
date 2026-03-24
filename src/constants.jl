@@ -13,16 +13,14 @@ const T_CMB0 = 2.725K
 export B_CMB0, T_CMB0
 
 "Threshold kinetic energy, for pion production"
-const T_th = 0.2797GeV
-const Tₜₕ = T_th # alias
+const Tₜₕ = 0.2797GeV
 "Resonance mass"
-const M_res = 1.1883GeV
+const Mᵣₑₛ = 1.1883GeV
 "Resonance width"
-const Γ_res = 0.2264GeV
+const Γᵣₑₛ = 0.2264GeV
 "Neutral pion rest energy"
 const E₀_π⁰ = 0.134976GeV
-export T_th, M_res, Γ_res, E₀_π⁰
-export Tₜₕ
+export Tₜₕ, Mᵣₑₛ, Γᵣₑₛ, E₀_π⁰
 
 # The numerator 4/3 c σ_T comes from Rybicki and Lightman Eq. (6.7b)
 # The denominator is included because β² U_B = (v²/c²) B²/8π, so we can use v

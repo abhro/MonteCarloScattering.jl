@@ -11,7 +11,7 @@ Physical Review D, 90(12), 123014. https://doi.org/10.1103/PhysRevD.90.123014
 module KATV2014
 
 using Unitful: mp
-using ..constants: Tₜₕ, M_res, Γ_res, E₀_π⁰
+using ..constants: Tₜₕ, Mᵣₑₛ, Γᵣₑₛ, E₀_π⁰
 
 """
     get_σ_π(Tₚ, i_data, s_ECM)
@@ -25,9 +25,9 @@ function get_σ_π(Tₚ, i_data, s_ECM)
     #-------------------------------------------------------------------------
     if Tₚ < 2
 
-        eq4_γ = M_res * hypot(M_res, Γ_res)
-        eq4_K = √8 * M_res * Γ_res * eq4_γ / (π * √(M_res^2 + eq4_γ))
-        f_BW = mp * eq4_K / (((√s_ECM - mp)^2 - M_res^2)^2 + M_res^2 * Γ_res^2)
+        eq4_γ = Mᵣₑₛ * hypot(Mᵣₑₛ, Γᵣₑₛ)
+        eq4_K = √8 * Mᵣₑₛ * Γᵣₑₛ * eq4_γ / (π * √(Mᵣₑₛ^2 + eq4_γ))
+        f_BW = mp * eq4_K / (((√s_ECM - mp)^2 - Mᵣₑₛ^2)^2 + Mᵣₑₛ^2 * Γᵣₑₛ^2)
         eq3_η = √((s_ECM - E₀_π⁰^2 - 4 * mp^2)^2 - (4 * E₀_π⁰ * mp)^2) / (2E₀_π⁰ * √s_ECM)
 
         # Equation (2)
