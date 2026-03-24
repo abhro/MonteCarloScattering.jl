@@ -2,9 +2,8 @@ module smoothers
 
 using LinearAlgebra: dot
 using Roots
-using Unitful: c, mp
+using Unitful: c, mp, k as kB
 
-using ..constants: kB
 using ..parameters: β_rel_fl
 import ..print_plot_vals
 

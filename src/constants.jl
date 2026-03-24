@@ -1,9 +1,9 @@
 module constants
 
 using PhysicalConstants.CODATA2018: σ_e as σ_T
-using Unitful, UnitfulAstro, UnitfulEquivalences
-using Unitful: g, K, s, erg, GeV
-using Unitful: mp, me, c, q, k as kB, h, ħ    # physical constants
+using Unitful, UnitfulAstro
+using Unitful: g, K, s, GeV
+using Unitful: me, c
 using UnitfulGaussian: G
 
 "Equivalent B field to CMB energy density at a redshift of 0"
