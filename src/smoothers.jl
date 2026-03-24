@@ -4,7 +4,7 @@ using LinearAlgebra: dot
 using Roots
 using Unitful: c, mp
 
-using ..constants: kB, E₀ₚ
+using ..constants: kB
 using ..parameters: β_rel_fl
 import ..print_plot_vals
 
@@ -71,15 +71,14 @@ function smooth_grid_par(
     pxz_tot = zeros(n_grid)
     pxz_norm = zeros(n_grid)
     pressure_tot_MC = zeros(n_grid)
-    uₓ_new_pₓ = zeros(n_grid)
-    uₓ_new_energy = zeros(n_grid)
-    uₓ_new = zeros(n_grid)
 
 
     # Set constants
     # First, density in units of proton rest mass, pressure, and number density
     n₀ = dot(n₀_ion, aa_ion)
     P₀ = dot(n₀_ion, T₀_ion) * kB
+    e₀ = n₀ * mp * c^2  # rest energy density
+
 
     #DEBUGLINE (for now)
     # Calculate the far upstream magnetization -- the ratio of the energy fluxes in EM fields
@@ -87,7 +86,7 @@ function smooth_grid_par(
     # linking rg₀ to the ion skin depth used in PIC sims.
     ##TODO: this uses γ₀ for the kinetic energy, rather than γ₀ - 1. Okay for ultra-relativistic
     # shocks, but badly mistaken in trans-relativistic limit. Does this affect the results?
-    #σ₀ = B₀^2 / (4π * γ₀ * n₀ * E₀ₚ)
+    #σ₀ = B₀^2 / (4π * γ₀ * e₀)
 
     # Determine weighting factor for profile averaging
     if do_prof_fac_damp && i_iter != 1
@@ -140,6 +139,8 @@ function smooth_grid_par(
         # recent iteration
         Γ_pre = Γ_grid[i, 1]
         Γ_post = Γ_grid[i, 2]
+        Ξ_pre = Γ_pre / (Γ_pre - 1)
+        Ξ_post = Γ_post / (Γ_post - 1)
 
 
         # Basic calculations using those variables
@@ -165,28 +166,18 @@ function smooth_grid_par(
         # Total momentum/energy fluxes, including electrons (if needed) and EM.
         # Also normalized against far upstream values and in log space for plotting.
         pxx_tot[i] = pxx_flux[i] + pxx_EM
-        energy_tot[i] = energy_flux[i] + energy_EM + Γ_post / (Γ_post - 1) * uₓ
+        energy_tot[i] = energy_flux[i] + energy_EM + Ξ_post * uₓ
 
         pxx_norm[i] = pxx_tot[i] / F_px_upstream
         energy_norm[i] = energy_tot[i] / F_energy_upstream
 
-        if pxx_norm[i] > 1.0e-99
-            pxx_norm_log = log10(pxx_norm[i])
-        else
-            pxx_norm_log = -99.0
-        end
-
-        if energy_norm[i] > 1.0e-99
-            energy_norm_log = log10(energy_norm[i])
-        else
-            energy_norm_log = -99.0
-        end
+        pxx_norm_log = max(log10(pxx_norm[i]), -99.0)
+        energy_norm_log = max(log10(energy_norm[i]), -99.0)
 
         # In a parallel shock, the z-momentum flux is irrelevant. Set it to 0
         pxz_tot[i] = 1.0e-99
         pxz_norm[i] = 1.0e-99
         pxz_norm_log = -99.0
-
 
         # Calculate pressure using the relativistic equations of Double+ (2004)
         # [2004ApJ...600..485D], Eqs (27) and (28) specifically. Combine the resultant
@@ -196,14 +187,14 @@ function smooth_grid_par(
         # TODO: per original code, "there is an unresolved question as to whether or not to
         # use the escaping fluxes in these expressions". Using the escaping fluxes sounds
         # reasonable, esp. in the nonrelativistic case. Make sure it's actually reasonable
-        pₓ_numer = F_px_upstream * (1.0 - q_esc_cal_pₓ) - γβ^2 * density_ratio * n₀ * E₀ₚ
-        pₓ_denom = 1 + γβ^2 * Γ_pre / (Γ_pre - 1)
+        pₓ_numer = F_px_upstream * (1.0 - q_esc_cal_pₓ) - γβ^2 * density_ratio * e₀
+        pₓ_denom = 1 + γβ^2 * Ξ_pre
         pressure_pₓ = pₓ_numer / pₓ_denom
 
         energy_term_1 = F_energy_upstream * (1 - q_esc_cal_energy)
-        energy_term_2 = γ₀ * β₀ * c * n₀ * E₀ₚ
-        energy_term_3 = γ² * uₓ * density_ratio * n₀ * E₀ₚ
-        pressure_energy = (energy_term_1 + energy_term_2 - energy_term_3) / (γ² * uₓ * Γ_pre / (Γ_pre - 1))
+        energy_term_2 = γ₀ * β₀ * c * e₀
+        energy_term_3 = γ² * uₓ * density_ratio * e₀
+        pressure_energy = (energy_term_1 + energy_term_2 - energy_term_3) / (γ² * uₓ * Ξ_pre)
 
         # These pressures can become negative if a sharp shock with high compression ratio
         # results in a great deal of escaping flux. Place a floor on them for plotting purposes
@@ -222,11 +213,11 @@ function smooth_grid_par(
         # particle limit. No escaping flux to worry about here, but still need to add in the
         # rest mass-energy flux
         if i == 1
-            pₓ_numer = F_px_upstream - γ₂ * β₂ * γ₀ * B₀ * n₀ * E₀ₚ
+            pₓ_numer = F_px_upstream - γ₂ * β₂ * γ₀ * B₀ * e₀
             pₓ_denom = 1 + (γ₂ * β₂)^2 * Γ₂ / (Γ₂ - 1)
             pressure_pₓ_tp = pₓ_numer / pₓ_denom
 
-            energy_numer = F_energy_upstream + γ₀ * u₀ * n₀ * E₀ₚ - γ₂ * c * γ₀ * β₀ * n₀ * E₀ₚ
+            energy_numer = F_energy_upstream + γ₀ * u₀ * e₀ * (1 - γ₂)
             energy_denom = γ₂^2 * u₂ * Γ₂ / (Γ₂ - 1)
             pressure_energy_tp = energy_numer / energy_denom
         end
@@ -293,25 +284,20 @@ function smooth_grid_par(
 
     #-------------------------------------------------------------------------
     if β₀ < β_rel_fl    # Non-relativistic calculation of new velocity profile
-        nonrelativistic_velocity_profile(
-            (u₀, β₀, γ₀), (u₂, β₂, γ₂), n₀,
-            n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid, Γ_grid, btot_grid, θ_grid,
-            q_esc_cal_energy, pxx_flux, energy_flux, ω, pressure_tot_MC,
-            F_px_upstream, F_energy_upstream, uₓ_new_pₓ, uₓ_new_energy,
-            smooth_mom_energy_fac
-        )
+        regime = Val(:classical)
     else                # Relativistic calculation of new velocity profile
         # CHECKTHIS: what happens if γ*u is used as a smoothing variable instead
         # of just u? At high speeds γ*u is much more variable than just u
-        relativistic_velocity_profile(
-            n₀, (u₀, β₀, γ₀), (u₂, β₂, γ₂),
-            q_esc_cal_pₓ, pxx_flux,
-            q_esc_cal_energy, energy_flux,
-            n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid, Γ_grid, btot_grid, θ_grid,
-            ω, pressure_tot_MC, F_px_upstream, F_energy_upstream,
-            uₓ_new, uₓ_new_pₓ, uₓ_new_energy, smooth_mom_energy_fac,
-        )
+        regime = Val(:relativistic)
     end  # check on shock speed
+    uₓ_new = new_velocity_profile(
+        regime,
+        n₀, (u₀, β₀, γ₀), (u₂, β₂, γ₂),
+        pxx_flux, energy_flux, q_esc_cal_pₓ, q_esc_cal_energy,
+        n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid, Γ_grid, btot_grid, θ_grid,
+        ω, pressure_tot_MC, F_px_upstream, F_energy_upstream,
+        smooth_mom_energy_fac,
+    )
     #-------------------------------------------------------------------------
     # Relativistic/nonrelativistic shock smoothing complete
 
@@ -354,7 +340,7 @@ function smooth_grid_par(
         #     energy_density(x)  =  F_en₀/u(x) - F_px₀
         # assuming flux conservation everywhere.
         if use_custom_εB
-            energy_density = (F_energy_upstream + γ₀ * u₀ * n₀ * E₀ₚ) / uₓ_sk_grid[i] - F_px_upstream
+            energy_density = (F_energy_upstream + γ₀ * u₀ * e₀) / uₓ_sk_grid[i] - F_px_upstream
             btot_grid[i] = √(8π * εB_grid[i] * energy_density)
         end
     end
@@ -362,19 +348,21 @@ function smooth_grid_par(
     return
 end
 
-function relativistic_velocity_profile(
+function new_velocity_profile(
+        ::Val{:relativistic},
         n₀, (u₀, β₀, γ₀), (u₂, β₂, γ₂),
-        q_esc_cal_pₓ, pxx_flux,
-        q_esc_cal_energy, energy_flux,
+        pxx_flux, energy_flux, q_esc_cal_pₓ, q_esc_cal_energy,
         n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid, Γ_grid, btot_grid, θ_grid,
         ω, pressure_tot_MC, F_px_upstream, F_energy_upstream,
-        uₓ_new, uₓ_new_pₓ, uₓ_new_energy, smooth_mom_energy_fac,
+        smooth_mom_energy_fac,
     )
     avg_downstream_uₓ_pₓ = 0.0
     avg_downstream_uₓ_energy = 0.0
     Qpₓ = q_esc_cal_pₓ * pxx_flux[1]
     Qen = q_esc_cal_energy * energy_flux[1]
 
+    uₓ_new_pₓ = zeros(n_grid)
+    uₓ_new_energy = zeros(n_grid)
     for i in 1:n_grid
         β_uₓ = uₓ_sk_grid[i] / c
         γᵤ_sf = γ_sf_grid[i]
@@ -384,6 +372,7 @@ function relativistic_velocity_profile(
         density_loc = γ₀ * β₀ / (γᵤ_sf * β_uₓ) * n₀
 
         Γ_post = Γ_grid[i, 2]
+        Ξ_post = Γ_post / (Γ_post - 1)
 
         # Magnetic field components, and associated fluxes according to # Eqs. (27) & (28)
         # of Double+ (2004) [2004ApJ...600..485D], and # assume that uz = 0 (this *is* the
@@ -400,7 +389,7 @@ function relativistic_velocity_profile(
         # can give negative fluxes if fast push is used. Do not include EM flux here, since
         # pxx_flux tracked only particle contributions to F_pₓ. Also do not include escaping
         # flux, since we only care about the particles that remain
-        pressure_pₓ = (pxx_flux[i] - γβ^2 * density_loc * E₀ₚ) / (1 + γβ^2 * Γ_post / (Γ_post - 1))
+        pressure_pₓ = (pxx_flux[i] - γβ^2 * density_loc * mp * c^2) / (1 + γβ^2 * Ξ_post)
 
         # Combine flux-based pressure and PSD-based pressure as directed by user input
         pressure_loc = (1 - ω) * pressure_pₓ + ω * pressure_tot_MC[i]
@@ -413,7 +402,7 @@ function relativistic_velocity_profile(
         # relativistic speeds
         #------------------------------------------------------------------------
         function p(γβ) # momentum
-            pₓ_term = γ₀ * β₀ * n₀ / density_loc * γβ * (density_loc * E₀ₚ + pressure_loc * Γ_post / (Γ_post - 1))
+            pₓ_term = γ₀ * β₀ * n₀ * γβ * (mp * c^2 + pressure_loc * Ξ_post / density_loc)
             return F_px_upstream - Qpₓ - pxx_EM - pₓ_term - pressure_loc
         end
         γβ_found = Roots.find_zero(p, γ₀ * β₀ * 1.0e-4, Roots.Newton())
@@ -424,7 +413,7 @@ function relativistic_velocity_profile(
         #-------------------------------------------------------------------
         function E(γβ)
             γ = √(1 + γβ^2)
-            energy_term = γβ * γ * c * (density_loc * E₀ₚ + Γ_post / (Γ_post - 1) * pressure_loc)
+            energy_term = γβ * γ * c * (density_loc * mp * c^2 + Ξ_post * pressure_loc)
             return F_energy_upstream - Qen - energy_EM - energy_term
         end
         γβ_found = Roots.find_zero(E, γ₀ * β₀ * 1.0e-4, Roots.Newton())
@@ -464,22 +453,27 @@ function relativistic_velocity_profile(
         end
     end
 
-    uₓ_new .= @. (1 - smooth_mom_energy_fac) * uₓ_new_pₓ + smooth_mom_energy_fac * uₓ_new_energy
-    return
+    uₓ_new = @. (1 - smooth_mom_energy_fac) * uₓ_new_pₓ + smooth_mom_energy_fac * uₓ_new_energy
+    return uₓ_new
 end
 
-function nonrelativistic_velocity_profile(
-        (u₀, β₀, γ₀), (u₂, β₂, γ₂), n₀,
+function new_velocity_profile(
+        ::Val{:classical},
+        n₀, (u₀, β₀, γ₀), (u₂, β₂, γ₂),
+        pxx_flux, energy_flux, _, q_esc_cal_energy,
         n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid, Γ_grid, btot_grid, θ_grid,
-        q_esc_cal_energy, pxx_flux, energy_flux, ω, pressure_tot_MC,
-        F_px_upstream, F_energy_upstream, uₓ_new_pₓ, uₓ_new_energy,
-        smooth_mom_energy_fac
+        ω, pressure_tot_MC, F_px_upstream, F_energy_upstream,
+        smooth_mom_energy_fac,
     )
     avg_downstream_uₓ_pₓ = 0.0
     avg_downstream_uₓ_energy = 0.0
     Qpₓ = 0.0  # By default for nonrelativistic shocks
     Qen = q_esc_cal_energy * energy_flux[1]
 
+    ρ₀ = n₀ * mp    # mass density
+
+    uₓ_new_pₓ = zeros(n_grid)
+    uₓ_new_energy = zero(n_grid)
     for i in 1:n_grid
         uₓ = uₓ_sk_grid[i]
         β_uₓ = uₓ / c
@@ -488,6 +482,7 @@ function nonrelativistic_velocity_profile(
         γβ = γᵤ_sf * β_uₓ
 
         Γ_post = Γ_grid[i, 2]
+        Ξ_post = Γ_post / (Γ_post - 1)
 
         # Magnetic field components, and associated fluxes according to Eqs. (27) & (28) of
         # Double+ (2004) [2004ApJ...600..485D], and assume that uz = 0 (this *is* the
@@ -508,7 +503,7 @@ function nonrelativistic_velocity_profile(
         # calculations. Do not include EM flux here, since pxx_flux tracked only
         # particle contributions to F_pₓ. Also do not include escaping flux,
         # since we only care about the particles that remain
-        pressure_pₓ = (pxx_flux[i] - n₀ * mp * u₀ * uₓ * (1 + β_uₓ^2)) / (1 + β_uₓ^2 * Γ_post / (Γ_post - 1))
+        pressure_pₓ = (pxx_flux[i] - ρ₀ * u₀ * uₓ * (1 + β_uₓ^2)) / (1 + β_uₓ^2 * Ξ_post)
 
         # Combine flux-based pressure and PSD-based pressure as directed by user input
         pressure_loc = (1 - ω) * pressure_pₓ + ω * pressure_tot_MC[i]
@@ -521,16 +516,16 @@ function nonrelativistic_velocity_profile(
         # Newton's method.
 
         function p(β) # momentum
-            p_term_1 = n₀ * mp * u₀ * uₓ_guess * (1 + β^2)
-            p_term_2 = (1 + β^2 * Γ_post / (Γ_post - 1)) * pressure_loc
+            p_term_1 = ρ₀ * u₀ * uₓ_guess * (1 + β^2)
+            p_term_2 = (1 + β^2 * Ξ_post) * pressure_loc
             return F_px_upstream - Qpₓ - pxx_EM - p_term_1 - p_term_2
         end
         uₓ_new_pₓ[i] = Roots.find_zero(p, u₀ / c * 1.0e-4, Roots.Newton()) * c
 
         function E(u) # energy
             β = u / c
-            energy_term_1 = 1 // 2 * n₀ * mp * u₀ * u^2 * (1 + 1.25 * β^2)
-            energy_term_2 = Γ_post / (Γ_post - 1) * pressure_loc * u * (1 + β^2)
+            energy_term_1 = 1 // 2 * ρ₀ * u₀ * u^2 * (1 + 1.25 * β^2)
+            energy_term_2 = Ξ_post * pressure_loc * u * (1 + β^2)
             return F_energy_upstream - Qen - energy_EM - energy_term_1 - energy_term_2
         end
         uₓ_new_energy[i] = Roots.find_zero(E, u₀ * 1.0e-4, Roots.Newton())
@@ -570,8 +565,8 @@ function nonrelativistic_velocity_profile(
     smooth_profile!(uₓ_new_pₓ, n_grid)
     smooth_profile!(uₓ_new_energy, n_grid)
 
-    uₓ_new = @. (1 - smooth_mom_energy_fac) * uₓ_new_pₓ + smooth_mom_energy_fac * uₓ_new_energy
-    return
+    uₓ_new .= @. (1 - smooth_mom_energy_fac) * uₓ_new_pₓ + smooth_mom_energy_fac * uₓ_new_energy
+    return uₓ_new
 end
 
 """
