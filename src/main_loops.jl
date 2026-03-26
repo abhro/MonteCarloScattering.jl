@@ -130,15 +130,15 @@ function main_loops(
                 n_grid, x_grid_rg, uₓ_sk_grid, γ_sf_grid,
                 ptot_inj, weight_inj, n_pts_MB,
             )
-            @debug(
-                "Finished init_pop on",
-                i_iter, i_ion, n_pts_use,
-                length(i_grid_in), length(weight_in),
-                length(ptot_pf_in), length(pb_pf_in), length(x_PT_cm_in),
-                length(pxx_flux), length(pxz_flux), length(energy_flux),
-                i_grid_in, weight_in, ptot_pf_in, pb_pf_in,
-                x_PT_cm_in, pxx_flux, pxz_flux, energy_flux
-            )
+            #@debug(
+            #    "Finished init_pop on",
+            #    i_iter, i_ion, n_pts_use,
+            #    length(i_grid_in), length(weight_in),
+            #    length(ptot_pf_in), length(pb_pf_in), length(x_PT_cm_in),
+            #    length(pxx_flux), length(pxz_flux), length(energy_flux),
+            #    i_grid_in, weight_in, ptot_pf_in, pb_pf_in,
+            #    x_PT_cm_in, pxx_flux, pxz_flux, energy_flux
+            #)
 
             # Assign the various particle properties to the population
             assign_particle_properties_to_population!(
@@ -174,7 +174,7 @@ function main_loops(
             #----------------------------------------------------------------------
             for i_pcut in eachindex(pcuts) # loop_pcut
 
-                @debug("Starting pcut loop", i_pcut, pcuts[i_pcut])
+                @info("Starting pcut loop", i_pcut, pcuts[i_pcut])
 
                 # Initialize all of the *_saved arrays to help prevent bleeding over between pcuts or ion species
                 l_save .= false  # Whole array must be initialized in case number of particles changes from pcut to pcut
@@ -223,6 +223,7 @@ function main_loops(
                 #$omp parallel for default(none), schedule(dynamic,1), num_threads(6)
                 for i_prt in 1:n_pts_use # loop_pt
 
+                    #@info("Starting particle loop: i_pcut=$i_pcut, i_prt=$i_prt")
                     (
                         i_fin, i_reason, pb_pf, p_perp_b_pf, γₚ_pf, γᵤ_sf, b_cosθ, b_sinθ, weight,
                         uₓ_sk, uz_sk, utot, φ_rad,
@@ -274,7 +275,7 @@ function main_loops(
                     end
 
                     # Particle counting
-                    if i_pcut == 1 && (i_prt == 1 || i_prt % n_print_pt == 0)
+                    if (i_prt == 1 || i_prt % n_print_pt == 0) && i_pcut == 1
                         @info("Particle = $i_prt")
                     end
 
@@ -283,6 +284,7 @@ function main_loops(
                     #    print_progress_bar(i_fin, n_pts_use)
                     #end
 
+                    #@info("Finished particle loop: i_pcut=$i_pcut, i_prt=$i_prt")
                 end # loop_pt
                 #$omp end parallel do
                 #--------------------------------------------------------------------
@@ -306,6 +308,7 @@ function main_loops(
                     n_pts_use, weight_running
                 )
 
+                @debug("Finished pcut loop", i_pcut, pcuts[i_pcut])
 
             end # loop_pcut
             #----------------------------------------------------------------------

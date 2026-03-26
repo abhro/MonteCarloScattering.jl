@@ -866,10 +866,10 @@ function set_custom_εB!(
         γ₀, β₀, u₀
     )
 
-    @debug(
-        "Input parameters", εB_grid, grid_axis, n_ions, species, B₀,
-        F_px_upstream, F_energy_upstream, uₓ_sk_grid, x_grid_rg, comp_fac, γ₀, β₀, u₀
-    )
+    #@debug(
+    #    "Input parameters", εB_grid, grid_axis, n_ions, species, B₀,
+    #    F_px_upstream, F_energy_upstream, uₓ_sk_grid, x_grid_rg, comp_fac, u₀, γ₀, β₀
+    #)
 
     # Calculate ε_B₀ which depends on far upstream magnetic field and mass density.
     # If electrons aren't a separate species, they don't contribute enough mass to be important.

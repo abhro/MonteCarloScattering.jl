@@ -71,6 +71,10 @@ the parameter `bins_per_decade_***` determines the fineness of the bins.
 Bin in angle into which particle falls
 """
 function get_psd_bin_angle(pₓ_sk, ptot_sk, psd_bins_per_dec_θ::Integer, num_psd_θ_bins::Integer, psd_cos_fine, Δcos, psd_θ_min)
+    if iszero(ptot_sk)
+        @warn("Zero-momentum found, defaulting to angle bin = 0", ptot_sk, pₓ_sk)
+        return 0
+    end
     # Bin in angle (bin); note that we negate the pitch angle to provide the
     # finest resolution (i.e. the logarithmically-spaced angle bins rather than
     # the linearly-spaced cosine bins) for particles that are directed upstream
@@ -81,6 +85,7 @@ function get_psd_bin_angle(pₓ_sk, ptot_sk, psd_bins_per_dec_θ::Integer, num_p
         bin = num_psd_θ_bins - trunc(Int, (p_cos + 1) / Δcos)
     else
         θ = acos(p_cos) # Particle falls into logarithmic spacing region
+        @debug("About to get bin", p_cos, θ, pₓ_sk, ptot_sk, psd_θ_min)
         bin = θ < psd_θ_min ? 0 : # θ is close enough to zero that it might as well be
             trunc(Int, log10(θ / psd_θ_min) * psd_bins_per_dec_θ) + 1
     end

@@ -26,7 +26,7 @@ of tests to determine whether it will be culled from the simulation.
 - `x_PT_cm`: position of particle after recent motion & downstream adjustment
 - `prp_x_cm`: location of probability-of-return plane
 - `ptot_pf`: total plasma frame momentum of particle
-- `γ`ₚ_pf: Lorentz factor associated with ptot_pf
+- `γ_pf`: Lorentz factor associated with ptot_pf
 - `gyro_denom`: denominator of gyroradius fraction, q⋅B
 - `pb_pf`/`p_perp_b_pf`: components of `ptot_pf` parallel/perpendicular to B field
 - `acctime_sec`: total accumulated acceleration time
@@ -35,7 +35,7 @@ of tests to determine whether it will be culled from the simulation.
 """
 function prob_return(
         rng, i_ion, num_psd_mom_bins, B_CMBz, x_PT_old, aa, zz, gyro_denom,
-        x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf, pb_pf, p_perp_b_pf,
+        x_PT_cm, prp_x_cm, ptot_pf, γ_pf, pb_pf, p_perp_b_pf,
         acctime_sec, φ_rad, helix_count::Integer, pcut_prev, weight, tcut_curr,
         x_grid_stop, u₂, use_custom_εB, η_mfp, do_retro, B₂, mc,
         do_rad_losses, do_tcuts, tcuts,
@@ -76,7 +76,7 @@ function prob_return(
             gyro_tmp = 1.0
         end
         gyro_rad_tot_cm = ptot_pf * c * gyro_tmp / (qcgs * B₂)
-        L_diff = η_mfp / 3 * gyro_rad_tot_cm * ptot_pf / (aa * mp * γₚ_pf * u₂)
+        L_diff = η_mfp / 3 * gyro_rad_tot_cm * ptot_pf / (aa * mp * γ_pf * u₂)
 
         # Make absolutely sure particles will have enough distance to isotropize before
         # encountering PRP; allow for three diffusion lengths beyond *current position*,
@@ -86,7 +86,7 @@ function prob_return(
 
     # Particle has crossed PRP, and we need more complex calculations to determine if it returns
     elseif x_PT_old < prp_x_cm && x_PT_cm ≥ prp_x_cm
-        vt_pf = ptot_pf / (γₚ_pf * aa * mp)
+        vt_pf = ptot_pf / (γ_pf * aa * mp)
         prob_ret = ((vt_pf - u₂) / (vt_pf + u₂))^2
 
         # If the particle's plasma frame velocity is less than u₂, or if the probability
@@ -105,11 +105,11 @@ function prob_return(
             # Track particle histories "explicitly" (see note in subroutine)
             if do_retro
                 (;
-                    lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf,
+                    lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γ_pf,
                     gyro_denom, acctime_sec,
                 ) = retro_time(
                     rng, i_ion, num_psd_mom_bins, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
-                    ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, acctime_sec, weight,
+                    ptot_pf, pb_pf, p_perp_b_pf, γ_pf, acctime_sec, weight,
                     tcut_curr,
                     use_custom_εB, x_grid_stop, do_rad_losses, do_tcuts, tcuts,
                     n_grid, uₓ_sk_grid, γ_sf_grid, γ_ef_grid, θ_grid, btot_grid,
@@ -154,7 +154,7 @@ function prob_return(
         #    therefore mean free path
         if aa < 1 && ptot_pf < pcut_prev && helix_count % 1000 == 0
             gyro_rad_tot_cm = ptot_pf * c * gyro_denom
-            L_diff = η_mfp / 3 * gyro_rad_tot_cm * ptot_pf / (aa * mp * γₚ_pf * u₂)
+            L_diff = η_mfp / 3 * gyro_rad_tot_cm * ptot_pf / (aa * mp * γ_pf * u₂)
 
             if x_PT_cm > 2.0e3 * L_diff
                 prp_x_cm = 0.8 * x_PT_cm
@@ -167,7 +167,7 @@ function prob_return(
     end # check on position vs x_grid_stop and prp_x_cm
 
     return (
-        i_return, lose_pt, tcut_curr, x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf,
+        i_return, lose_pt, tcut_curr, x_PT_cm, prp_x_cm, ptot_pf, γ_pf,
         gyro_denom, pb_pf, p_perp_b_pf, acctime_sec, φ_rad,
     )
 end
@@ -209,14 +209,14 @@ particle (its PRP1→downstream→PRP2 path) resembles on average its backwards 
 
 - `ptot_pf`: total plasma frame momentum of particle
 - `pb_pf`/`p_perp_b_pf`: components of ptot_pf parallel/perpendicular to B field
-- `γₚ_pf`: Lorentz factor associated with ptot_pf
+- `γ_pf`: Lorentz factor associated with ptot_pf
 - `gyro_denom`: denominator of gyroradius fraction, zz*B
 - `acctime_sec`: total accumulated acceleration time
 - `tcut_curr`: current tcut for particle tracking
 """
 function retro_time(
         rng, i_ion::Int, num_psd_mom_bins::Int, B_CMBz, aa, zz, gyro_denom, prp_x_cm,
-        ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, acctime_sec, weight,
+        ptot_pf, pb_pf, p_perp_b_pf, γ_pf, acctime_sec, weight,
         tcut_curr,
         use_custom_εB, x_grid_stop, do_rad_losses, do_tcuts, tcuts,
         n_grid::Int, uₓ_sk_grid, γ_sf_grid, γ_ef_grid, θ_grid, btot_grid,
@@ -228,11 +228,11 @@ function retro_time(
     # Set constants that will be used during the loop
     xn_per = 10.0
     φ_step = 2π / xn_per
-    t_step_fac = 2π * aa * mp * c * gyro_denom / xn_per |> s  # t_step/γₚ_pf
+    t_step_fac = 2π * aa * mp * c * gyro_denom / xn_per |> s  # t_step/γ_pf
 
     uₓ_sk = -uₓ_sk_grid[n_grid]
-    γᵤ_sf = γ_sf_grid[n_grid]
-    γᵤ_ef = γ_ef_grid[n_grid]
+    γ_sf = γ_sf_grid[n_grid]
+    γ_ef = γ_ef_grid[n_grid]
     B = btot_grid[n_grid]
     # Square root corresponds to Blandford-McKee solution, where e ∝ 1/χ ∝ 1/r
     if use_custom_εB
@@ -241,7 +241,7 @@ function retro_time(
     b_cosθ = cos(θ_grid[n_grid])
     b_sinθ = sin(θ_grid[n_grid])
 
-    B_CMB_loc = B_CMBz * γᵤ_ef
+    B_CMB_loc = B_CMBz * γ_ef
     B²_tot = B^2 + B_CMB_loc^2
 
     lose_pt = false
@@ -280,17 +280,17 @@ function retro_time(
         φ_rad = mod2pi(φ_rad_old + φ_step)
 
         # Calculate time step and movement distance; note that
-        # x_move_bpar = pb_pf*t_step*m_pt/γₚ_pf, but t_step = t_step_fac*γₚ_pf,
-        # so the factors of γₚ_pf divide out
-        t_step = t_step_fac * γₚ_pf
+        # x_move_bpar = pb_pf*t_step*m_pt/γ_pf, but t_step = t_step_fac*γ_pf,
+        # so the factors of γ_pf divide out
+        t_step = t_step_fac * γ_pf
         x_move_bpar = pb_pf * t_step_fac / (aa * mp) |> cm    # FIXME confirm formula
 
 
         # Move particle and update the acceleration time; note that we don't
         # care about y or z motion here, and that uₓ_sk is negative per the
         # definition above the loop
-        x_PT = x_PT_old + γᵤ_sf * (x_move_bpar * b_cosθ - gyro_rad * b_sinθ * (cos(φ_rad) - cos(φ_rad_old)) + uₓ_sk * t_step)
-        acctime_sec += t_step * γᵤ_ef
+        x_PT = x_PT_old + γ_sf * (x_move_bpar * b_cosθ - gyro_rad * b_sinθ * (cos(φ_rad) - cos(φ_rad_old)) + uₓ_sk * t_step)
+        acctime_sec += t_step * γ_ef
         @debug("Moved particle in retro_time", x_PT, acctime_sec, prp_x_cm, ptot_pf)
 
         # If tcut tracking is enabled, it should continue even during retro_time
@@ -321,14 +321,14 @@ function retro_time(
         # and update the pitch angle of particles that remain
         if ptot_pf ≤ 0g*cm/s
             ptot_pf = 1.0e-99g*cm/s
-            γₚ_pf = 1.0
+            γ_pf = 1.0
 
             lose_pt = true
             break
         else
             pb_pf = ptot_pf * cos_old_pitch
             p_perp_b_pf = ptot_pf * sin_old_pitch
-            γₚ_pf = hypot(1, ptot_pf / mc)
+            γ_pf = hypot(1, ptot_pf / mc)
         end
 
 
@@ -338,7 +338,7 @@ function retro_time(
     end  # retro time loop
 
     return (;
-        lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf,
+        lose_pt, φ_rad, tcut_curr, ptot_pf, pb_pf, p_perp_b_pf, γ_pf,
         gyro_denom, acctime_sec,
     )
 end
