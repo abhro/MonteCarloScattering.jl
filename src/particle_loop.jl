@@ -212,7 +212,7 @@ function particle_loop(
                     aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
                     uₓ_sk_old, uz_sk_old, utot_old, γᵤ_sf_old,
                     b_cos_old, b_sin_old, uₓ_sk, uz_sk, utot, γᵤ_sf,
-                    b_cosθ, b_sinθ, mc
+                    b_cosθ, b_sinθ,
                 )
 
                 gyro_rad_cm = p_perp_b_pf * c * gyro_denom |> cm
@@ -711,8 +711,7 @@ function do_energy_transfer(
     # Since the plasma-frame momenta have changed,
     # recalculate the shock-frame momenta
     ptot_sk, p_sk, γₚ_sk = transform_p_PS(
-        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-        uₓ_sk, uz_sk, utot, γᵤ_sf,
+        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
         b_cosθ, b_sinθ,
     )
     pₓ_sk = p_sk.x
