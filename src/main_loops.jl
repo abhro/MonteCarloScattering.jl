@@ -223,7 +223,7 @@ function main_loops(
                 #$omp parallel for default(none), schedule(dynamic,1), num_threads(6)
                 for i_prt in 1:n_pts_use # loop_pt
 
-                    @info("Starting particle loop", i_prt)
+                    @info("Starting particle loop: i_pcut=$i_pcut, i_prt=$i_prt")
                     (
                         i_fin, i_reason, pb_pf, p_perp_b_pf, γₚ_pf, γᵤ_sf, b_cosθ, b_sinθ, weight,
                         uₓ_sk, uz_sk, utot, φ_rad,
@@ -284,7 +284,7 @@ function main_loops(
                     #    print_progress_bar(i_fin, n_pts_use)
                     #end
 
-                    @info("Finished particle loop", i_prt)
+                    @info("Finished particle loop: i_pcut=$i_pcut, i_prt=$i_prt")
                 end # loop_pt
                 #$omp end parallel do
                 #--------------------------------------------------------------------

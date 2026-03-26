@@ -152,7 +152,7 @@ function particle_loop(
     # End of Code Block 1
     r_PT_old = SVector{3, LengthCGS}(0cm, 0cm, 0cm)
     while keep_looping # loop_helix
-        helix_count % 10000 == 0 && @info("In helix loop i_ion=$i_ion, i_pcut=$i_pcut, i_prt=$i_prt, helix_count=$helix_count")
+        helix_count % 30000 == 0 && @info("In helix loop: i_ion=$i_ion, i_pcut=$i_pcut, i_prt=$i_prt, helix_count=$helix_count")
 
         # Track number of times through the main loop. This will only be
         # needed for electrons at high energies when using radiative losses
@@ -248,6 +248,7 @@ function particle_loop(
                 i_reason = 1
 
                 keep_looping = false
+                @debug("Particle escaped downstream, scattering disabled", i_ion, i_pcut, i_prt)
                 continue
             end
 
@@ -344,19 +345,15 @@ function particle_loop(
 
                 if do_tcuts && acctime_sec ≥ tcuts[tcut_curr]
                     tcut_track!(
-                        weight_coupled, spectra_coupled, tcut_curr,
-                        weight, ptot_pf, i_ion, num_psd_mom_bins,
-                        psd_mom_min, psd_bins_per_dec_mom
+                        weight_coupled, spectra_coupled, tcut_curr, weight, ptot_pf, i_ion,
+                        num_psd_mom_bins, psd_mom_min, psd_bins_per_dec_mom
                     )
                     tcut_curr += 1
                 end
 
                 # Remove ions at splitting momentum
                 if ptot_pf > pcuts[i_pcut]
-                    @debug(
-                        "Removing ions at splitting momentum",
-                        pcuts[i_pcut], i_pcut, ptot_pf
-                    )
+                    @debug("Removing ions at splitting momentum", pcuts[i_pcut], i_pcut, ptot_pf)
                     l_save[i_prt] = true
 
                     weight_saved[i_prt]      = weight
@@ -497,6 +494,7 @@ function particle_loop(
         # End of Code Block 2
 
     end # loop_helix
+    @info("Finished helix loop: i_ion=$i_ion, i_pcut=$i_pcut, i_prt=$i_prt, helix_count=$helix_count")
     #------------------------------------------------------------------
     # End of loop moving/tracking particles on/off grid
     return (
@@ -662,7 +660,7 @@ function do_energy_transfer(
     E₀ = m * c^2
 
     # Subtract energy from the ions and add it to the pool of energy for this grid zone.
-    #@debug "" i_start i_stop i_grid i_shock
+    #@debug("Energy transfer", i_start, i_stop, i_grid, i_shock)
     if aa ≥ 1 && maximum(ε_target[(i_start + 1):i_stop]) > 0
 
         # Subtract energy based on the difference between current

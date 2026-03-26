@@ -4,6 +4,7 @@ using Unitful: cm, c, mp
 using UnitfulAstro: kpc, pc
 using OffsetArrays: OffsetVector
 
+using ..CGSTypes: MomentumCGS
 using ..parameters: psd_max, na_cr, num_therm_bins
 using ..transformers: get_transform_dN, transform_psd_corners
 #using ..debug: zone_vol, therm_energy_density, energy_density
@@ -373,8 +374,8 @@ function get_dNdp_2D(
     #----------------------------------------------------------------------------
     # Set up the arrays that will hold the crossing data
     max_cross = maximum(num_crossings)
-    therm_pₓ = zeros(max_cross, 0:(n_grid + 1))
-    therm_pt = zeros(max_cross, 0:(n_grid + 1))
+    therm_pₓ = zeros(MomentumCGS, max_cross, 0:(n_grid + 1))
+    therm_pt = zeros(MomentumCGS, max_cross, 0:(n_grid + 1))
     therm_weight = zeros(max_cross, 0:(n_grid + 1))
 
 
@@ -1049,8 +1050,8 @@ function get_dNdp_therm(
     # data from the scratch file
     #-----------------------------------------------------------------------
     max_cross = maximum(num_crossings)
-    therm_pₓ = zeros(max_cross, n_grid)
-    therm_pt = zeros(max_cross, n_grid)
+    therm_pₓ = zeros(MomentumCGS, max_cross, n_grid)
+    therm_pt = zeros(MomentumCGS, max_cross, n_grid)
     therm_weight = zeros(max_cross, n_grid)
 
 
