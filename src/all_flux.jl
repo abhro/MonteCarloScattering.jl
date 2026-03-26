@@ -84,8 +84,7 @@ function all_flux!(
     # Convert plasma frame momentum to shock frame; determine a few values
     # that will be reused during the call to all_flux
     ptot_sk, p_sk, γₚ_sk = transform_p_PS(
-        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
-        b_cosθ, b_sinθ, mc
+        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ
     )
 
     m = aa * mp

@@ -63,8 +63,7 @@ function particle_finish!(
 
     # Transform plasma frame momentum into shock frame for binning
     ptot_sk, p_sk, γₚ_sk = transform_p_PS(
-        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
-        b_cosθ, b_sinθ, mc
+        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ
     )
     #@debug("Values from transform_p_PS:", ptot_sk, p_sk, γₚ_sk)
 
