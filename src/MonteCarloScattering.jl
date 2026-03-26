@@ -76,6 +76,7 @@ function (@main)(args)
 
     global_logger(ConsoleLogger(show_limited = false))
 
+    @info("Starting to read mc_in.toml")
     # Get input, control variables, etc.
     cfg_toml = TOML.parsefile("mc_in.toml")
 
