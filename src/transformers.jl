@@ -20,14 +20,14 @@ Calculate dN(p) (a 1-D array) for the passed slice of PSD in the specified inert
 - `psd`: the (2-D) slice of the larger phase space distribution
 - `m`: integer specifying frame into which we're transforming
 - `transform_corner_**`: array holding transformed corner values, both ptot and cos(θ)
-- `γᵤ`: conversion factor from number density to flux
+- `γ`: conversion factor from number density to flux
 - `i_approx`: degree of approximation to use in computing the `dNdp_out`
 
 ### Returns
 `dN_out`: dN(p) for the given slice of PSD once transformed into the specified frame
 """
 function get_transform_dN(
-        psd, m, transform_corner_pt, transform_corner_ct, γᵤ, i_approx::Integer,
+        psd, m, transform_corner_pt, transform_corner_ct, γ, i_approx::Integer,
         num_psd_mom_bins, psd_mom_bounds, psd_mom_axis
     )
 
@@ -45,7 +45,7 @@ function get_transform_dN(
         #
         # Obtain cell_weight, p_cell_lo and p_cell_hi
         #----------------------------------------------------------------------
-        cell_weight = psd[i, j] / γᵤ
+        cell_weight = psd[i, j] / γ
         (
             pt_lo_pt, pt_lo_ct, pt_hi_pt, pt_hi_ct,
             ct_lo_pt, ct_lo_ct, ct_hi_pt, ct_hi_ct,
@@ -332,9 +332,9 @@ function track_pitch_angles(
         pt_sk = √pt_sk * mp * utsk_cm
         i_pt_sk = floor(Int, psd_mom_bounds[i])
     end
-    γₚ_sk = hypot(1, pt_sk / (rest_mass * c))
+    γ_sk = hypot(1, pt_sk / (rest_mass * c))
 
-    cell_weight = cell_weight * pt_sk / (γₚ_sk * rest_mass) / proton_num_density_upstream
+    cell_weight = cell_weight * pt_sk / (γ_sk * rest_mass) / proton_num_density_upstream
 
     # Binning shock frame values very easy; just add directly to correct bin of histogram
     if m == 1
@@ -422,12 +422,12 @@ original xyz frame by taking scalar products along the xyz axes.
 - `aa`: particle atomic mass
 - `pb_pf`: component of `ptot_pf` parallel to magnetic field
 - `p_perp_b_pf`: component of `ptot_pf` perpendicular to magnetic field
-- `γₚ_pf`: Lorentz factor associated with `ptot_pf`
+- `γ_pf`: Lorentz factor associated with `ptot_pf`
 - `φ_rad`: phase angle of gyration; looking upstream, counts clockwise from +z axis
 - `uₓ_sk`: bulk flow speed along x axis
 - `uz_sk`: bulk flow speed along z axis
 - `utot`: total bulk flow speed
-- `γᵤ_sf`: Lorentz factor associated with `utot`
+- `γ_sf`: Lorentz factor associated with `utot`
 - `b_cosθ`: component of magnetic field along x axis
 - `b_sinθ`: component of magnetic field along z axis
 
@@ -435,11 +435,11 @@ original xyz frame by taking scalar products along the xyz axes.
 
 - `ptot_sk`: total shock frame momentum in new grid zone
 - `p_sk`: components of shock frame momentum
-- `γₚ_sk`: Lorentz factor associated with ptot_sk
+- `γ_sk`: Lorentz factor associated with ptot_sk
 """
 function transform_p_PS(
-        aa, pb_pf::P, p_perp_b_pf::P, γₚ_pf, φ_rad, uₓ_sk::U, uz_sk::U, utot::U,
-        γᵤ_sf, b_cosθ::B, b_sinθ::B,
+        aa, pb_pf::P, p_perp_b_pf::P, γ_pf, φ_rad, uₓ_sk::U, uz_sk::U, utot::U,
+        γ_sf, b_cosθ::B, b_sinθ::B,
     ) where {B, P, U}
     m = aa * mp
     mc = m * c
@@ -458,21 +458,21 @@ function transform_p_PS(
         pb_pf * b_sinθ + p_p_cos * b_cosθ
     )
 
-    Δpₓ = (γᵤ_sf - 1) * p_pf.x + γᵤ_sf * γₚ_pf * m * uₓ_sk
+    Δpₓ = (γ_sf - 1) * p_pf.x + γ_sf * γ_pf * m * uₓ_sk
     # xyz shock frame components
     p_sk = SVector(p_pf.x + Δpₓ, p_pf.y, p_pf.z)
 
     # Parallel/perpendicular (new) shock frame components
     ptot_sk = norm(p_sk)
     #pb_sk = p_sk.x*b_cosθ + p_sk.z*b_sinθ
-    #@debug "" ptot_sk pb_sk
+    #@debug("", ptot_sk, pb_sk)
 
     #p_perp_b_sk = perpendicular_momentum(ptot_sk, pb_sk;
     #                                     warn_str="ptot_sk < pb_sk in transform_p_PS")
 
-    γₚ_sk = hypot(ptot_sk / mc, 1)
+    γ_sk = hypot(ptot_sk / mc, 1)
 
-    return ptot_sk, p_sk, γₚ_sk
+    return ptot_sk, p_sk, γ_sk
 end
 
 #----------------------------------------------------------------------------
@@ -500,7 +500,7 @@ scalar products along the xyz axes.
 - `uₓ_sk`/`old`: current and old bulk flow speed along x axis
 - `uz_sk`/`old`: current and old bulk flow speed along z axis
 - `utot`/`old`: current and old total bulk flow speed
-- `γᵤ_sf`/`old`: Lorentz factor associated with utot/old
+- `γ_sf`/`old`: Lorentz factor associated with utot/old
 - `b_cosθ`/`old`: current and old component of magnetic field along x axis
 - `b_sinθ`/`old`: current and old component of magnetic field along z axis
 
@@ -522,8 +522,8 @@ scalar products along the xyz axes.
 """
 function transform_p_PSP(
         aa, pb_pf::P, p_perp_b_pf::P, γ_pf, φ_rad,
-        uₓ_sk_old::U, uz_sk_old::U, utot_old::U, γᵤ_sf_old, b_cos_old::B, b_sin_old::B,
-        uₓ_sk::U, uz_sk::U, utot::U, γᵤ_sf, b_cosθ::B, b_sinθ::B,
+        uₓ_sk_old::U, uz_sk_old::U, utot_old::U, γ_sf_old, b_cos_old::B, b_sin_old::B,
+        uₓ_sk::U, uz_sk::U, utot::U, γ_sf, b_cosθ::B, b_sinθ::B,
     ) where {B, P, U}
 
     φ_p = φ_rad + π / 2
@@ -543,15 +543,15 @@ function transform_p_PSP(
     # xyz (new) shock frame components
     p_sk = SVector(
         (
-            ((γᵤ_sf_old - 1) * (uₓ_sk_old / utot_old)^2 + 1) * p_pf.x +
-                (γᵤ_sf_old - 1) * (uₓ_sk_old * uz_sk_old / utot_old^2) * p_pf.z +
-                γᵤ_sf_old * γ_pf * m * uₓ_sk_old
+            ((γ_sf_old - 1) * (uₓ_sk_old / utot_old)^2 + 1) * p_pf.x +
+                (γ_sf_old - 1) * (uₓ_sk_old * uz_sk_old / utot_old^2) * p_pf.z +
+                γ_sf_old * γ_pf * m * uₓ_sk_old
         ),
         p_pf.y,
         (
-            (γᵤ_sf_old - 1) * (uₓ_sk_old * uz_sk_old / utot_old^2) * p_pf.x +
-                ((γᵤ_sf_old - 1) * (uz_sk_old / utot_old)^2 + 1) * p_pf.z +
-                γᵤ_sf_old * γ_pf * m * uz_sk_old
+            (γ_sf_old - 1) * (uₓ_sk_old * uz_sk_old / utot_old^2) * p_pf.x +
+                ((γ_sf_old - 1) * (uz_sk_old / utot_old)^2 + 1) * p_pf.z +
+                γ_sf_old * γ_pf * m * uz_sk_old
         )
     )
 
@@ -573,15 +573,15 @@ function transform_p_PSP(
     # xyz (new) plasma frame components
     p_pf = SVector(
         ( # x-component
-            ((γᵤ_sf - 1) * (uₓ_sk / utot)^2 + 1) * p_sk.x
-                + (γᵤ_sf - 1) * (uₓ_sk * uz_sk / utot^2) * p_sk.z
-                - γᵤ_sf * γₚ_sk * m * uₓ_sk
+            ((γ_sf - 1) * (uₓ_sk / utot)^2 + 1) * p_sk.x
+                + (γ_sf - 1) * (uₓ_sk * uz_sk / utot^2) * p_sk.z
+                - γ_sf * γₚ_sk * m * uₓ_sk
         ),
         p_sk.y,
         ( # z-component
-            (γᵤ_sf - 1) * (uₓ_sk * uz_sk / utot^2) * p_sk.x
-                + ((γᵤ_sf - 1) * (uz_sk / utot)^2 + 1) * p_sk.z
-                - γᵤ_sf * γₚ_sk * m * uz_sk
+            (γ_sf - 1) * (uₓ_sk * uz_sk / utot^2) * p_sk.x
+                + ((γ_sf - 1) * (uz_sk / utot)^2 + 1) * p_sk.z
+                - γ_sf * γₚ_sk * m * uz_sk
         )
     )
 

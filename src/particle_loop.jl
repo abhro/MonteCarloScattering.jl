@@ -152,6 +152,7 @@ function particle_loop(
     # End of Code Block 1
     r_PT_old = SVector{3, LengthCGS}(0cm, 0cm, 0cm)
     while keep_looping # loop_helix
+        helix_count % 10000 == 0 && @info("In helix loop i_ion=$i_ion, i_pcut=$i_pcut, i_prt=$i_prt, helix_count=$helix_count")
 
         # Track number of times through the main loop. This will only be
         # needed for electrons at high energies when using radiative losses

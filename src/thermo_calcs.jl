@@ -131,8 +131,8 @@ function thermo_calcs(
         num_crossings[i] == 0 && continue # Ignore zones that no thermal particles crossed
 
         # Get Lorentz factor and speed relating the shock and plasma frames
-        γᵤ = γ_sf_grid[i]
-        βᵤ = uₓ_sk_grid[i] / c
+        γ = γ_sf_grid[i]
+        β = uₓ_sk_grid[i] / c
 
 
         # Loop over all crossings for this grid zone, binning the thermal particles.
@@ -143,7 +143,7 @@ function thermo_calcs(
             ptot_sk = therm_pt[n, i]
             etot_sk = hypot(ptot_sk * c, E₀)
 
-            pₓ_Xf = γᵤ * (pₓ_sk - βᵤ * etot_sk / c)
+            pₓ_Xf = γ * (pₓ_sk - β * etot_sk / c)
             pt_Xf = √((ptot_sk^2 - pₓ_sk^2) + pₓ_Xf^2)
             # In rare cases, floating point round-off can cause pt_Xf to be smaller than abs(pₓ_Xf)
             if abs(pₓ_Xf) > pt_Xf
@@ -176,8 +176,8 @@ function thermo_calcs(
     for i in 1:n_grid
 
         # Get Lorentz factor and speed relating the shock and current frames
-        γᵤ = γ_sf_grid[i]
-        βᵤ = uₓ_sk_grid[i] / c
+        γ = γ_sf_grid[i]
+        β = uₓ_sk_grid[i] / c
 
         # Loop over cells in d²N_sf
         for jθ in 0:num_psd_θ_bins, k in 0:num_psd_mom_bins
@@ -192,7 +192,7 @@ function thermo_calcs(
             pₓ_sk = ptot_sk * cos_θ_sk
             etot_sk = hypot(ptot_sk * c, E₀)
 
-            pₓ_Xf = γᵤ * (pₓ_sk - βᵤ * etot_sk / c)
+            pₓ_Xf = γ * (pₓ_sk - β * etot_sk / c)
             pt_Xf = √(ptot_sk^2 - pₓ_sk^2 + pₓ_Xf^2)
 
             # Get location of center in transformed d²N_pf
@@ -274,7 +274,6 @@ function thermo_calcs(
 
             # Don't bother running through the d²N calculation
             continue
-
 
         elseif num_crossings[i] == 0
 

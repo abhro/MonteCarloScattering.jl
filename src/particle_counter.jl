@@ -94,15 +94,15 @@ function get_dNdp_cr(
             # p_cell_lo and p_cell_hi in next block of code
             #----------------------------------------------------------------------
             if m == 2       #  Plasma frame
-                γᵤ = γ_sf_grid[k]
+                γ = γ_sf_grid[k]
             elseif m == 3   #  ISM frame
-                γᵤ = γ₀
+                γ = γ₀
             else
                 error("ERROR with frame selection in get_dNdp_cr")
             end
 
             transform_corner_pt, transform_corner_ct = transform_psd_corners(
-                γᵤ, rest_energy, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
+                γ, rest_energy, psd_lin_cos_bins, num_psd_θ_bins, psd_θ_bounds,
                 psd_mom_bounds
             )
             #----------------------------------------------------------------------
@@ -125,7 +125,7 @@ function get_dNdp_cr(
             # Note that dNdp_cr as calculated here is dN(p), *not* dN/dp.
             # That conversion happens at the end of this subroutine
             dNdp_cr[:, k, m] = get_transform_dN(
-                @view(psd[:, :, k]), m, transform_corner_pt, transform_corner_ct, γᵤ, i_approx,
+                @view(psd[:, :, k]), m, transform_corner_pt, transform_corner_ct, γ, i_approx,
                 num_psd_mom_bins, psd_mom_bounds, psd_mom_axis
             )
 
@@ -539,11 +539,11 @@ function get_dNdp_2D(
 
         # Get Lorentz factor and speed relating the shock and current frames
         if m == 1       # Plasma frame
-            γᵤ = γ_sf_grid[i]
-            βᵤ = √(1 - 1 / γᵤ^2)
+            γ = γ_sf_grid[i]
+            β = √(1 - 1 / γ^2)
         elseif m == 2   # ISM frame
-            γᵤ = γ₀
-            βᵤ = β₀
+            γ = γ₀
+            β = β₀
         end
 
         # Loop over cells in d²N_dpdcos_sf
@@ -562,7 +562,7 @@ function get_dNdp_2D(
                 pₓ_sf = ptot_sf * cos_θ_sf
                 etot_sf = hypot(ptot_sf * c, E₀)
                 # Get location of center in transformed d²N_dpdcos
-                pₓ_Xf = γᵤ * (pₓ_sf - βᵤ * etot_sf / c)
+                pₓ_Xf = γ * (pₓ_sf - β * etot_sf / c)
                 ptot_Xf = √(ptot_sf^2 - pₓ_sf^2 + pₓ_Xf^2)
                 k_Xf = get_psd_bin_momentum(ptot_Xf, psd_bins_per_dec_mom, psd_mom_min, num_psd_mom_bins)
                 jθ_Xf = get_psd_bin_angle(
@@ -1104,8 +1104,8 @@ function get_dNdp_therm(
         # 1. Transform crossing data from shock frame into plasma & ISM frames
         #------------------------------------------------------------------------
         # Get current flow speed
-        γᵤ = γ_sf_grid[i]
-        βᵤ = √(1 - 1 / γᵤ^2)
+        γ = γ_sf_grid[i]
+        β = √(1 - 1 / γ^2)
 
         # Create arrays to hold plasma frame and ISM frame values, then
         # initialize them. Since the arrays are handled independently for each
@@ -1140,7 +1140,7 @@ function get_dNdp_therm(
 
             etot_sk = hypot(ptot_sk * c, E₀)
 
-            pₓ_pf = γᵤ * (pₓ_sk - βᵤ * etot_sk / c)
+            pₓ_pf = γ * (pₓ_sk - β * etot_sk / c)
             ptot_pf = √(ptot_sk^2 - pₓ_sk^2 + pₓ_pf^2)
 
             pₓ_ef = γ₀ * (pₓ_sk - β₀ * etot_sk / c)
@@ -1213,7 +1213,7 @@ function get_dNdp_therm(
 
             # Determine bin in plasma frame momentum; add value to correct bin
             k = min(num_hist_bins, trunc(Int, (ptot_pf[j] - ptot_pf_min) / Δptot_pf) + 1)
-            ptot_pf_vals[k] += therm_weight[j, i] / γᵤ
+            ptot_pf_vals[k] += therm_weight[j, i] / γ
 
             # Determine bin in ISM frame momentum; add value to correct bin
             k = min(num_hist_bins, trunc(Int, (ptot_ef[j] - ptot_ef_min) / Δptot_ef) + 1)
@@ -1227,7 +1227,7 @@ function get_dNdp_therm(
 
             # Determine plasma frame bin of cos(θ); add value to correct bin
             k = min(num_hist_bins, trunc(Int, (cθ_pf[j] + 1) * num_hist_bins / 2) + 1)
-            cθ_pf_weight[k] += therm_weight[j, i] / γᵤ
+            cθ_pf_weight[k] += therm_weight[j, i] / γ
 
             # Determine ISM frame bin of cos(θ); add value to correct bin
             k = min(num_hist_bins, trunc(Int, (cθ_ef[j] + 1) * num_hist_bins / 2) + 1)
