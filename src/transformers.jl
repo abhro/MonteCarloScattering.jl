@@ -438,9 +438,9 @@ original xyz frame by taking scalar products along the xyz axes.
 - `γₚ_sk`: Lorentz factor associated with ptot_sk
 """
 function transform_p_PS(
-        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot,
-        γᵤ_sf, b_cosθ, b_sinθ,
-    )
+        aa, pb_pf::P, p_perp_b_pf::P, γₚ_pf, φ_rad, uₓ_sk::U, uz_sk::U, utot::U,
+        γᵤ_sf, b_cosθ::B, b_sinθ::B,
+    ) where {B, P, U}
     m = aa * mp
     mc = m * c
 
@@ -521,10 +521,10 @@ scalar products along the xyz axes.
 - `φ_rad`: phase angle of gyration; looking upstream, counts clockwise from +z axis
 """
 function transform_p_PSP(
-        aa, pb_pf, p_perp_b_pf, γ_pf, φ_rad,
-        uₓ_sk_old, uz_sk_old, utot_old, γᵤ_sf_old, b_cos_old, b_sin_old,
-        uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
-    )
+        aa, pb_pf::P, p_perp_b_pf::P, γ_pf, φ_rad,
+        uₓ_sk_old::U, uz_sk_old::U, utot_old::U, γᵤ_sf_old, b_cos_old::B, b_sin_old::B,
+        uₓ_sk::U, uz_sk::U, utot::U, γᵤ_sf, b_cosθ::B, b_sinθ::B,
+    ) where {B, P, U}
 
     φ_p = φ_rad + π / 2
 
