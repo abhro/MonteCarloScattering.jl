@@ -546,6 +546,8 @@ function get_dNdp_2D(
         elseif m == 2   # ISM frame
             γ = γ₀
             β = β₀
+        else
+            error("Cannot handle frame m=$m")
         end
 
         # Loop over cells in d²N_dpdcos_sf
@@ -682,7 +684,7 @@ function get_normalized_dNdp(
     )
 
     therm_temp = zeros(0:psd_max, 3)
-    therm_pvals_temp = zeros(0:psd_max, 3)
+    therm_pvals_temp = zeros(MomentumCGS, 0:psd_max, 3)
     dNdp_therm_rebin = zeros(0:psd_max, 3)
 
     # Administrative constants to be used during main computation loops

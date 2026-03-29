@@ -28,18 +28,20 @@ This subroutine takes an electron distribution and calculates the synchrotron em
 - `synch_emis`: emitted synchrotron spectrum, units of erg/s
 """
 function synch_emission(
-        i_grid, num_hist_bins, p_pf_therm, dN_therm,
-        num_psd_mom_bins, p_pf_cr, dN_cr, n_photon_synch,
+        i_grid::Integer, num_hist_bins::Integer, p_pf_therm, dN_therm,
+        num_psd_mom_bins::Integer, p_pf_cr, dN_cr, n_photon_synch::Integer,
         photon_synch_min_MeV, bins_per_dec_photon,
-        n_ions, aa_ion, n₀_ion, γ₀, u₀, F_px_upstream, F_energy_upstream, u₂,
-        n_grid, btot_grid,
-        i_ion, mc,
+        n_ions::Integer, aa_ion, n₀_ion, γ₀, u₀, F_px_upstream, F_energy_upstream, u₂,
+        n_grid::Integer, btot_grid,
+        i_ion::Integer, mc,
     )
 
     # Minimum energy for synch photon spectrum.
     # Max set by value of n_γ_synch and bins_per_dec_photon.
-    energy_γ_min_log = log10(ustrip(erg, photon_synch_min_MeV * MeV)) # Min photon energy in log(ergs)
+    log_Eᵧ_min = log10(ustrip(erg, photon_synch_min_MeV * MeV)) # Min photon energy in log(ergs)
     Δγ = 1 / bins_per_dec_photon
+    # Photon energies in ergs
+    Eᵧ = exp10.(range(start = log_Eᵧ_min, step = Δγ, length = n_photon_synch))
 
     # Get strength of magnetic field, which will be used to find p_fac below. Note that
     # i_grid may be greater than n_grid. This only happens when this subroutine is called
@@ -62,17 +64,13 @@ function synch_emission(
 
     # Initialize emission array and set energy of output photons
     synch_emis = fill(1.0e-99, n_photon_synch)
-    # Photon energies in ergs
-    Eᵧ = exp10.(range(start = energy_γ_min_log, step = Δγ, length = n_photon_synch))
-
-    ν = 5//3
 
     # Now loop over momenta (i.e. energy) of electrons and calculate the synchrotron emission.
     #-------------------------------------------------------------------------
     # First up, the thermal particles.
-    synch_emission!(synch_emis, num_hist_bins - 1, dN_therm, p_pf_therm, bmag_curr, mc, n_photon_synch, Eᵧ, ν, p_fac)
+    synch_emission!(synch_emis, num_hist_bins - 1, dN_therm, p_pf_therm, bmag_curr, mc, n_photon_synch, Eᵧ, p_fac)
     # With the thermal particles finished, move on to the cosmic ray population
-    synch_emission!(synch_emis, num_psd_mom_bins, dN_cr, p_pf_cr, bmag_curr, mc, n_photon_synch, Eᵧ, ν, p_fac)
+    synch_emission!(synch_emis, num_psd_mom_bins, dN_cr, p_pf_cr, bmag_curr, mc, n_photon_synch, Eᵧ, p_fac)
     #-------------------------------------------------------------------------
     # Finished
 
@@ -117,9 +115,12 @@ end
 Actual emission function
 """
 function synch_emission!(
-        synch_emis, nbins, dN, p_pf, B, mc, n_photon_synch, Eᵧ, ν, p_fac
+        synch_emis, nbins, dN, p_pf, B, mc, n_photon_synch, Eᵧ, p_fac
     )
     xxx_max_set = 30.0
+
+    ν = 5//3    # order of modified Bessel function
+
     for i in 0:nbins
 
         # Total number of electrons in Δp
