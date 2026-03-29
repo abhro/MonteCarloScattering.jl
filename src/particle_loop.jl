@@ -65,7 +65,7 @@ function particle_loop(
         0.0cm, # z
     )
 
-    γₚ_pf = hypot(1, ptot_pf / mc)
+    γ_pf = hypot(1, ptot_pf / mc)
 
     # Constant that will be used repeatedly during loop
     # Square root corresponds to Blandford-McKee solution, where e ∝ 1/χ ∝ 1/r
@@ -79,15 +79,15 @@ function particle_loop(
     gyro_rad_tot_cm = ptot_pf * c * gyro_denom |> cm
 
     # Gyroperiod in seconds
-    gyro_period_sec = 2π * γₚ_pf * m * c * gyro_denom
+    gyro_period_sec = 2π * γ_pf * m * c * gyro_denom
 
 
     # Get the properties of the grid zone the particle's in
     uₓ_sk = uₓ_sk_grid[i_grid]
     uz_sk = uz_sk_grid[i_grid]
     utot = utot_grid[i_grid]
-    γᵤ_sf = γ_sf_grid[i_grid]
-    γᵤ_ef = γ_ef_grid[i_grid]
+    γ_sf = γ_sf_grid[i_grid]
+    γ_ef = γ_ef_grid[i_grid]
     βᵤ_ef = β_ef_grid[i_grid]
     bmag = btot_grid[i_grid]
     bθ = θ_grid[i_grid]
@@ -152,11 +152,11 @@ function particle_loop(
     # End of Code Block 1
     r_PT_old = SVector{3, LengthCGS}(0cm, 0cm, 0cm)
     while keep_looping # loop_helix
-        helix_count % 30000 == 0 && @info("In helix loop: i_ion=$i_ion, i_pcut=$i_pcut, i_prt=$i_prt, helix_count=$helix_count")
-
         # Track number of times through the main loop. This will only be
         # needed for electrons at high energies when using radiative losses
         helix_count += 1
+
+        helix_count % 50000 == 0 && @info("In helix loop: i_ion=$i_ion, i_pcut=$i_pcut, i_prt=$i_prt, helix_count=$helix_count")
 
         if i_return == 1
 
@@ -180,7 +180,7 @@ function particle_loop(
             uₓ_sk_old = uₓ_sk
             uz_sk_old = uz_sk
             utot_old = utot
-            γᵤ_sf_old = γᵤ_sf
+            γ_sf_old = γ_sf
             b_sin_old = b_sinθ
             b_cos_old = b_cosθ
 
@@ -189,8 +189,8 @@ function particle_loop(
             uₓ_sk = uₓ_sk_grid[i_grid]
             uz_sk = uz_sk_grid[i_grid]
             utot = utot_grid[i_grid]
-            γᵤ_sf = γ_sf_grid[i_grid]
-            γᵤ_ef = γ_ef_grid[i_grid]
+            γ_sf = γ_sf_grid[i_grid]
+            γ_ef = γ_ef_grid[i_grid]
             βᵤ_ef = β_ef_grid[i_grid]
             bmag = btot_grid[i_grid]
             bθ = θ_grid[i_grid]
@@ -207,12 +207,12 @@ function particle_loop(
             # If particle crossed a velocity gradient, find its new shock frame properties
             if uₓ_sk != uₓ_sk_old
                 (
-                    ptot_pf, ptot_sk, p_sk, pb_sk, p_perp_b_sk, γₚ_sk,
-                    pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
+                    ptot_pf, ptot_sk, p_sk, pb_sk, p_perp_b_sk, γ_sk,
+                    pb_pf, p_perp_b_pf, γ_pf, φ_rad,
                 ) = transform_p_PSP(
-                    aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                    uₓ_sk_old, uz_sk_old, utot_old, γᵤ_sf_old,
-                    b_cos_old, b_sin_old, uₓ_sk, uz_sk, utot, γᵤ_sf,
+                    aa, pb_pf, p_perp_b_pf, γ_pf, φ_rad,
+                    uₓ_sk_old, uz_sk_old, utot_old, γ_sf_old,
+                    b_cos_old, b_sin_old, uₓ_sk, uz_sk, utot, γ_sf,
                     b_cosθ, b_sinθ,
                 )
 
@@ -228,13 +228,13 @@ function particle_loop(
             #  3. Particles have entered a new grid zone, and energy should be either subtracted or added
             if energy_transfer_frac > 0 && !inj && r_PT_old.x ≤ 0cm && i_grid_old != i_grid
                 (;
-                    pb_pf, p_perp_b_pf, ptot_pf, γₚ_pf, ptot_sk, p_sk, γₚ_sk, pₓ_sk, pz_sk,
+                    pb_pf, p_perp_b_pf, ptot_pf, γ_pf, ptot_sk, p_sk, γ_sk, pₓ_sk, pz_sk,
                 ) = do_energy_transfer(
                     energy_transfer_pool, energy_recv_pool,
                     i_grid, i_grid_old, i_shock,
                     ε_target, ptot_pf, pb_pf, p_perp_b_pf,
-                    γₚ_pf, φ_rad,
-                    uₓ_sk, uz_sk, utot, γᵤ_sf,
+                    γ_pf, φ_rad,
+                    uₓ_sk, uz_sk, utot, γ_sf,
                     b_cosθ, b_sinθ, weight, mc, aa, electron_weight_fac
                 )
             end
@@ -248,16 +248,16 @@ function particle_loop(
                 i_reason = 1
 
                 keep_looping = false
-                @debug("Particle escaped downstream, scattering disabled", i_ion, i_pcut, i_prt)
+                #@debug("Particle escaped downstream, scattering disabled", i_ion, i_pcut, i_prt)
                 continue
             end
 
             # Particle escape: pmax (note that effects are same as for escape at upstream FEB)
             if ptot_pf > pmax_cutoff
                 # Transform plasma frame momentum into shock frame to test there also
-                ptot_sk, p_sk, γₚ_sk = transform_p_PS(
-                    aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-                    uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
+                ptot_sk, p_sk, γ_sk = transform_p_PS(
+                    aa, pb_pf, p_perp_b_pf, γ_pf, φ_rad,
+                    uₓ_sk, uz_sk, utot, γ_sf, b_cosθ, b_sinθ,
                 )
 
                 if ptot_sk > pmax_cutoff
@@ -298,9 +298,9 @@ function particle_loop(
                 ptot_pf_old = ptot_pf
 
                 # Compute effective magnetic field for radiative losses. When squared to get
-                # energy density, one factor of γᵤ_ef in B_CMB_loc represents increased number
+                # energy density, one factor of γ_ef in B_CMB_loc represents increased number
                 # density, while the other is increased energy per photon.
-                B_CMB_loc = B_CMBz * γᵤ_ef
+                B_CMB_loc = B_CMBz * γ_ef
 
                 ptot_pf = radiation_loss(bmag^2 + B_CMB_loc^2, ptot_pf, t_step)
 
@@ -309,14 +309,14 @@ function particle_loop(
                     ptot_pf = 1.0e-99g*cm/s
                     pb_pf = 1.0e-99g*cm/s
                     p_perp_b_pf = 1.0e-99g*cm/s
-                    γₚ_pf = 1
+                    γ_pf = 1
                     i_reason = 4
                     keep_looping = false
                     continue
                 end
 
-                # Recalculate γₚ_pf since that's needed elsewhere
-                γₚ_pf = hypot(ptot_pf / mc, 1)
+                # Recalculate γ_pf since that's needed elsewhere
+                γ_pf = hypot(ptot_pf / mc, 1)
 
                 # Modify components of ptot_pf due to losses
                 pb_pf *= ptot_pf / ptot_pf_old
@@ -333,7 +333,7 @@ function particle_loop(
             #---------------------------------------------
             if !dont_scatter
                 gyro_period_sec, pb_pf, p_perp_b_pf, φ_rad = scattering(
-                    rng, aa, gyro_denom, ptot_pf, γₚ_pf, xn_per, pb_pf, p_perp_b_pf, φ_rad,
+                    rng, aa, gyro_denom, ptot_pf, γ_pf, xn_per, pb_pf, p_perp_b_pf, φ_rad,
                     use_custom_frg, pₑ_crit, γₑ_crit, η_mfp,
                 )
             end
@@ -341,7 +341,7 @@ function particle_loop(
             # Update acceleration time in explosion frame, so convert t_step from plasma frame
             # Only start the clock once a particle has crossed the shock for the first time
             if l_downstream
-                acctime_sec += t_step * γᵤ_ef
+                acctime_sec += t_step * γ_ef
 
                 if do_tcuts && acctime_sec ≥ tcuts[tcut_curr]
                     tcut_track!(
@@ -353,7 +353,7 @@ function particle_loop(
 
                 # Remove ions at splitting momentum
                 if ptot_pf > pcuts[i_pcut]
-                    @debug("Removing ions at splitting momentum", pcuts[i_pcut], i_pcut, ptot_pf)
+                    #@debug("Removing ions at splitting momentum", pcuts[i_pcut], i_pcut, ptot_pf)
                     l_save[i_prt] = true
 
                     weight_saved[i_prt]      = weight
@@ -396,8 +396,8 @@ function particle_loop(
         # Odd little loop that only matters if DSA has been disabled per the input file
         #------------------------------------------------------------------------------
         (; pb_pf, φ_rad, x_move_bpar, r_PT_cm) = no_DSA_loop(
-            φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, dont_DSA, inj_fracs,
-            r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion, gyro_rad_cm, rng
+            φ_rad, xn_per, pb_pf, t_step, γ_pf, aa, dont_DSA, inj_fracs,
+            r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γ_sf, φ_rad_old, uₓ_sk, inj, i_ion, gyro_rad_cm, rng
         )
         #----------------------------------------------------------------
         # DSA injection prevented if specified
@@ -416,12 +416,9 @@ function particle_loop(
             #    particles in the downstream frame, ⟨u⟩ = u₂ since the average thermal *velocity* of
             #    the population is 0.
             #TODO: include f(r_g) in place of η*r_g to allow for arbitrary diffusion
-            L_diff = η_mfp / 3 * gyro_rad_tot_cm * ptot_pf / (m * γₚ_pf * u₂) |> cm
+            L_diff = η_mfp / 3 * gyro_rad_tot_cm * ptot_pf / (m * γ_pf * u₂) |> cm
 
-            @debug(
-                "Particle crossing shock going upstream → downstream",
-                prp_x_cm, r_PT_old.x, r_PT_cm.x, L_diff
-            )
+            #@debug("Particle crossing shock going upstream → downstream", prp_x_cm, r_PT_old.x, r_PT_cm.x, L_diff)
             prp_x_cm = max(prp_x_cm, L_diff)
         end
 
@@ -434,8 +431,8 @@ function particle_loop(
 
         # Calculate fluxes due to this motion; also locates new grid zone
         (i_grid, i_grid_old, n_cr_count, pₓ_esc_upstream, energy_esc_upstream) = all_flux!(
-            i_prt, aa, pb_pf, p_perp_b_pf, ptot_pf, γₚ_pf, φ_rad,
-            weight, i_grid, uₓ_sk, uz_sk, utot, γᵤ_sf, b_cosθ, b_sinθ,
+            i_prt, aa, pb_pf, p_perp_b_pf, ptot_pf, γ_pf, φ_rad,
+            weight, i_grid, uₓ_sk, uz_sk, utot, γ_sf, b_cosθ, b_sinθ,
             r_PT_cm.x, r_PT_old.x, inj, nc_unit,
             i_grid_feb, pxx_flux, pxz_flux,
             energy_flux, energy_esc_upstream, pₓ_esc_upstream, spectra_sf, spectra_pf,
@@ -452,16 +449,16 @@ function particle_loop(
         # prob_return unless told otherwise by particle location/info
         do_prob_ret, i_return = downstream_test(
             i_return, feb_downstream, gyro_denom, gyro_rad_tot_cm, prp_x_cm, r_PT_cm, aa,
-            ptot_pf, pₑ_crit, γₚ_pf, γₑ_crit, u₂, η_mfp
+            ptot_pf, pₑ_crit, γ_pf, γₑ_crit, u₂, η_mfp
         )
 
         if do_prob_ret
             (
-                i_return, lose_pt, tcut_curr, _x_PT_cm, prp_x_cm, ptot_pf, γₚ_pf,
+                i_return, lose_pt, tcut_curr, _x_PT_cm, prp_x_cm, ptot_pf, γ_pf,
                 gyro_denom, pb_pf, p_perp_b_pf, acctime_sec, φ_rad,
             ) = prob_return(
                 rng, i_ion, num_psd_mom_bins, B_CMBz, r_PT_old.x, aa, zz, gyro_denom,
-                r_PT_cm.x, prp_x_cm, ptot_pf, γₚ_pf, pb_pf, p_perp_b_pf,
+                r_PT_cm.x, prp_x_cm, ptot_pf, γ_pf, pb_pf, p_perp_b_pf,
                 acctime_sec, φ_rad, helix_count, pcut_prev, weight, tcut_curr,
                 x_grid_stop, u₂, use_custom_εB, η_mfp, do_retro, bmag₂, mc,
                 do_rad_losses, do_tcuts, tcuts,
@@ -475,12 +472,12 @@ function particle_loop(
         if i_return == 0
 
             vel = ptot_pf / m |> cm / s
-            if (γₚ_pf - 1) ≥ E_rel_pt
-                vel /= γₚ_pf
+            if (γ_pf - 1) ≥ E_rel_pt
+                vel /= γ_pf
             end
 
             ∑P_downstream += ptot_pf / 3 * vel * weight * density(species[i_ion]) # downstream pressure
-            ∑KEdensity_downstream += (γₚ_pf - 1) * m * c^2 * weight * density(species[i_ion])
+            ∑KEdensity_downstream += (γ_pf - 1) * m * c^2 * weight * density(species[i_ion])
 
             i_reason = 1
             if lose_pt
@@ -494,19 +491,19 @@ function particle_loop(
         # End of Code Block 2
 
     end # loop_helix
-    @info("Finished helix loop: i_ion=$i_ion, i_pcut=$i_pcut, i_prt=$i_prt, helix_count=$helix_count")
+    #@info("Finished helix loop: i_ion=$i_ion, i_pcut=$i_pcut, i_prt=$i_prt, helix_count=$helix_count")
     #------------------------------------------------------------------
     # End of loop moving/tracking particles on/off grid
     return (
-        i_fin, i_reason, pb_pf, p_perp_b_pf, γₚ_pf, γᵤ_sf, b_cosθ, b_sinθ, weight,
+        i_fin, i_reason, pb_pf, p_perp_b_pf, γ_pf, γ_sf, b_cosθ, b_sinθ, weight,
         uₓ_sk, uz_sk, utot, φ_rad,
         ∑P_downstream, ∑KEdensity_downstream,
     )
 end
 
 function no_DSA_loop(
-        φ_rad, xn_per, pb_pf, t_step, γₚ_pf, aa, dont_DSA,
-        inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γᵤ_sf, φ_rad_old, uₓ_sk, inj, i_ion,
+        φ_rad, xn_per, pb_pf, t_step, γ_pf, aa, dont_DSA,
+        inj_fracs, r_PT_old, r_PT_cm, b_cosθ, b_sinθ, γ_sf, φ_rad_old, uₓ_sk, inj, i_ion,
         gyro_rad_cm, rng
     )
     m = aa * mp
@@ -519,15 +516,15 @@ function no_DSA_loop(
         # plasma frame, moving to the right along the x axis, and the unprimed frame is the
         # (stationary) shock frame. Take frames to be coincident
         # at t = t' = 0. Then
-        #    x  =  γᵤ_sf * (x' + uₓ_sk*t'),
+        #    x  =  γ_sf * (x' + uₓ_sk*t'),
         # where t' is t_step and x' is distance moved in plasma
         # frame (i.e. x_move_bpar below).
         # Remember to take gyration about magnetic field into account
         φ_rad = mod2pi(φ_rad + 2π / xn_per)
 
-        x_move_bpar = pb_pf * t_step / (γₚ_pf * m) |> cm
+        x_move_bpar = pb_pf * t_step / (γ_pf * m) |> cm
 
-        Δx_PT_cm = γᵤ_sf * (
+        Δx_PT_cm = γ_sf * (
             x_move_bpar * b_cosθ
                 - gyro_rad_cm * b_sinθ * (cos(φ_rad) - cos(φ_rad_old))
                 + uₓ_sk * t_step
@@ -538,7 +535,7 @@ function no_DSA_loop(
         #TODO: add new keyword for tracking transverse motion
         #if yz_pos_max > 0
         #    y_PT_cm = y_PT_old + gyro_rad_cm * (sin(φ_rad) - sin(φ_rad_old))
-        #    z_PT_cm = z_PT_old + γᵤ_sf * (x_move_bpar*b_sinθ - gyro_rad_cm*b_cosθ*(cos(φ_rad)-cos(φ_rad_old)) + uz_sk*t_step)
+        #    z_PT_cm = z_PT_old + γ_sf * (x_move_bpar*b_sinθ - gyro_rad_cm*b_cosθ*(cos(φ_rad)-cos(φ_rad_old)) + uz_sk*t_step)
         #end
 
 
@@ -591,7 +588,7 @@ end
 
 function downstream_test(
         i_return_orig, feb_downstream, gyro_denom, gyro_rad_tot_cm,
-        prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, γₚ_pf, γₑ_crit, u₂, η_mfp
+        prp_x_cm, r_PT_cm, aa, ptot_pf, pₑ_crit, γ_pf, γₑ_crit, u₂, η_mfp
     )
     do_prob_ret = true
 
@@ -620,7 +617,7 @@ function downstream_test(
             gyro_fac = pₑ_crit * c * gyro_denom
             v_fac = gyro_fac * pₑ_crit / (m * γₑ_crit * u₂)
         else
-            v_fac = gyro_rad_tot_cm * ptot_pf / (m * γₚ_pf * u₂)
+            v_fac = gyro_rad_tot_cm * ptot_pf / (m * γ_pf * u₂)
         end
         L_diff = η_mfp / 3 * v_fac
 
@@ -648,8 +645,8 @@ end
 
 function do_energy_transfer(
         energy_transfer_pool, energy_recv_pool, i_grid, i_grid_old, i_shock,
-        ε_target, ptot_pf, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad,
-        uₓ_sk, uz_sk, utot, γᵤ_sf,
+        ε_target, ptot_pf, pb_pf, p_perp_b_pf, γ_pf, φ_rad,
+        uₓ_sk, uz_sk, utot, γ_sf,
         b_cosθ, b_sinθ, weight, mc, aa, electron_weight_fac
     )
     i_start = i_grid_old
@@ -704,17 +701,17 @@ function do_energy_transfer(
         pb_pf *= scale_fac
         p_perp_b_pf *= scale_fac
         ptot_pf = ptot_pf_f
-        γₚ_pf = γ_pf_f
+        γ_pf = γ_pf_f
     end
 
     # Since the plasma-frame momenta have changed,
     # recalculate the shock-frame momenta
-    ptot_sk, p_sk, γₚ_sk = transform_p_PS(
-        aa, pb_pf, p_perp_b_pf, γₚ_pf, φ_rad, uₓ_sk, uz_sk, utot, γᵤ_sf,
+    ptot_sk, p_sk, γ_sk = transform_p_PS(
+        aa, pb_pf, p_perp_b_pf, γ_pf, φ_rad, uₓ_sk, uz_sk, utot, γ_sf,
         b_cosθ, b_sinθ,
     )
     pₓ_sk = p_sk.x
     pz_sk = p_sk.z
 
-    return (; pb_pf, p_perp_b_pf, ptot_pf, γₚ_pf, ptot_sk, p_sk, γₚ_sk, pₓ_sk, pz_sk)
+    return (; pb_pf, p_perp_b_pf, ptot_pf, γ_pf, ptot_sk, p_sk, γ_sk, pₓ_sk, pz_sk)
 end

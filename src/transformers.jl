@@ -3,7 +3,7 @@ using StaticArrays: SVector
 using LinearAlgebra: norm
 using OffsetArrays: OffsetMatrix
 using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
-using Unitful: mp, c    # physical constants
+using Unitful: mp, c, g, cm, s    # physical constants
 
 using MonteCarloScattering: identify_corners
 using ..parameters: psd_max
@@ -35,7 +35,7 @@ function get_transform_dN(
 
     # Loop over cos(θ) and ptot space to re-bin input PSD slice
     #--------------------------------------------------------------------------
-    for j in 0:psd_max, i in 0:psd_max
+    for j in axes(psd, 2), i in axes(psd, 1)
 
         psd[i, j] < 1.0e-66 && continue # Skip empty cells in PSD
 
@@ -658,7 +658,7 @@ function transform_psd_corners(
 
             # psd_mom_bounds uses logarithmic spacing for its bins, so undo that before
             # continuing the calculation
-            pt_sk = exp10(psd_mom_bounds[i])
+            pt_sk = exp10(psd_mom_bounds[i]) * g * cm / s
 
             #if i == 0
             #    pt_sk = 0.0 # Edge case when i = 0
@@ -671,7 +671,7 @@ function transform_psd_corners(
             pt_transformed = √(pt_sk^2 + pₓ_transformed^2 - pₓ_sk^2)
 
             # Transform to log space because get_dNdp_cr expects it
-            transform_corner_pt[i, j] = log10(pt_transformed)
+            transform_corner_pt[i, j] = log10(ustrip(g * cm / s, pt_transformed))
             transform_corner_ct[i, j] = pₓ_transformed / pt_transformed
 
 

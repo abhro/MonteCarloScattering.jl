@@ -27,10 +27,12 @@ calculate the pressure (which may be anisotropic) everywhere on the grid.
 - `energy_density_psd`: local kinetic energy density of fluid in every grid zone
 """
 function thermo_calcs(
-        num_crossings, n_cr_count, therm_grid, therm_pₓ_sk, therm_ptot_sk,
-        therm_weight, nc_unit, psd, zone_pop, aa_ion, zz_ion, T₀_ion, n₀_ion,
-        psd_lin_cos_bins::Integer, γ₀, β₀,
-        n_grid::Integer, γ_sf_grid, uₓ_sk_grid, i_ion, mc,
+        n_grid::Integer, num_crossings, n_cr_count, i_ion, mc,
+        aa_ion, zz_ion, T₀_ion, n₀_ion,
+        therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight,
+        nc_unit, psd, zone_pop,
+        psd_lin_cos_bins::Integer, (β₀, γ₀),
+        γ_sf_grid, uₓ_sk_grid,
         num_psd_mom_bins::Integer, num_psd_θ_bins::Integer, psd_max, psd_θ_bounds, psd_mom_bounds,
         psd_bins_per_dec_mom::Integer, psd_mom_min, psd_bins_per_dec_θ::Integer, psd_cos_fine, Δcos, psd_θ_min,
     )
@@ -67,10 +69,11 @@ function thermo_calcs(
         cos_center[jθ] = - (cos_lo + cos_hi) / 2
     end
 
-    pt_center = similar(psd_mom_bounds)
-    for k in eachindex(psd_mom_bounds[begin:(end - 1)])
+    pt_center = zeros(MomentumCGS, axes(psd_mom_bounds))
+    for k in eachindex(psd_mom_bounds)[begin:(end - 1)]
+        log_p_mid = (psd_mom_bounds[k] + psd_mom_bounds[k + 1]) / 2
         # Convert from log to linear space
-        pt_center[k] = exp10((psd_mom_bounds[k] + psd_mom_bounds[k + 1]) / 2)
+        pt_center[k] = exp10(log_p_mid) * g * cm / s
     end
 
 
@@ -78,9 +81,9 @@ function thermo_calcs(
     # the combined d²N/(dp-dcos) for the shock frame
     #----------------------------------------------------------------------------
     # Set up the arrays that will hold the crossing data
-    max_cross = maximum(num_crossings, 1)
-    therm_pₓ = zeros(max_cross, 0:(n_grid + 1))
-    therm_pt = zeros(max_cross, 0:(n_grid + 1))
+    max_cross = maximum(num_crossings)
+    therm_pₓ = zeros(MomentumCGS, max_cross, 0:(n_grid + 1))
+    therm_pt = zeros(MomentumCGS, max_cross, 0:(n_grid + 1))
     therm_weight = zeros(max_cross, 0:(n_grid + 1))
 
 
@@ -205,7 +208,7 @@ function thermo_calcs(
         end # loop over angles and ptot
 
         mask = (d²N_pf[:, :, i] .> 1.0e-66)
-        norm_fac = sum(d²N_pf[mask..., i])
+        norm_fac = sum(d²N_pf[mask, i])
         if iszero(num_crossings[i]) && norm_fac > 0
             norm_fac += n₀_ion[i_ion] / uₓ_sk_grid[i]
         end
@@ -221,7 +224,7 @@ function thermo_calcs(
         end
 
         mask = (d²N_pf[:, :, i] .> 1.0e-66)
-        d²N_pop[i] = sum(d²N_pf[mask..., i])
+        d²N_pop[i] = sum(d²N_pf[mask, i])
     end # loop over grid locations
     #----------------------------------------------------------------------------
     # Transformed d²N_pf calculated
@@ -233,11 +236,12 @@ function thermo_calcs(
     # Find the velocity associated with each momentum bin
     vel_ptot = @. pt_center * c / (mc * hypot(1, pt_center / mc))
 
+    Γ = 5 // 3
 
     # Output arguments
-    pressure_psd_par = zeros(n_grid)
-    pressure_psd_perp = zeros(n_grid)
-    energy_density_psd = zeros(n_grid)
+    pressure_psd_par = zeros(PressureCGS, n_grid)
+    pressure_psd_perp = zeros(PressureCGS, n_grid)
+    energy_density_psd = zeros(PressureCGS, n_grid)
 
     local density_electron
 
@@ -252,12 +256,11 @@ function thermo_calcs(
         # (3) thermal particles detected
         #-----------------------------------------------------------------------
         if maximum(d²N_pf[:, :, i]) < 1.0e-66 && iszero(num_crossings[i])
-
             # Case (1): No particles of any kind detected at this grid location.
             # Thermal particles must have passed through, so find their density
             # and analytically determine components of pressure
             # #assumecold: using Γ = 5/3 in the pressure calculation
-            pressure_loc = density_loc^(5 // 3) * kB * T₀_ion[i_ion]
+            pressure_loc = ustrip(cm^-3, density_loc)^Γ * kB * T₀_ion[i_ion] / cm^3 # FIXME dimensionality
 
             if aa_ion[i_ion] ≥ 1
                 density_electron = density_loc * zz_ion[i_ion]
@@ -280,7 +283,7 @@ function thermo_calcs(
             # Case (2): no thermal particles, but some CRs detected.
             # Find pressure due to untracked thermal particles
             # #assumecold: using Γ = 5/3 in the pressure calculation
-            pressure_loc = density_loc^(5//3) * kB*T₀_ion[i_ion]
+            pressure_loc = ustrip(cm^-3, density_loc)^Γ * kB*T₀_ion[i_ion] / cm^3 # FIXME dimensionality
 
             if aa_ion[i_ion] > 1
                 density_electron *= zz_ion[i_ion]

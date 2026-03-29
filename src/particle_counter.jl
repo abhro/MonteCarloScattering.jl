@@ -1,10 +1,10 @@
 module particle_counter
 using Unitful, UnitfulAstro
-using Unitful: cm, c, mp
+using Unitful: cm, c, mp, g, s
 using UnitfulAstro: kpc, pc
-using OffsetArrays: OffsetVector
+using OffsetArrays: OffsetVector, no_offset_view, Origin
 
-using ..CGSTypes: MomentumCGS
+using ..CGSTypes: MomentumCGS, AreaCGS
 using ..parameters: psd_max, na_cr, num_therm_bins
 using ..transformers: get_transform_dN, transform_psd_corners
 #using ..debug: zone_vol, therm_energy_density, energy_density
@@ -38,7 +38,8 @@ function get_dNdp_cr(
     #     1  -  Shock frame
     #     2  -  Plasma frame
     #     3  -  ISM frame
-    dNdp_cr = zeros(0:psd_max, n_grid, 3)
+    dNdp_cr = zeros(psd_mom_axis, n_grid, 3)
+    #dNdp_cr = zeros(0:psd_max, n_grid, 3)
 
     ct_bounds = fill(-2.0, 0:(num_psd_θ_bins + 1))
 
@@ -77,7 +78,7 @@ function get_dNdp_cr(
         # convert from PSD to dN(p). Conversion to dN/dp will happen at the
         # end of this subroutine.
         #----------------------------------------------------------------------
-        for j in 0:psd_max, i in 0:psd_max
+        for j in axes(psd, 2), i in axes(psd, 1)
             if psd[i, j, k] > 0
                 dNdp_cr[i, k, 1] += psd[i, j, k]
             end
@@ -290,7 +291,7 @@ function get_dNdp_cr(
 
 
     # Finally, convert dNdp_cr into true dN/dp by dividing by dp for each cell
-    for m in 1:3, k in 1:n_grid, l in 0:(psd_max - 1)
+    for m in 1:3, k in 1:n_grid, l in axes(dNdp_cr, 1)[begin:end-1]
 
         # Skip empty cells in PSD
         if dNdp_cr[l, k, m] < 1.0e-66
@@ -437,8 +438,7 @@ function get_dNdp_2D(
             )
             jθ = get_psd_bin_angle(
                 therm_pₓ[n, i], therm_pt[n, i],
-                psd_bins_per_dec_θ,
-                num_psd_mom_bins, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min
+                psd_bins_per_dec_θ, num_psd_θ_bins, psd_cos_fine, Δcos, psd_θ_min
             )
             d²N_dpdcos_sf[jθ, k, i] += therm_weight[n, i]
         end
@@ -459,15 +459,15 @@ function get_dNdp_2D(
     # particles. Note that the slices of psd need to be transposed from (ptot,θ) to (θ,ptot)
     # order. Once that is taken care of, convert dN into dN/dp by dividing by dp
     #-------------------------------------------------------------------------
-    for i in 1:(n_grid + 1)
-        for k in 0:(psd_max - 1), jθ in 0:(psd_max - 1)
+    for i in axes(psd, 3)
+        for k in axes(psd, 1)[begin:(end - 1)], jθ in axes(psd, 2)[begin:(end - 1)]
             if psd[k, jθ, i] > 1.0e-66
                 d²N_dpdcos_sf[jθ, k, i] += psd[k, jθ, i]
             end
         end
 
         # Can convert from dN to dN/dp now
-        for k in 0:(psd_max - 1), jθ in 0:psd_max
+        for k in axes(d²N_dpdcos_sf, 2)[begin:(end - 1)], jθ in axes(d²N_dpdcos_sf, 1)
             if d²N_dpdcos_sf[jθ, k, i] > 1.0e-66
                 d²N_dpdcos_sf[jθ, k, i] /= Δp[k]
             end
@@ -480,8 +480,9 @@ function get_dNdp_2D(
     # Calculate the density of particles represented by d²N_dpdcos_sf
     density_tot = zeros(n_grid)
     for i in 1:n_grid
-        mask = (d²N_dpdcos_sf[:, 0:(psd_max - 1), i] .> 1.0e-66)
-        density_tot[i] = sum(d²N_dpdcos_sf[mask..., i])
+        #mask = (d²N_dpdcos_sf[:, 0:(psd_max - 1), i] .> 1.0e-66)
+        mask = (d²N_dpdcos_sf[:, :, i] .> 1.0e-66)
+        density_tot[i] = sum(d²N_dpdcos_sf[mask, i])
     end
 
 
@@ -613,7 +614,7 @@ end # get_dNdp_2D
 Get the cosine of the centers of the θ bins of the phase space distribution
 """
 function cos_centers(num_psd_θ_bins, psd_lin_cos_bins, psd_θ_bounds)
-    if length(psd_θ_bounds) != num_psd_θ_bounds + 2
+    if length(psd_θ_bounds) != num_psd_θ_bins + 2
         error(
           "Incompatible values for num_psd_θ_bins=$num_psd_θ_bins and ",
           "psd_θ_bounds (length=$(length(psd_θ_bounds))) passed"
@@ -690,7 +691,6 @@ function get_normalized_dNdp(
     # Number of bins to use in histogram for ptot_pf & cθ_pf; needs to be divisor of
     # num_therm_bins to minimize binning artifacts in this subroutine
     num_hist_bins = num_therm_bins ÷ 2
-    jet_rad_cm = ustrip(cm, jet_rad_pc * pc)
 
     # Get the non-normalized dN/dp's from the crossing arrays, scratch file (if necessary),
     # and the phase space distribution,
@@ -708,66 +708,10 @@ function get_normalized_dNdp(
     # Determine the total number of particles in each grid zone by using
     # shock frame flux, area, crossing time:
     #     #  =  flux * area * (distance/speed)
-    local i_shock = 0
-    for i in 1:n_grid
-        if iszero(x_grid_cm[i]) || (x_grid_cm[i] * x_grid_cm[i + 1] < 0)
-            # Either current grid zone is exactly at shock, or current and next
-            # grid zones straddle shock
-            i_shock = i
-            break
-        end
-    end
+    i_shock = find_shock_index(x_grid_cm)
 
-    x_grid_cm_diff = diff(x_grid_cm)
-
-    # Work upstream from shock and find volume of each grid zone
-    rad_min = jet_rad_cm - x_grid_cm[i_shock] # Inner radius, including fact that upstream has x < 0
-    surf_area = Vector{Float64}(undef, n_grid)
-    for i in (i_shock - 1):-1:1
-        # outer radius is inner radius plus zone width *in ISM frame*
-        rad_max = rad_min + x_grid_cm_diff[i] / γ₀
-
-        # Use rad_max and rad_min to get area of jet surface; will be same in
-        # shock frame if shock motion is purely parallel to shock normal
-        #surf_area[i] = 4π * ((rad_max+rad_min)/2)^2 * jet_sph_frac
-        surf_area[i] = π * (rad_max + rad_min)^2 * jet_sph_frac
-
-        # finally, set rad_min for next cycle through loop
-        rad_min = rad_max
-    end
-
-    # Work downstream from shock and find volume of each grid zone
-    rad_max = jet_rad_cm - x_grid_cm[i_shock]
-    for i in i_shock:n_grid
-        # inner radius is outer radius minus zone width *in ISM frame*
-        rad_min = rad_max - x_grid_cm_diff[i] / γ₀
-
-        # Use rad_max and rad_min to get area of jet surface
-        #surf_area[i] = 4π * ((rad_max+rad_min)/2)^2 * jet_sph_frac
-        surf_area[i] = π * (rad_max + rad_min)^2 * jet_sph_frac
-
-        # finally, set rad_max for next cycle through loop
-        rad_max = rad_min
-    end
-
-
-    # Now calculate the number of particles in each zone, i.e. the total area under dN/dp
     zone_pop = zeros(n_grid)
-    for i in 1:n_grid
-
-        # Crossing time in the shock frame, upstream particle flux in the shock frame
-        # (conserved quantity throughout the shock structure), and finally number of
-        # particles in this grid zone
-        dwell_time = x_grid_cm_diff[i] / uₓ_sk_grid[i]
-
-        F_upstream = γ₀ * n₀_ion[i_ion] * β₀ * c
-
-        zone_pop[i] = F_upstream * surf_area[i] * dwell_time
-
-        #DEBUGLINE
-        density_pf = γ₀ * uₓ_sk_grid[1] / (γ_sf_grid[i] * uₓ_sk_grid[i])
-        zone_vol[i] = zone_pop[i] / density_pf
-    end
+    set_grid_volumes!(zone_pop, zone_vol, i_shock, i_ion, (β₀, γ₀), n₀_ion, jet_rad_pc, jet_sph_frac, x_grid_cm, uₓ_sk_grid, γ_sf_grid)
 
 
     # For each grid zone, integrate the area under dNdp_therm and dNdp_cr to
@@ -987,6 +931,19 @@ function get_normalized_dNdp(
     return dNdp_therm, dNdp_therm_pvals, dNdp_cr, zone_pop
 end # get_normalized_dNdp
 
+function find_shock_index(x_grid)
+    local i_shock = 0
+    for i in eachindex(x_grid)
+        if iszero(x_grid[i]) || (ustrip(x_grid[i] * x_grid[i + 1]) < 0)
+            # Either current grid zone is exactly at shock, or current and next
+            # grid zones straddle shock
+            i_shock = i
+            break
+        end
+    end
+    return i_shock
+end
+
 
 """
     get_dNdp_therm(...)
@@ -1027,14 +984,17 @@ function get_dNdp_therm(
 
     # Also "zero" out the two output arrays to prevent issues later
     dNdp_therm = fill(1.0e-99, (0:psd_max, n_grid, 3))
-    dNdp_therm_pvals = fill(1.0e-99, (0:psd_max, n_grid, 3))
+    dNdp_therm_pvals = fill(1.0e-99 * g * cm / s, (0:psd_max, n_grid, 3))
+
+    # XXX Early return for debugging
+    return dNdp_therm, dNdp_therm_pvals
 
     # Allocate histogram arrays to be used during subroutine
-    ptot_sk_bins = zeros(num_hist_bins)
+    ptot_sk_bins = zeros(MomentumCGS, num_hist_bins)
+    ptot_pf_bins = zeros(MomentumCGS, num_hist_bins)
+    ptot_ef_bins = zeros(MomentumCGS, num_hist_bins)
     ptot_sk_vals = zeros(num_hist_bins)
-    ptot_pf_bins = zeros(num_hist_bins)
     ptot_pf_vals = zeros(num_hist_bins)
-    ptot_ef_bins = zeros(num_hist_bins)
     ptot_ef_vals = zeros(num_hist_bins)
 
     cθ_sk_bins = zeros(num_hist_bins + 1)
@@ -1069,11 +1029,12 @@ function get_dNdp_therm(
         i_grid = therm_grid[i]
 
         n_cross_fill[i_grid] += 1
+        n = n_cross_fill[i_grid]
 
         # Note: ordering of coordinates chosen to make memory accesses in next loop faster
-        therm_pₓ[n_cross_fill[i_grid], i_grid] = therm_pₓ_sk[i]
-        therm_pt[n_cross_fill[i_grid], i_grid] = therm_ptot_sk[i]
-        therm_weight[n_cross_fill[i_grid], i_grid] = therm_weight[i]
+        therm_pₓ[n, i_grid] = therm_pₓ_sk[i]
+        therm_pt[n, i_grid] = therm_ptot_sk[i]
+        therm_weight[n, i_grid] = therm_weight[i]
     end
 
     if ntot_crossings > na_cr
@@ -1113,16 +1074,16 @@ function get_dNdp_therm(
         # grid zone, all positions in the arrays should be filled with correct
         # data. However, initializing them to non-physical values serves as an
         # additional check against error.
-        ptot_pf = fill(-1.0, num_crossings[i])
+        ptot_pf = fill(-1.0 * g * cm/s, num_crossings[i])
         cθ_pf = fill(-2.0, num_crossings[i])
-        ptot_ef = fill(-1.0, num_crossings[i])
+        ptot_ef = fill(-1.0 * g * cm/s, num_crossings[i])
         cθ_ef = fill(-2.0, num_crossings[i])
 
         # Set up min and max values for total momentum and cos(θ) in the shock frame
         cθ_sk_min = 2.0
         cθ_sk_max = -2.0
-        ptot_sk_min = 1.0e99
-        ptot_sk_max = -1.0e99
+        ptot_sk_min = 1.0e99 * g * cm/s
+        ptot_sk_max = -1.0e99 * g * cm/s
 
         # Convert information about shock frame values into plasma and ISM frames. Even
         # though only total momentum is needed for calculating dN/dp, histogram of pitch
@@ -1142,16 +1103,16 @@ function get_dNdp_therm(
             etot_sk = hypot(ptot_sk * c, E₀)
 
             pₓ_pf = γ * (pₓ_sk - β * etot_sk / c)
-            ptot_pf = √(ptot_sk^2 - pₓ_sk^2 + pₓ_pf^2)
+            ptot_pf_curr = √(ptot_sk^2 - pₓ_sk^2 + pₓ_pf^2)
 
             pₓ_ef = γ₀ * (pₓ_sk - β₀ * etot_sk / c)
-            ptot_ef = √(ptot_sk^2 - pₓ_sk^2 + pₓ_ef^2)
+            ptot_ef_curr = √(ptot_sk^2 - pₓ_sk^2 + pₓ_ef^2)
 
-            ptot_pf[j] = ptot_pf
-            cθ_pf[j] = pₓ_pf / ptot_pf
+            ptot_pf[j] = ptot_pf_curr
+            cθ_pf[j] = pₓ_pf / ptot_pf_curr
 
-            ptot_ef[j] = ptot_ef
-            cθ_ef[j] = pₓ_ef / ptot_ef
+            ptot_ef[j] = ptot_ef_curr
+            cθ_ef[j] = pₓ_ef / ptot_ef_curr
         end
 
         # Error checks
@@ -1235,7 +1196,7 @@ function get_dNdp_therm(
             cθ_ef_weight[k] += therm_weight[j, i] / γ₀
         end
 
-        # Finish off by converting pt**_vals into dN/dp, which requires dividing
+        # Finish off by converting ptot_**_vals into dN/dp, which requires dividing
         # by the momentum spread of the bin
         for k in 1:num_hist_bins
             ptot_sk_lo = ptot_sk_bins[k]
@@ -1482,4 +1443,81 @@ function rebin_dNdp_therm(num_hist_bins, dNdp_therm, dNdp_therm_pvals, num_psd_m
 
     return rebin_dNdp_therm
 end # rebin_dNdp_therm
+
+"""
+    set_grid_volumes!(zone_pop, zone_vol, x_grid_cm, i_shock, γ₀, jet_sph_frac)
+
+Find the volume and population of each grid zone in `x_grid_cm`.
+
+### Arguments
+- `x_grid_cm`
+- `i_shock`
+- `γ₀`
+- `jet_sph_frac`
+- `uₓ_sk_grid`
+- `γ_sf_grid`
+
+### Modifies
+- `zone_pop`
+- `zone_vol`
+"""
+function set_grid_volumes!(
+        zone_pop::AbstractVector, zone_vol::AbstractVector,
+        i_shock::Integer, i_ion::Integer, (β₀, γ₀), n₀_ion, jet_rad_pc, jet_sph_frac::Real,
+        x_grid_cm::AbstractVector, uₓ_sk_grid::AbstractVector, γ_sf_grid::AbstractVector
+    )
+    Δx_grid_cm = diff(no_offset_view(x_grid_cm)) |> Origin(firstindex(x_grid_cm))
+    jet_rad_cm = jet_rad_pc * pc |> cm
+    n = length(zone_vol)
+
+    # Work upstream from shock and find volume of each grid zone
+    rad_min = jet_rad_cm - x_grid_cm[i_shock] # Inner radius, including fact that upstream has x < 0
+    surf_area = Vector{AreaCGS}(undef, n)
+    for i in (i_shock - 1):-1:1
+        # outer radius is inner radius plus zone width *in ISM frame*
+        rad_max = rad_min + Δx_grid_cm[i] / γ₀
+
+        # Use rad_max and rad_min to get area of jet surface; will be same in
+        # shock frame if shock motion is purely parallel to shock normal
+        #surf_area[i] = 4π * ((rad_max+rad_min)/2)^2 * jet_sph_frac
+        surf_area[i] = π * (rad_max + rad_min)^2 * jet_sph_frac
+
+        # finally, set rad_min for next cycle through loop
+        rad_min = rad_max
+    end
+
+    # Work downstream from shock and find volume of each grid zone
+    rad_max = jet_rad_cm - x_grid_cm[i_shock]
+    for i in i_shock:n
+        # inner radius is outer radius minus zone width *in ISM frame*
+        rad_min = rad_max - Δx_grid_cm[i] / γ₀
+
+        # Use rad_max and rad_min to get area of jet surface
+        #surf_area[i] = 4π * ((rad_max+rad_min)/2)^2 * jet_sph_frac
+        surf_area[i] = π * (rad_max + rad_min)^2 * jet_sph_frac
+
+        # finally, set rad_max for next cycle through loop
+        rad_max = rad_min
+    end
+
+
+    # Now calculate the number of particles in each zone, i.e. the total area under dN/dp
+    for i in 1:n
+
+        # Crossing time in the shock frame, upstream particle flux in the shock frame
+        # (conserved quantity throughout the shock structure), and finally number of
+        # particles in this grid zone
+        dwell_time = Δx_grid_cm[i] / uₓ_sk_grid[i]
+
+        F_upstream = γ₀ * n₀_ion[i_ion] * β₀ * c
+
+        zone_pop[i] = F_upstream * surf_area[i] * dwell_time
+
+        #DEBUGLINE
+        density_pf = γ₀ * uₓ_sk_grid[1] / (γ_sf_grid[i] * uₓ_sk_grid[i])
+        zone_vol[i] = zone_pop[i] / density_pf
+    end
+
+    return zone_pop, zone_vol
+end
 end # module

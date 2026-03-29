@@ -19,14 +19,16 @@ using Logging
 module CGSTypes
     using Unitful: g, K, cm, s, dyn, erg, keV, GeV
     using UnitfulGaussian: Fr, G, qcgs
-    export LengthCGS, TimeCGS, MomentumCGS, BFieldCGS, EnergyCGS, MomentumFluxCGS,
-        MomentumDensityFluxCGS, EnergyFluxCGS, EnergyDensityFluxCGS
+    export LengthCGS, TimeCGS, MomentumCGS, BFieldCGS, EnergyCGS, PressureCGS,
+        MomentumFluxCGS, MomentumDensityFluxCGS, EnergyFluxCGS, EnergyDensityFluxCGS
     const LengthCGS = typeof(1.0 * cm)
     const TimeCGS = typeof(1.0 * s)
+    const AreaCGS = typeof(1.0 * cm^2)
     const MomentumCGS = typeof(1.0 * g * cm / s)
     const BFieldCGS = typeof(1.0 * G)
     const EnergyCGS = typeof(1.0 * erg)
     const EnergyDensityCGS = typeof(1.0 * erg / cm^3)
+    const PressureCGS = typeof(1.0 * erg / cm^3)
     const MomentumFluxCGS = typeof(1.0 * g * cm^2 / s^2) # (g*cm/s) * cm/s
     const MomentumDensityFluxCGS = typeof(1.0 * erg / cm^3)
     const EnergyFluxCGS = typeof(1.0 * erg * cm / s)
@@ -63,14 +65,14 @@ include("ion_finalize.jl")
 using .parameters: na_c, na_photons, psd_max
 using .constants: B_CMB0
 using .initializers: set_photon_shells
-using .particle_counter: get_normalized_dNdp
+using .particle_counter: get_normalized_dNdp, get_dNdp_2D
 
 zero!(A::AbstractArray{T}) where {T} = fill!(A, zero(T))
 
 include("data_input.jl")
 include("main_loops.jl")
 
-function (@main)(args)
+function (@main)(args=[])
     # Start the wall clock for this run
     t_start = now()
 
@@ -346,17 +348,11 @@ function (@main)(args)
     psd_mom_max *= 2γ₀
     num_psd_mom_bins, psd_mom_bounds = set_psd_mom_bins(psd_mom_min, psd_mom_max, psd_bins_per_dec_mom)
     psd_mom_axis = axes(psd_mom_bounds, 1)
-    @debug(
-        "Setting PSD momentum parameters",
-        psd_mom_max, num_psd_mom_bins, psd_mom_axis, psd_mom_bounds
-    )
+    #@debug("Setting PSD momentum parameters", psd_mom_max, num_psd_mom_bins, psd_mom_axis, psd_mom_bounds)
     Δcos, psd_θ_bounds = set_psd_angle_bins(psd_bins_per_dec_θ, psd_lin_cos_bins, psd_cos_fine, psd_θ_min)
     num_psd_θ_bins = length(psd_θ_bounds) - 2
     psd_θ_axis = axes(psd_θ_bounds, 1)
-    @debug(
-        "Setting PSD angle parameters",
-        Δcos, num_psd_θ_bins, psd_θ_axis, psd_θ_bounds
-    )
+    #@debug("Setting PSD angle parameters", Δcos, num_psd_θ_bins, psd_θ_axis, psd_θ_bounds)
 
     # Set the boundaries of the shells to use for photon calculation
     if do_photons
@@ -460,7 +456,7 @@ function (@main)(args)
     # given in Sturner+ (1997).
     # unit shenanigans because of overflow
     B_CMBz = B_CMB0 * (1 + redshift)^2
-    @debug "Calculated radiation loss constants" B_CMBz
+    @debug("Calculated radiation loss constants", B_CMBz)
 
 
     # Zero out total escaping fluxes and calculate the far upstream fluxes

@@ -36,9 +36,12 @@ function ion_finalize(
 
     # Get pressure (both components) and kinetic energy density everywhere in the shock profile
     pressure_psd_par, pressure_psd_perp, energy_density_psd = thermo_calcs(
-        num_crossings, n_cr_count, therm_grid, therm_pₓ_sk, therm_ptot_sk,
-        therm_weight, nc_unit, psd, zone_pop, aa_ion, zz_ion, T₀_ion, n₀_ion,
-        n_grid, γ_sf_grid, uₓ_sk_grid, i_ion, mc,
+        n_grid, num_crossings, n_cr_count, i_ion, mc,
+        aa_ion, zz_ion, T₀_ion, n₀_ion,
+        therm_grid, therm_pₓ_sk, therm_ptot_sk, therm_weight,
+        nc_unit, psd, zone_pop,
+        psd_lin_cos_bins, (β₀, γ₀),
+        γ_sf_grid, uₓ_sk_grid,
         num_psd_mom_bins, num_psd_θ_bins, psd_max, psd_θ_bounds, psd_mom_bounds,
         psd_bins_per_dec_mom, psd_mom_min, psd_bins_per_dec_θ, psd_cos_fine, Δcos, psd_θ_min,
     )
@@ -60,7 +63,9 @@ function ion_finalize(
     #TODO: spectrum_plot
 
     # Print out escaping particle population for this species
-    print_dNdp_esc(esc_psd_feb_upstream, esc_psd_feb_downstream)
+    #print_dNdp_esc(esc_psd_feb_upstream, esc_psd_feb_downstream)
+    #println(esc_psd_feb_upstream)
+    #println(esc_psd_feb_downstream)
 
     # Handle photon calculations
     if do_photons
