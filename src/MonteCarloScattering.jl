@@ -13,29 +13,11 @@ using Statistics: mean
 using StaticArrays
 using OffsetArrays
 using JuliaInterpreter
+using Infiltrator: @infiltrate
 using TOML
 using Logging
 
-module CGSTypes
-    using Unitful: g, K, cm, s, dyn, erg, keV, GeV
-    using UnitfulGaussian: Fr, G, qcgs
-    export LengthCGS, TimeCGS, MomentumCGS, BFieldCGS, EnergyCGS, PressureCGS,
-        MomentumFluxCGS, MomentumDensityFluxCGS, EnergyFluxCGS, EnergyDensityFluxCGS
-    const LengthCGS = typeof(1.0 * cm)
-    const TimeCGS = typeof(1.0 * s)
-    const AreaCGS = typeof(1.0 * cm^2)
-    const MomentumCGS = typeof(1.0 * g * cm / s)
-    const BFieldCGS = typeof(1.0 * G)
-    const EnergyCGS = typeof(1.0 * erg)
-    const EnergyDensityCGS = typeof(1.0 * erg / cm^3)
-    const PressureCGS = typeof(1.0 * erg / cm^3)
-    const MomentumFluxCGS = typeof(1.0 * g * cm^2 / s^2) # (g*cm/s) * cm/s
-    const MomentumDensityFluxCGS = typeof(1.0 * erg / cm^3)
-    const EnergyFluxCGS = typeof(1.0 * erg * cm / s)
-    const EnergyDensityFluxCGS = typeof(1.0 * erg / (cm^2 * s))
-end
-using .CGSTypes
-
+include("cgstypes.jl"); using .CGSTypes
 include("parameters.jl"); using .parameters
 include("constants.jl"); using .constants
 include("utils.jl")
@@ -82,25 +64,25 @@ function (@main)(args::Vector{String}=String[])
     # Get input, control variables, etc.
     cfg_toml = TOML.parsefile("mc_in.toml")
 
-    (u₀, β₀, γ₀) = parse_shock_speed(cfg_toml["shock-speed"], cfg_toml["shock-speed-unit"])
+    (u₀, β₀, γ₀) = parse_shock_speed(cfg_toml["shock-speed"]::Float64, cfg_toml["shock-speed-unit"]::String)
 
     species = parse_species(cfg_toml)
     n_ions = length(species)
 
-    inp_distr = cfg_toml["input-distribution"]
-    energy_inj = cfg_toml["injection-energy"] * keV
-    inj_weight = get(cfg_toml, "injection-weights", true)
+    inp_distr = cfg_toml["input-distribution"]::Integer
+    energy_inj = EnergyCGS(cfg_toml["injection-energy"] * keV)
+    inj_weight = get(cfg_toml, "injection-weights", true)::Bool
 
-    Emax, Emax_per_aa, pmax = parse_maximum_energy(cfg_toml["maximum-energy"])
+    Emax, Emax_per_aa, pmax = parse_maximum_energy(Vector{Float64}(cfg_toml["maximum-energy"]))
 
-    η_mfp = get(cfg_toml, "gyrofactor", 1)
+    η_mfp = get(cfg_toml, "gyrofactor", 1.0)::Float64
 
-    bmag₀ = cfg_toml["B-mag-upstream"] * G
+    bmag₀ = cfg_toml["B-mag-upstream"]::Float64 * G
     # rg₀ below is the gyroradius of a proton whose speed is u₀ that is gyrating in a field
     # of strength bmag₀. Note that this formula is relativistically correct
     rg₀ = (γ₀ * mp * c^2 * β₀) / (qcgs * bmag₀) |> cm
 
-    θ_B₀ = cfg_toml["theta-B0"] # must be zero
+    θ_B₀ = cfg_toml["theta-B0"]::Float64 # must be zero
     check_shock_angle(θ_B₀)
 
     x_grid_start_rg, x_grid_stop_rg = cfg_toml["x_grid_limits"]
@@ -112,39 +94,39 @@ function (@main)(args::Vector{String}=String[])
         x_grid_start_rg, rg₀
     )
 
-    x_spec = get(cfg_toml, "XSPEC", Float64[])
-    n_xspec = length(x_spec)
+    x_spec = get(cfg_toml, "XSPEC", Float64[])::Vector{Float64}
+    n_xspec = length(x_spec)::Int
 
-    n_itrs = cfg_toml["num-iterations"]
-    xn_per_coarse = cfg_toml["coarse-scattering-Ng"]
-    xn_per_fine = cfg_toml["fine-scattering-Ng"]
+    n_itrs = cfg_toml["num-iterations"]::Int
+    xn_per_coarse = cfg_toml["coarse-scattering-Ng"]::Float64
+    xn_per_fine = cfg_toml["fine-scattering-Ng"]::Float64
 
-    n_pts_inj = cfg_toml["N_PTS_INJ"]
-    n_pts_pcut = cfg_toml["N_PTS_PCUT"]
+    n_pts_inj = cfg_toml["N_PTS_INJ"]::Int
+    n_pts_pcut = cfg_toml["N_PTS_PCUT"]::Int
     max(n_pts_inj, n_pts_pcut) > na_particles && error("Array size na_particles too small.")
 
     n_pts_pcut_hi = cfg_toml["N_PTS_PCUT_HI"]
     energy_pcut_hi = cfg_toml["EN_PCUT_HI"]
     n_pts_pcut_hi > na_particles && error("Array size na_particles too small.")
 
-    pcuts = cfg_toml["momentum-cutoffs"] * uconvert(g * cm / s, mp * c)
+    pcuts = cfg_toml["momentum-cutoffs"]::Vector{Float64} * uconvert(g * cm / s, mp * c)
     check_pcuts(pcuts, Emax, Emax_per_aa, pmax)
 
-    dont_shock = get(cfg_toml, "no-shock", false)
-    dont_scatter = get(cfg_toml, "no-scatter", false)
-    dont_DSA = get(cfg_toml, "no-DSA", false)
-    do_smoothing = cfg_toml["smooth-shocks"]
+    dont_shock = get(cfg_toml, "no-shock", false)::Bool
+    dont_scatter = get(cfg_toml, "no-scatter", false)::Bool
+    dont_DSA = get(cfg_toml, "no-DSA", false)::Bool
+    do_smoothing = cfg_toml["smooth-shocks"]::Bool
 
-    prof_weight_fac = get(cfg_toml, "old-profile-weight", 1.0)
+    prof_weight_fac = get(cfg_toml, "old-profile-weight", 1.0)::Float64
 
-    do_prof_fac_damp = get(cfg_toml, "increase-old-profile-weighting", false)
+    do_prof_fac_damp = get(cfg_toml, "increase-old-profile-weighting", false)::Bool
 
-    smooth_mom_energy_fac = get(cfg_toml, "SMMOE", 0.0)
+    smooth_mom_energy_fac = get(cfg_toml, "SMMOE", 0.0)::Float64
     if smooth_mom_energy_fac < 0 || smooth_mom_energy_fac > 1
         throw(DomainError(smooth_mom_energy_fac, "smooth_mom_energy_fac/SMMOE must be in [0, 1]"))
     end
 
-    smooth_pressure_flux_psd_fac = get(cfg_toml, "SMPFP", 0)
+    smooth_pressure_flux_psd_fac = get(cfg_toml, "SMPFP", 0.0)::Float64
     if smooth_pressure_flux_psd_fac < 0 || smooth_pressure_flux_psd_fac > 1
         throw(
             DomainError(
@@ -172,58 +154,58 @@ function (@main)(args::Vector{String}=String[])
 
     β₂, γ₂, bmag₂, θ_B₂, θᵤ₂ = calc_downstream(bmag₀, r_comp, β₀)
     u₂ = β₂ * c |> cm / s
-    @debug("Results from calc_downstream()", u₂, β₂, γ₂, bmag₂, θ_B₂, θᵤ₂)
+    #@debug("Results from calc_downstream()", u₂, β₂, γ₂, bmag₂, θ_B₂, θᵤ₂)
 
 
     do_old_prof = get(cfg_toml, "read-old-profile", false)
     if do_old_prof
         d = cfg_toml["old-profile-config"]
-        n_old_skip = d["lines-to-skip"]
-        n_old_profs = d["profiles-to-average"]
-        n_old_per_prof = d["lines-per-profile"]
+        n_old_skip = d["lines-to-skip"]::Int
+        n_old_profs = d["profiles-to-average"]::Int
+        n_old_per_prof = d["lines-per-profile"]::Int
     else
-        n_old_skip, n_old_profs, n_old_per_prof = [0, 0, 0]
+        n_old_skip, n_old_profs, n_old_per_prof = (0, 0, 0)
     end
 
     age_max = let
-        age_max = get(cfg_toml, "maximum-age", -1.0)
+        age_max = get(cfg_toml, "maximum-age", -1.0)::Float64
         if age_max < 0
             age_max = -1.0
         end
         age_max * s
-    end
+    end::TimeCGS
     # default behavior of do_retro is dependent on age_max
-    do_retro = get(cfg_toml, "use-retro", age_max > 0s ? true : false)
+    do_retro = get(cfg_toml, "use-retro", age_max > 0s ? true : false)::Bool
 
-    do_fast_push = get(cfg_toml, "fast-upstream-transport", false)
+    do_fast_push = get(cfg_toml, "fast-upstream-transport", false)::Bool
     x_fast_stop_rg = do_fast_push ? cfg_toml["proton-fast-transport-stop"] : 0.0
 
     x_art_start_rg, x_art_scale = get(cfg_toml, "artificial-smoothing", (0.0, 0.0))
 
     pₑ_crit, γₑ_crit = parse_electron_critical_energy(get(cfg_toml, "electron-energy-mfp-threshold", nothing))
 
-    do_rad_losses = get(cfg_toml, "radiation-losses", true)
-    do_photons = get(cfg_toml, "calculate-photon-production", false)
+    do_rad_losses = get(cfg_toml, "radiation-losses", true)::Bool
+    do_photons = get(cfg_toml, "calculate-photon-production", false)::Bool
 
     # jet-shock-radius only mandatory if doing photons
-    jet_rad_pc = do_photons ? cfg_toml["jet-shock-radius"] : get(cfg_toml, "jet-shock-radius", 0.0)
+    jet_rad_pc = (do_photons ? cfg_toml["jet-shock-radius"] : get(cfg_toml, "jet-shock-radius", 0.0))::Float64
 
-    jet_sph_frac, jet_open_ang_deg = parse_jet_frac(get(cfg_toml, "JETFR", nothing), do_photons)
+    jet_sph_frac, jet_open_ang_deg = parse_jet_frac(get(cfg_toml, "JETFR", nothing)..., do_photons)
 
-    jet_dist_kpc = get(cfg_toml, "jet-distance", 1.0)
-    redshift = get(cfg_toml, "RDSHF", 0.0)
+    jet_dist_kpc = get(cfg_toml, "jet-distance", 1.0)::Float64
+    redshift = get(cfg_toml, "RDSHF", 0.0)::Float64
     if jet_dist_kpc > 0 && redshift > 0
         error("jet-distance: At most one of 'jet-distance' and 'RDSHF' may be non-zero.")
     end
 
     # The following option is not in the Fortran program
-    cosmo_var = cfg_toml["COSMO_VAR"]
+    cosmo_var = cfg_toml["COSMO_VAR"]::Int
     cosmo_var ≠ 1 && cosmo_var ≠ 2 && error("Invalid value for cosmo_var")
 
-    energy_transfer_frac = float(get(cfg_toml, "energy-transfer-frac", 0.0))
+    energy_transfer_frac = float(get(cfg_toml, "energy-transfer-frac", 0.0))::Float64
     0 ≤ energy_transfer_frac ≤ 1 || error("energy_transfer_frac must be in [0,1]")
 
-    num_upstream_shells, num_downstream_shells = cfg_toml["num-shells"]
+    num_upstream_shells, num_downstream_shells = cfg_toml["num-shells"]::Vector{Int}
 
     bturb_comp_frac = get(cfg_toml, "b-field-turbulence", 0.0)
     bfield_amp = get(cfg_toml, "b-field-amplify", 1.0)
@@ -242,17 +224,17 @@ function (@main)(args::Vector{String}=String[])
         (psd_bins_per_dec_mom::Int, psd_bins_per_dec_θ::Int)
     end
 
-    psd_lin_cos_bins = get(cfg_toml, "psd-linear-cosine-bins", 119)
+    psd_lin_cos_bins = get(cfg_toml, "psd-linear-cosine-bins", 119)::Int
     psd_lin_cos_bins > 0 || error("psd-linear-cosine-bins must be positive")
 
-    psd_log_θ_decs = get(cfg_toml, "psd-log-theta-decs", 4)
+    psd_log_θ_decs = get(cfg_toml, "psd-log-theta-decs", 4)::Int
     psd_log_θ_decs > 0 || error("psd-log-theta-decs must be positive")
 
-    use_custom_frg = get(cfg_toml, "use-custom-frg", false)
+    use_custom_frg = get(cfg_toml, "use-custom-frg", false)::Bool
 
-    emin_therm_fac = get(cfg_toml, "EMNFC", 0.01)
+    emin_therm_fac = get(cfg_toml, "EMNFC", 0.01)::Float64
 
-    do_multi_dNdps = get(cfg_toml, "separate-dNdp-write", false)
+    do_multi_dNdps = get(cfg_toml, "separate-dNdp-write", false)::Bool
 
     do_tcuts, tcuts, n_tcuts = let
         do_tcuts = haskey(cfg_toml, "TCUTS")
@@ -270,13 +252,13 @@ function (@main)(args::Vector{String}=String[])
             tcuts = TimeCGS[]
             n_tcuts = 0
         end
-        (do_tcuts, tcuts, n_tcuts)
+        (do_tcuts::Bool, tcuts, n_tcuts::Int)
     end
 
-    inj_fracs = get(cfg_toml, "INJFR", fill(1.0, n_ions))
+    inj_fracs = get(cfg_toml, "INJFR", fill(1.0, n_ions))::Vector{Float64}
     length(inj_fracs) == n_ions || error("Number of injection probabilities must match NIONS")
 
-    use_custom_εB = get(cfg_toml, "use-custom-epsB", false)
+    use_custom_εB = get(cfg_toml, "use-custom-epsB", false)::Bool
 
     # Set up the computational grid
     x_grid_rg, x_grid_start, x_grid_stop = setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_downstream, rg₀)
@@ -296,11 +278,11 @@ function (@main)(args::Vector{String}=String[])
     psd_cos_fine = 1 - 2 / (psd_lin_cos_bins + 1)
     psd_θ_fine = acos(psd_cos_fine)
     psd_θ_min = psd_θ_fine / exp10(psd_log_θ_decs)
-    @debug("Phase space angle parameters", psd_cos_fine, psd_θ_fine, psd_θ_min)
+    #@debug("Phase space angle parameters", psd_cos_fine, psd_θ_fine, psd_θ_min)
 
     if inp_distr == 1
         # Set minimum PSD energy using thermal distribution for upstream plasma
-        Emin = uconvert(keV, minimum(temperature.(species)), Thermal())
+        Emin = EnergyCGS(uconvert(keV, minimum(temperature.(species)), Thermal()))
         Emin *= emin_therm_fac # Allow for a few extra zones below the thermal peak
     elseif inp_distr == 2
         # Set minimum PSD energy using δ-function dist for upstream plasma;
@@ -327,14 +309,14 @@ function (@main)(args::Vector{String}=String[])
     # Now find the maximum momentum for the PSD (this will be adjusted due to SF->PF Lorentz
     # transformation). How to actually calculate it depends on the user-specified maximum energy
     # "maximum-energy"
-    psd_mom_max = let
+    psd_mom_max = MomentumCGS(let
         rest_mass_max = maximum(mass.(species))
         rest_energy_max = uconvert(erg, rest_mass_max, MassEnergy())
         if Emax > 0keV
-            γ = 1 + Emax / rest_energy_max
+            γ = (1 + Emax / rest_energy_max)::Float64
             rest_mass_max * c * √(γ^2 - 1)
         elseif Emax_per_aa > 0keV
-            γ = 1 + Emax_per_aa / (mp * c^2)
+            γ = (1 + Emax_per_aa / (mp * c^2))::Float64
             rest_mass_max * c * √(γ^2 - 1)
         elseif pmax > 0g * cm / s
             pmax
@@ -342,11 +324,11 @@ function (@main)(args::Vector{String}=String[])
             # Something has gone very wrong.
             error("Max CR energy not set in data_input, so can not set PSD bins.")
         end
-    end |> g * cm / s
+    end)
 
     # Adjust max momentum based on a SF->PF Lorentz transform
     psd_mom_max *= 2γ₀
-    num_psd_mom_bins, psd_mom_bounds = set_psd_mom_bins(psd_mom_min, psd_mom_max, psd_bins_per_dec_mom)
+    num_psd_mom_bins, psd_mom_bounds = set_psd_mom_bins(psd_mom_min|>MomentumCGS, psd_mom_max|>MomentumCGS, psd_bins_per_dec_mom)
     psd_mom_axis = axes(psd_mom_bounds, 1)
     #@debug("Setting PSD momentum parameters", psd_mom_max, num_psd_mom_bins, psd_mom_axis, psd_mom_bounds)
     Δcos, psd_θ_bounds = set_psd_angle_bins(psd_bins_per_dec_θ, psd_lin_cos_bins, psd_cos_fine, psd_θ_min)
@@ -456,7 +438,7 @@ function (@main)(args::Vector{String}=String[])
     # given in Sturner+ (1997).
     # unit shenanigans because of overflow
     B_CMBz = B_CMB0 * (1 + redshift)^2
-    @debug("Calculated radiation loss constants", B_CMBz)
+    #@debug("Calculated radiation loss constants", B_CMBz)
 
 
     # Zero out total escaping fluxes and calculate the far upstream fluxes
@@ -528,7 +510,8 @@ function (@main)(args::Vector{String}=String[])
     #)
 
     weights_file = open("mc_coupled_weights.csv", "w")
-    spectra_file = jldopen("mc_coupled_spectra.hdf5", "a+")
+    spectra_file = open("mc_coupled_spectra.csv", "a+")
+    #spectra_file = jldopen("mc_coupled_spectra.hdf5", "a+")
 
     pressure_psd_par = Vector{Float64}(undef, n_grid)
     pressure_psd_perp = Vector{Float64}(undef, n_grid)

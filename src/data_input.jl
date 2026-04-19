@@ -1,3 +1,4 @@
+using Unitful: c
 function parse_shock_speed(skspd::Real, skspd_unit::String)
     skspd > 0 || error("Shock speed must be positive")
 
@@ -21,7 +22,7 @@ function parse_shock_speed(skspd::Real, skspd_unit::String)
         γ = lorentz(β)
     end
 
-    return (u, β, γ)
+    return (u::SpeedCGS, β::Float64, γ::Float64)
 end
 
 function parse_maximum_energy(energy_max::AbstractVector{Float64})
@@ -42,25 +43,25 @@ function parse_maximum_energy(energy_max::AbstractVector{Float64})
     else
         error("ENMAX: at least one choice must be non-zero.")
     end
-    pmax = pmax * uconvert(g * cm / s, mp * c)
-    return (Emax * keV, Emax_per_aa * keV, pmax)
+    pmax = pmax * uconvert(g * cm / s, mp * Unitful.c)
+    return (EnergyCGS(Emax * keV), EnergyCGS(Emax_per_aa * keV), pmax::MomentumCGS)
 end
 
 function parse_electron_critical_energy(Eₑ_crit::Real)
     if isnothing(Eₑ_crit) || Eₑ_crit ≤ 0
-        return (-me * c, -1.0)
+        return (-Unitful.me * Unitful.c, -1.0)
     end
 
-    Eₑ_crit *= keV # attach units
-    Eₑ_crit_rm = Eₑ_crit / (me * c^2)   # in units of electron rest energy
+    Eₑ_crit = Eₑ_crit * Unitful.keV # attach units
+    Eₑ_crit_rm = Eₑ_crit / (Unitful.me * Unitful.c^2)   # in units of electron rest energy
 
     # Convert input energy to momentum and Lorentz factor
     # Different forms for nonrelativistic and relativstic momenta
     if Eₑ_crit_rm < 1.0e-2
-        pₑ_crit = √(2 * me * Eₑ_crit)
+        pₑ_crit = √(2 * Unitful.me * Eₑ_crit)
         γₑ_crit = 1.0
     else
-        pₑ_crit = me * c * √((Eₑ_crit_rm + 1)^2 - 1)
+        pₑ_crit = Unitful.me * Unitful.c * √((Eₑ_crit_rm + 1)^2 - 1)
         γₑ_crit = Eₑ_crit_rm + 1
     end
     return (pₑ_crit |> g * cm / s, γₑ_crit)
@@ -154,7 +155,7 @@ function parse_jet_frac(::Nothing, do_photons = false)
     return (0.0, 0.0)
 end
 
-function parse_jet_frac((jet_sph_frac, jet_open_ang_deg)::Tuple{Float64,Float64}, do_photons = false)
+function parse_jet_frac(jet_sph_frac::Float64, jet_open_ang_deg::Float64, do_photons = false)
     if 0 < jet_sph_frac ≤ 1
         jet_open_ang_deg = acosd(1 - 2jet_sph_frac)
     elseif 0 < jet_open_ang_deg ≤ 180

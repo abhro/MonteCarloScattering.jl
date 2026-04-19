@@ -30,11 +30,11 @@ total momenta and the lower/higher of the two remaining cos(θ) values.
 function identify_corners(i, j, transform_corner_pt, transform_corner_cθ, ii_sk_pf)
 
     # Get momentum and cos(θ) values from the grid
-    corner_pts = [
+    corner_pts = MomentumCGS[
         transform_corner_pt[i, j],     transform_corner_pt[i + 1, j],
         transform_corner_pt[i, j + 1], transform_corner_pt[i + 1, j + 1],
     ]
-    corner_cθs = [
+    corner_cθs = Float64[
         transform_corner_cθ[i, j],     transform_corner_cθ[i + 1, j],
         transform_corner_cθ[i, j + 1], transform_corner_cθ[i + 1, j + 1],
     ]
@@ -93,12 +93,12 @@ function identify_corners(i, j, transform_corner_pt, transform_corner_cθ, ii_sk
     # If the two values aren't identical, one corner will be cθ_hi and other will be cθ_lo.
     # NOTE: in event that cθ_hi_cθ and cθ_lo_cθ are equal, assign corner with lower total momentum as cθ_lo
     #----------------------------------------------------------------------------
-    j_cθ_hi = maxloc(corner_cθs, 1, mask) # FIXME
+    j_cθ_hi = maxloc(corner_cθs, 1, mask)::Int # FIXME
     cθ_hi_pt = corner_pts[j_cθ_hi]
     cθ_hi_cθ = corner_cθs[j_cθ_hi]
     mask[j_cθ_hi] = false
 
-    j_cθ_lo = minloc(corner_cθs, 1, mask) # FIXME
+    j_cθ_lo = minloc(corner_cθs, 1, mask)::Int # FIXME
     cθ_lo_pt = corner_pts[j_cθ_lo]
     cθ_lo_cθ = corner_cθs[j_cθ_lo]
 

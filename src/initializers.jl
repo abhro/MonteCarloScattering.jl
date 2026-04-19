@@ -14,7 +14,7 @@ using Unitful: mp, c, k as kB
 using Distributions: TriangularDist
 using ..parameters: num_therm_bins, na_particles, E_rel_pt, β_rel_fl
 import ..density, ..temperature, ..mass, ..number_density
-using ..CGSTypes: MomentumCGS, BFieldCGS, MomentumDensityFluxCGS, EnergyDensityFluxCGS
+using ..CGSTypes: SpeedCGS, MassCGS, LengthCGS, MomentumCGS, EnergyCGS, BFieldCGS, MomentumDensityFluxCGS, EnergyDensityFluxCGS
 
 """
     calc_downstream(...)
@@ -39,7 +39,7 @@ Shock must be parallel (not oblique).
 - `θ_B`: angle[deg] between downstream magnetic field and shock normal
 - `θᵤ`: angle[deg] between downstream fluid velocity and shock normal
 """
-function calc_downstream(B₀, r_comp, β₀)
+function calc_downstream(B₀, r_comp::Real, β₀::Real)
     β = β₀ / r_comp
     γ = 1 / √(1 - β^2)
     B = B₀
@@ -211,9 +211,11 @@ Values less than the minimum are equivalent to 0.0.
 - `num_psd_mom_bins`: total number of bins along given dimension, not counting bin 0
 - `psd_mom_bounds`: boundaries between bins, and upper edge of final bin
 """
-function set_psd_mom_bins(psd_mom_min, psd_mom_max, psd_bins_per_dec_mom)
-    num_psd_mom_bins = trunc(Int, log10(psd_mom_max / psd_mom_min) * psd_bins_per_dec_mom)
+function set_psd_mom_bins(psd_mom_min::P, psd_mom_max::P, psd_bins_per_dec_mom::Integer) where {P}
+    num_psd_mom_bins = trunc(Int, log10(psd_mom_max / psd_mom_min) * psd_bins_per_dec_mom)::Int
     num_psd_mom_bins += 2   # Add two extra bins just to be safe
+
+    log_p_min = log10(psd_mom_min / (mp * c))::Float64
 
     # Fill in the array psd_mom_bounds, remembering that the array holds LOWER boundaries
     # of that bin
@@ -221,7 +223,7 @@ function set_psd_mom_bins(psd_mom_min, psd_mom_max, psd_bins_per_dec_mom)
     append!(
         psd_mom_bounds,
         range(
-            start = log10(psd_mom_min / (mp * c)),
+            start = log_p_min,
             step = 1 / psd_bins_per_dec_mom,
             length = num_psd_mom_bins + 1
         )
@@ -258,7 +260,7 @@ the minimum are equivalent to 0.0.
 - `Δcos`: size of each linear cosine bin
 - `psd_θ_bounds`: boundaries between bins, and upper edge of final bin
 """
-function set_psd_angle_bins(psd_bins_per_dec_θ, psd_lin_cos_bins, psd_cos_fine, psd_θ_min)
+function set_psd_angle_bins(psd_bins_per_dec_θ::Int, psd_lin_cos_bins::Int, psd_cos_fine::Float64, psd_θ_min::Float64)
     psd_θ_fine = acos(psd_cos_fine)
     ten_root_θ = exp10(1 / psd_bins_per_dec_θ)
 
@@ -328,7 +330,7 @@ TODO
 """
 function set_upstream_photon_shells!(
         x_shell_midpoints, x_shell_endpoints,
-        num_upstream_shells, feb_upstream, rg₀,
+        num_upstream_shells::Integer, feb_upstream::Float64, rg₀::Float64,
     )
     x_section_width = (log10(abs(feb_upstream / rg₀)) + 1) / num_upstream_shells
     for i in 1:num_upstream_shells
@@ -366,7 +368,8 @@ TODO
 """
 function set_downstream_photon_shells!(
         x_shell_midpoints, x_shell_endpoints,
-        num_upstream_shells, num_downstream_shells, use_prp, feb_downstream, rg₀, x_grid_stop_rg,
+        num_upstream_shells::Int, num_downstream_shells::Int,
+        use_prp::Bool, feb_downstream::Float64, rg₀::Float64, x_grid_stop_rg::Float64,
     )
     # The downstream limit is set differently if using a PRP or a FEB
     limitdownstream = use_prp ? x_grid_stop_rg : feb_downstream / rg₀
@@ -428,7 +431,7 @@ const DOWNSTREAM_SPACING = SVector(
 - `x_grid_start`
 - `x_grid_stop`
 """
-function setup_grid(x_grid_start_rg::Float64, x_grid_stop_rg::Float64, use_prp::Bool, feb_downstream::Float64, rg₀::Float64)
+function setup_grid(x_grid_start_rg::Float64, x_grid_stop_rg::Float64, use_prp::Bool, feb_downstream::LengthCGS, rg₀::LengthCGS)
 
     # Recall that rg₀ is the gyroradius of a proton with speed u₀ in magnetic field B₀.
 
@@ -460,7 +463,7 @@ function setup_grid(x_grid_start_rg::Float64, x_grid_stop_rg::Float64, use_prp::
     # Downstream from there, more log-spaced zones.
     n_log_downstream = 16
     x_end_man = x_grid_rg[end]
-    Δlogx = (log10(x_grid_stop*rg₀) - log10(x_end_man)) / n_log_downstream
+    Δlogx = (log10(x_grid_stop/rg₀) - log10(x_end_man)) / n_log_downstream
 
     log_x_grid_downstream = range(start = log10(x_end_man), step = Δlogx, length = n_log_downstream)
     append!(x_grid_rg, exp10.(log_x_grid_downstream))
@@ -505,7 +508,7 @@ No inputs; pulls everything from module 'controls'
 - `F_pz_upstream`: far upstream momentum flux, z component
 - `F_energy_upstream`: far upstream energy flux
 """
-function upstream_fluxes(n₀_ion, T₀_ion, m_ion, B₀, θ_B₀, u₀, β₀, γ₀)
+function upstream_fluxes(n₀_ion, T₀_ion, m_ion, B₀::BFieldCGS, θ_B₀::Float64, u₀, β₀::Float64, γ₀::Float64)
 
     # Upstream internal energy density and pressure, assuming isotropic particle distribution.
     # Note that this INCLUDES the mass-energy density, which is typically omitted in
@@ -767,10 +770,10 @@ Sets the initial values of the shock profile
   depending on values of bturb_comp_frac & bfield_amp
 """
 function setup_profile(
-        u₀, β₀, γ₀, B₀, θ_B₀,
-        r_comp, bturb_comp_frac, bfield_amp, use_custom_εB,
-        n_ions, species, F_px_upstream, F_energy_upstream,
-        grid_axis, x_grid_cm, x_grid_rg,
+        u₀::SpeedCGS, β₀::Float64, γ₀::Float64, B₀::BFieldCGS, θ_B₀::Float64,
+        r_comp::Float64, bturb_comp_frac::Float64, bfield_amp::Float64, use_custom_εB::Bool,
+        n_ions::Int, species, F_px_upstream, F_energy_upstream,
+        grid_axis::AbstractUnitRange, x_grid_cm::AbstractVector{LengthCGS}, x_grid_rg::AbstractVector,
     )
 
     uₓ_sk_grid = OffsetVector{typeof(u₀)}(undef, grid_axis)
@@ -1243,7 +1246,7 @@ the wasted computation because this subroutine runs only rarely).
 
 CHECKTHIS: that output distribution matches M-B, just to make sure I haven't made a typo
 """
-function set_inj_dist(inj_weight::Bool, n_pts_inj, inp_distr, T_or_E, m, n₀)
+function set_inj_dist(inj_weight::Bool, n_pts_inj::Int, inp_distr::Int, T_or_E, m::MassCGS, n₀)
 
     # Error prevention
     0 < inp_distr < 3 || throw(DomainError(inp_distr, "Code can only do inp_distr = 1 or 2."))
@@ -1411,7 +1414,8 @@ end
 
 function set_inj_dist_particle_equal_weight!(
         ptot_out::AbstractVector, weight_out::AbstractVector,
-        p_range, E_range, area_tot, n_pts_inj::Integer, Δp, n₀
+        p_range::AbstractVector{MomentumCGS}, E_range::AbstractVector{EnergyCGS},
+        area_tot, n_pts_inj::Integer, Δp::MomentumCGS, n₀
     )
 
     area_per_pt = area_tot / n_pts_inj # Area each particle gets if inj_weight = T
