@@ -72,7 +72,7 @@ zero!(A::AbstractArray{T}) where {T} = fill!(A, zero(T))
 include("data_input.jl")
 include("main_loops.jl")
 
-function (@main)(args=[])
+function (@main)(args::Vector{String}=String[])
     # Start the wall clock for this run
     t_start = now()
 
@@ -127,7 +127,7 @@ function (@main)(args=[])
     energy_pcut_hi = cfg_toml["EN_PCUT_HI"]
     n_pts_pcut_hi > na_particles && error("Array size na_particles too small.")
 
-    pcuts = cfg_toml["momentum-cutoffs"] * mp * c .|> (g * cm / s)
+    pcuts = cfg_toml["momentum-cutoffs"] * uconvert(g * cm / s, mp * c)
     check_pcuts(pcuts, Emax, Emax_per_aa, pmax)
 
     dont_shock = get(cfg_toml, "no-shock", false)
@@ -163,7 +163,7 @@ function (@main)(args=[])
 
     r_comp, r_RH, Γ₂_RH = let
         r_comp = cfg_toml["target-compression-ratio"]
-        r_RH, Γ₂_RH = calc_rRH((u₀, β₀, γ₀), species)
+        r_RH, Γ₂_RH = calc_rRH(β₀, γ₀, species)
         if r_comp == -1
             r_comp = r_RH
         end
@@ -519,13 +519,13 @@ function (@main)(args=[])
 
 
     # Print a bunch of data about the run to screen/file
-    print_input(
-        n_pts_inj, n_pts_pcut, n_pts_pcut_hi, n_ions,
-        num_psd_mom_bins, num_psd_θ_bins, n_xspec, length(pcuts), n_grid, r_RH, r_comp,
-        u₀, β₀, γ₀, u₂, β₂, γ₂, species, bmag₀, bmag₂, θ_B₀, θ_B₂, θᵤ₂,
-        mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine,
-        feb_upstream, feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac
-    )
+    #print_input(
+    #    n_pts_inj, n_pts_pcut, n_pts_pcut_hi, n_ions,
+    #    num_psd_mom_bins, num_psd_θ_bins, n_xspec, length(pcuts), n_grid, r_RH, r_comp,
+    #    u₀, β₀, γ₀, u₂, β₂, γ₂, species, bmag₀, bmag₂, θ_B₀, θ_B₂, θᵤ₂,
+    #    mach_sonic, mach_alfven, xn_per_coarse, xn_per_fine,
+    #    feb_upstream, feb_downstream, rg₀, age_max, energy_pcut_hi, do_fast_push, bturb_comp_frac
+    #)
 
     weights_file = open("mc_coupled_weights.csv", "w")
     spectra_file = jldopen("mc_coupled_spectra.hdf5", "a+")

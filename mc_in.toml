@@ -71,7 +71,8 @@ use-custom-frg = false
 # Number of particles to inject, and target number of particles at low-E pcuts.
 #NPTLO = [600, 1200]
 #N_PTS_INJ = 600
-N_PTS_INJ = 200
+#N_PTS_INJ = 200
+N_PTS_INJ = 100
 N_PTS_PCUT = 400
 
 # Target number of particles at hi-E pcuts, and cutoff kinetic energy [keV/aa] between the two
@@ -132,10 +133,10 @@ momentum-cutoffs = [
 no-shock = false
 
 # Enter true for scatter-FREE propagation. For testing only.
-no-scatter = false
+no-scatter = true
 
 # Enter true to turn off DSA. For testing only.
-no-DSA = false
+no-DSA = true
 
 # Enter false to keep velocity profile constant between iterations (i.e. NO smoothing)
 smooth-shocks = false

@@ -52,7 +52,7 @@ function geometric_center(y)
 end
 
 using Unitful
-lorentz(v::Unitful.Velocity) = lorentz(v / c)
+lorentz(v::Unitful.Velocity) = lorentz(ustrip(c, v))
 """
     γ = lorentz(v)
     γ = lorentz(β)

@@ -1,4 +1,4 @@
-function parse_shock_speed(skspd, skspd_unit)
+function parse_shock_speed(skspd::Real, skspd_unit::String)
     skspd > 0 || error("Shock speed must be positive")
 
     if skspd_unit ∈ ("gamma", "γ")
@@ -24,7 +24,7 @@ function parse_shock_speed(skspd, skspd_unit)
     return (u, β, γ)
 end
 
-function parse_maximum_energy(energy_max)
+function parse_maximum_energy(energy_max::AbstractVector{Float64})
     if energy_max[1] > 0      # All species have same max energy
         Emax = energy_max[1]
         Emax_per_aa = 0.0
@@ -38,14 +38,15 @@ function parse_maximum_energy(energy_max)
     elseif energy_max[3] > 0  # All species have same max momentum
         Emax = 0.0
         Emax_per_aa = 0.0
-        pmax = energy_max[3]
+        pmax = energy_max[3]::Float64
     else
         error("ENMAX: at least one choice must be non-zero.")
     end
-    return (Emax * keV, Emax_per_aa * keV, pmax * mp * c)
+    pmax = pmax * uconvert(g * cm / s, mp * c)
+    return (Emax * keV, Emax_per_aa * keV, pmax)
 end
 
-function parse_electron_critical_energy(Eₑ_crit)
+function parse_electron_critical_energy(Eₑ_crit::Real)
     if isnothing(Eₑ_crit) || Eₑ_crit ≤ 0
         return (-me * c, -1.0)
     end
@@ -80,7 +81,7 @@ function check_x_grid_limits(x_grid_start_rg, x_grid_stop_rg)
     return
 end
 
-function check_pcuts(pcuts, Emax, Emax_per_aa, pmax)
+function check_pcuts(pcuts, Emax::EnergyCGS, Emax_per_aa::EnergyCGS, pmax::MomentumCGS)
     length(pcuts) > na_c && error("momentum-cutoffs: parameter na_c smaller than desired number of pcuts.")
 
     if Emax > 0keV
@@ -153,7 +154,7 @@ function parse_jet_frac(::Nothing, do_photons = false)
     return (0.0, 0.0)
 end
 
-function parse_jet_frac((jet_sph_frac, jet_open_ang_deg), do_photons = false)
+function parse_jet_frac((jet_sph_frac, jet_open_ang_deg)::Tuple{Float64,Float64}, do_photons = false)
     if 0 < jet_sph_frac ≤ 1
         jet_open_ang_deg = acosd(1 - 2jet_sph_frac)
     elseif 0 < jet_open_ang_deg ≤ 180
@@ -165,15 +166,15 @@ function parse_jet_frac((jet_sph_frac, jet_open_ang_deg), do_photons = false)
 end
 
 function parse_species(cfg)
-    masses = cfg["AA_ION"] # species mass in units of proton mass
+    masses = cfg["AA_ION"]::Vector{Float64} # species mass in units of proton mass
     electron_index = findfirst(isnan, masses)
     masses[electron_index] = NoUnits(me / mp) # electron mass over proton mass
 
-    charges = cfg["ZZ_ION"]
+    charges = cfg["ZZ_ION"]::Vector{Float64}
     charges[electron_index] = -1
 
-    temperatures = cfg["TZ_ION"] # temperature of each species
-    densities = cfg["DENZ_ION"] # number density of each species
+    temperatures = cfg["TZ_ION"]::Vector{Float64} # temperature of each species
+    densities = cfg["DENZ_ION"]::Vector{Float64} # number density of each species
 
     if !(length(masses) == length(charges) == length(temperatures) == length(densities))
         error("Inconsistent number of ion parameters given (AA_ION, ZZ_ION, TZ_ION, DENZ_ION)")

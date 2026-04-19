@@ -69,7 +69,7 @@ Shock must be parallel (not oblique)
 - `r_RH`: Rankine-Hugoniot compression ratio
 - `Γ₂_RH`: ratio of specific heats (adiabatic index) for downstream region, assuming `r_comp` = `r_RH`
 """
-function calc_rRH((_, β₀, γ₀), species)
+function calc_rRH(β₀::Real, γ₀::Real, species)
 
     # Two possibilities for R-H relations: nonrelativistic/relativistic
     # Cutoff for (non-)relativistic is set in module 'parameters'
@@ -96,7 +96,7 @@ Nonrelativistic, parallel.
 Solution comes from Ellison (1985) [1985JGR....90...29E].
 Uses far upstream Mach number to calculate `r_RH`.
 """
-function calc_rRH_nonrelativistic(P₀, ρ₀, β₀)
+function calc_rRH_nonrelativistic(P₀, ρ₀, β₀::Real)
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal
     # gas, to calculate the far upstream sound speed and Mach number   #assumecold
@@ -139,7 +139,7 @@ where
 Assumes that downstream particle distributions are δ-functions.
 Solves for `p₂` using Newton's method, then works backwards to `r_RH`.
 """
-function calc_rRH_relativistic(species, ρ₀, P₀, (β₀, γ₀))
+function calc_rRH_relativistic(species, ρ₀, P₀, β₀::Real, γ₀::Real)
 
     # Calculate two quantities to be used during loop to find r_RH: the
     # rest energy of each species, and the (number) density relative to protons
@@ -428,17 +428,18 @@ const DOWNSTREAM_SPACING = SVector(
 - `x_grid_start`
 - `x_grid_stop`
 """
-function setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_downstream, rg₀)
+function setup_grid(x_grid_start_rg::Float64, x_grid_stop_rg::Float64, use_prp::Bool, feb_downstream::Float64, rg₀::Float64)
 
     # Recall that rg₀ is the gyroradius of a proton with speed u₀ in magnetic field B₀.
 
     # Set the start and stop positions in units of rg₀
     x_grid_start = x_grid_start_rg * rg₀
     if !use_prp
-        x_grid_stop_rg = feb_downstream / rg₀
+        x_grid_stop = feb_downstream
         @info("downstream FEB set at x = $x_grid_stop_rg rg₀. Overwriting entered value for 'XGDDW'.")
+    else
+        x_grid_stop = x_grid_stop_rg * rg₀
     end
-    x_grid_stop = x_grid_stop_rg * rg₀
 
     # Logarithmically-spaced grid zones run from x_grid_start_rg to -10rg₀. Set them here.
     n_log_upstream = 27
@@ -449,7 +450,8 @@ function setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_downstream, rg
 
     push!(x_grid_rg, -1.0e30) # set left boundary of grid
 
-    append!(x_grid_rg, -exp10.(range(start = log10(-x_grid_start_rg), step = -Δlogx, length = n_log_upstream)))
+    log_x_grid_upstream = range(start = log10(-x_grid_start_rg), step = -Δlogx, length = n_log_upstream)
+    append!(x_grid_rg, -exp10.(log_x_grid_upstream))
     append!(x_grid_rg, FIRST_ZONE)
     append!(x_grid_rg, EXTREMELY_FINE_SPACING)
     append!(x_grid_rg, DOWNSTREAM_SPACING)
@@ -458,9 +460,10 @@ function setup_grid(x_grid_start_rg, x_grid_stop_rg, use_prp, feb_downstream, rg
     # Downstream from there, more log-spaced zones.
     n_log_downstream = 16
     x_end_man = x_grid_rg[end]
-    Δlogx = (log10(x_grid_stop_rg) - log10(x_end_man)) / n_log_downstream
+    Δlogx = (log10(x_grid_stop*rg₀) - log10(x_end_man)) / n_log_downstream
 
-    append!(x_grid_rg, exp10.(range(start = log10(x_end_man), step = Δlogx, length = n_log_downstream)))
+    log_x_grid_downstream = range(start = log10(x_end_man), step = Δlogx, length = n_log_downstream)
+    append!(x_grid_rg, exp10.(log_x_grid_downstream))
 
     push!(x_grid_rg, 1.0e30)  # set right boundary of the grid
 
