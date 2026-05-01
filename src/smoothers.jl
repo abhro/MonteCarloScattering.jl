@@ -2,10 +2,12 @@ module smoothers
 
 using LinearAlgebra: dot
 using Roots
-using Unitful: c, mp, k as kB
+using Unitful: c, mp, k as kB, cm, dyn, Ba
+using UnitfulGaussian: G
 
 using ..parameters: β_rel_fl
 import ..print_plot_vals
+using ..CGSTypes: MomentumDensityFluxCGS, EnergyDensityFluxCGS, PressureCGS
 
 export smooth_grid_par, smooth_profile!
 
@@ -50,18 +52,19 @@ FIXME
   turbulence or additional amplification
 """
 function smooth_grid_par(
-        i_iter::Integer, i_shock::Integer, n_grid::Integer, x_grid_rg, x_grid_cm,
-        Γ_grid, uz_sk_grid, θ_grid,
-        pressure_psd_par, pressure_psd_perp,
-        F_px_upstream, F_energy_upstream, Γ₂, q_esc_cal_pₓ, q_esc_cal_energy,
+        i_iter::Integer, i_shock::Integer, n_grid::Integer, n_ions::Integer,
+        aa_ion, T₀_ion, n₀_ion,
+        x_grid_rg::AbstractVector, x_grid_cm::AbstractVector,
+        Γ_grid, uz_sk_grid::AbstractVector, θ_grid::AbstractVector,
+        P_psd_par, P_psd_perp,
+        F_px_upstream, F_energy_upstream, Γ₂::Real, q_esc_cal_pₓ, q_esc_cal_energy,
         pxx_flux, energy_flux, uₓ_sk_grid, γ_sf_grid, btot_grid, utot_grid,
         γ_ef_grid, β_ef_grid, εB_grid,
-        aa_ion, T₀_ion, n₀_ion,
         rg₀, do_prof_fac_damp, prof_weight_fac,
-        γ₀, u₀, β₀, γ₂, β₂, u₂,
-        do_smoothing::Bool, smooth_mom_energy_fac,
+        u₀, β₀, γ₀, u₂, β₂, γ₂,
+        do_smoothing::Bool, smooth_mom_energy_fac::Real,
         # ω = smooth_pressure_flux_psd_fac
-        ω, bturb_comp_frac, bfield_amp, B₀,
+        ω, bturb_comp_frac::Real, bfield_amp::Real, B₀,
         x_art_start_rg, use_custom_εB::Bool
     )
 
@@ -69,7 +72,7 @@ function smooth_grid_par(
     energy_norm = zeros(n_grid)
     pxz_tot = zeros(n_grid)
     pxz_norm = zeros(n_grid)
-    pressure_tot_MC = zeros(n_grid)
+    pressure_tot_MC = zeros(PressureCGS, n_grid)
 
 
     # Set constants
@@ -78,6 +81,7 @@ function smooth_grid_par(
     P₀ = dot(n₀_ion, T₀_ion) * kB
     e₀ = n₀ * mp * c^2  # rest energy density
 
+    local lopen
 
     #DEBUGLINE (for now)
     # Calculate the far upstream magnetization -- the ratio of the energy fluxes in EM fields
@@ -93,12 +97,14 @@ function smooth_grid_par(
         prof_weight_fac = max(10.0, prof_weight_fac)
     end
 
-    local mc_grid_fileunit = open("./mc_grid.dat", status = "unknown")
+    local mc_grid_fileunit = open("./mc_grid.dat", "w")
+
+    local pressure_pₓ_tp, pressure_energy_tp
 
     x_grid_log = zeros(n_grid)
     x_grid_log_cm = zeros(n_grid)
-    pxx_tot = zeros(n_grid)
-    energy_tot = zeros(n_grid)
+    pxx_tot = zeros(MomentumDensityFluxCGS, n_grid)
+    energy_tot = zeros(EnergyDensityFluxCGS, n_grid)
     # Compute a bunch of stuff about the current shock profile and print it
     # to file; loop 4111 in old code
     #-------------------------------------------------------------------------
@@ -114,9 +120,9 @@ function smooth_grid_par(
         end
 
         if x_grid_rg[i] < 0
-            x_grid_log_cm[i] = -log10(-x_grid_rg[i] * rg₀)
+            x_grid_log_cm[i] = -log10(-x_grid_rg[i] * rg₀ / cm)
         elseif x_grid_rg[i] > 0
-            x_grid_log_cm[i] = log10(x_grid_rg[i] * rg₀)
+            x_grid_log_cm[i] = log10(x_grid_rg[i] * rg₀ / cm)
         else
             x_grid_log_cm[i] = 0.0
         end
@@ -160,17 +166,17 @@ function smooth_grid_par(
 
         pxx_EM = γβ^2 / 8π * B^2 + γ² / 8π * (B_z^2 - B_x^2) - (γ² - γᵤ_sf) / 2π * (β_uz / β_uₓ) * B_x * B_z
 
-        energy_EM = γ² / 4π * β_uₓ * B_z^2 - (2γ² - γᵤ_sf) / 4π * β_uz * B_x * B_z
+        energy_EM = γ² / 4π * β_uₓ*c * B_z^2 - (2γ² - γᵤ_sf) / 4π * β_uz*c * B_x * B_z
 
         # Total momentum/energy fluxes, including electrons (if needed) and EM.
         # Also normalized against far upstream values and in log space for plotting.
         pxx_tot[i] = pxx_flux[i] + pxx_EM
-        energy_tot[i] = energy_flux[i] + energy_EM + Ξ_post * uₓ
+        energy_tot[i] = energy_flux[i] + energy_EM
 
         pxx_norm[i] = pxx_tot[i] / F_px_upstream
         energy_norm[i] = energy_tot[i] / F_energy_upstream
 
-        pxx_norm_log = max(log10(pxx_norm[i]), -99.0)
+        pxx_norm_log = max(log10(abs(pxx_norm[i])), -99.0)
         energy_norm_log = max(log10(energy_norm[i]), -99.0)
 
         # In a parallel shock, the z-momentum flux is irrelevant. Set it to 0
@@ -197,42 +203,37 @@ function smooth_grid_par(
 
         # These pressures can become negative if a sharp shock with high compression ratio
         # results in a great deal of escaping flux. Place a floor on them for plotting purposes
-        pressure_pₓ = max(pressure_pₓ, 1.0e-99)
-        pressure_energy = max(pressure_energy, 1.0e-99)
+        pressure_pₓ = max(pressure_pₓ, 1.0e-99dyn/cm^2)
+        pressure_energy = max(pressure_energy, 1.0e-99dyn/cm^2)
 
         # Use the tabulated pressures from the thermal crossings and the PSD to determine
         # two quantities: the total pressure and the degree of anisotropy. Note that
         # pressure_aniso will return exactly 1.0 if the pressure is isotropic, as
         # pressure_par should be half of pressure_perp
-        pressure_tot_MC[i] = pressure_psd_par[i] + pressure_psd_perp[i]
-        pressure_aniso = 2pressure_psd_par[i] / pressure_psd_perp[i]
-
+        pressure_tot_MC[i] = P_psd_par[i] + P_psd_perp[i]
+        pressure_aniso = 2P_psd_par[i] / P_psd_perp[i]
 
         # Calculate the expected downstream pressure in the absence of DSA, i.e. in the test
         # particle limit. No escaping flux to worry about here, but still need to add in the
         # rest mass-energy flux
         if i == 1
-            pₓ_numer = F_px_upstream - γ₂ * β₂ * γ₀ * B₀ * e₀
+            pₓ_numer = F_px_upstream - γ₂ * β₂ * γ₀ * e₀
             pₓ_denom = 1 + (γ₂ * β₂)^2 * Γ₂ / (Γ₂ - 1)
             pressure_pₓ_tp = pₓ_numer / pₓ_denom
 
             energy_numer = F_energy_upstream + γ₀ * u₀ * e₀ * (1 - γ₂)
             energy_denom = γ₂^2 * u₂ * Γ₂ / (Γ₂ - 1)
             pressure_energy_tp = energy_numer / energy_denom
-        end
 
-        # Write it all to file
-        lopen = false
-        #lopen = inquire(:isopen, file="./mc_grid.dat")
-        if !lopen
-            mc_grid_fileunit = open("./mc_grid.dat", status = "unknown")
+            # Write it all to file
+            mc_grid_fileunit = open("./mc_grid.dat", "w")
         end
 
         # WARNING: these column numbers are reused in subroutine read_old_prof.
         # If they are ever modified, change that subroutine accordingly!
         write(
             mc_grid_fileunit,
-            (
+            string(
                 i_iter, i,
                 x_grid_rg[i],                   # 1
                 x_grid_log[i],                  # 2
@@ -249,20 +250,20 @@ function smooth_grid_par(
                 uz_norm,                        # 13
                 log10(uz_norm),                 # 14
                 B,                              # 15
-                log10(B),                       # 16
+                log10(B/G),                     # 16
                 θ_deg,                          # 17
                 γᵤ_sf,                          # 18
                 1 / density_ratio,              # 19
                 density_ratio,                  # 20
-                log10(pressure_pₓ),             # 21
-                log10(pressure_energy),         # 22
-                log10(pressure_psd_par[i]),     # 23
-                log10(pressure_psd_perp[i]),    # 24
-                log10(pressure_tot_MC[i]),      # 25
+                log10(pressure_pₓ/Ba),          # 21
+                log10(pressure_energy/Ba),      # 22
+                log10(P_psd_par[i]/Ba),         # 23
+                log10(P_psd_perp[i]/Ba),        # 24
+                log10(pressure_tot_MC[i]/Ba),      # 25
                 pressure_aniso,                 # 26
-                log10(pressure_pₓ_tp),          # 27
-                log10(pressure_energy_tp),      # 28
-                log10(P₀),                      # 29
+                log10(pressure_pₓ_tp/Ba),       # 27
+                log10(pressure_energy_tp/Ba),   # 28
+                log10(P₀/Ba),                   # 29
                 log10(1 - q_esc_cal_pₓ),        # 30  Remaining fluxes for plot:
                 log10(1 - q_esc_cal_energy),    # 31  momentum and energy
                 εB_grid[i],                     # 32

@@ -1,9 +1,9 @@
 module CGSTypes
-using Unitful: g, K, cm, s, dyn, erg, keV, GeV
+using Unitful: g, K, cm, s, dyn, erg, keV, GeV, Ba
 using UnitfulGaussian: Fr, G, qcgs
 
-export LengthCGS, MassCGS, TimeCGS, SpeedCGS, MomentumCGS, BFieldCGS, EnergyCGS, PressureCGS,
-    MomentumFluxCGS, MomentumDensityFluxCGS, EnergyFluxCGS, EnergyDensityFluxCGS
+export LengthCGS, MassCGS, TimeCGS, SpeedCGS, MomentumCGS, BFieldCGS, EnergyCGS, EnergyDensityCGS,
+    PressureCGS, MomentumFluxCGS, MomentumDensityFluxCGS, EnergyFluxCGS, EnergyDensityFluxCGS
 
 const LengthCGS = typeof(1.0 * cm)
 const MassCGS = typeof(1.0 * g)
@@ -14,7 +14,7 @@ const MomentumCGS = typeof(1.0 * g * cm / s)
 const BFieldCGS = typeof(1.0 * G)
 const EnergyCGS = typeof(1.0 * erg)
 const EnergyDensityCGS = typeof(1.0 * erg / cm^3)
-const PressureCGS = typeof(1.0 * erg / cm^3)
+const PressureCGS = typeof(1.0 * Ba)
 const MomentumFluxCGS = typeof(1.0 * g * cm^2 / s^2) # (g*cm/s) * cm/s
 const MomentumDensityFluxCGS = typeof(1.0 * erg / cm^3)
 const EnergyFluxCGS = typeof(1.0 * erg * cm / s)

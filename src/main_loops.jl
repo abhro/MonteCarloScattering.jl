@@ -16,7 +16,7 @@ function main_loops(
         (u₀, β₀, γ₀), (u₂, β₂, γ₂),
         Emax, Emax_per_aa, energy_pcut_hi, pmax,
         pxx_flux, pxz_flux, energy_flux,
-        pressure_psd_par, pressure_psd_perp, energy_density_psd,
+        P_psd_par, P_psd_perp, energy_density_psd,
         esc_spectra_feb_upstream, esc_spectra_feb_downstream,
         weight_coupled,
         ε_target, Γ₂_RH, εB_grid, Γ_grid, γ_sf_grid, uₓ_sk_grid, uz_sk_grid, utot_grid, energy_transfer_frac,
@@ -36,8 +36,9 @@ function main_loops(
         bmag₂, zone_vol, pₑ_crit, γₑ_crit,
         x_spec, feb_upstream, feb_downstream, B_CMBz, use_custom_εB,
         γ_ef_grid, β_ef_grid, btot_grid, θ_grid, pₓ_esc_feb, energy_esc_feb,
-        do_rad_losses, do_retro, do_tcuts, dont_DSA, dont_scatter, use_custom_frg,
-        inj_fracs, spectra_pf, spectra_sf, tcuts, age_max, spectra_coupled,
+        do_smoothing, do_rad_losses, do_retro, do_tcuts, dont_DSA, dont_scatter, use_custom_frg, do_prof_fac_damp,
+        smooth_mom_energy_fac::Real, smooth_pressure_flux_psd_fac::Real, prof_weight_fac::Real, inj_fracs, spectra_pf, spectra_sf,
+        tcuts, age_max, spectra_coupled,
         esc_energy_eff, esc_num_eff, esc_flux, electron_weight_fac,
         n_pts_pcut, n_pts_pcut_hi, t_start, weights_file, spectra_file, outfile,
         pₓ_esc_flux_upstream, F_px_upstream, F_energy_upstream, energy_esc_flux_upstream,
@@ -45,6 +46,7 @@ function main_loops(
         do_multi_dNdps, do_photons,
         jet_rad_pc, jet_sph_frac, m_ion, aa_ion, zz_ion, T₀_ion, n₀_ion,
         r_comp, r_RH, n_shell_endpoints,
+        bturb_comp_frac, bfield_amp, B₀, x_art_start_rg,
     )
     # Start of loop over iterations
     for i_iter in 1:n_itrs # loop_itr
@@ -55,7 +57,9 @@ function main_loops(
         # Minimally positive number is used to prevent errors when taking logarithms later
         # XXX uses the type-pirated version of Base.fill!
         fill!((pxx_flux, pxz_flux), 1.0e-99erg / cm^3)
-        fill!((energy_flux, pressure_psd_par, pressure_psd_perp, energy_density_psd), 1.0e-99)
+        fill!(energy_flux, 1.0e-99erg/(cm^2*s))
+        fill!((P_psd_par, P_psd_perp), 1.0e-99Ba)
+        fill!(energy_density_psd, 1.0e-99erg/cm^3)
         fill!((esc_spectra_feb_upstream, esc_spectra_feb_downstream), 1.0e-99)
         fill!(weight_coupled, 1.0e-99)
 
@@ -275,9 +279,9 @@ function main_loops(
                     end
 
                     # Particle counting
-                    if (i_prt == 1 || i_prt % n_print_pt == 0) && i_pcut == 1
-                        @info("Particle = $i_prt")
-                    end
+                    #if (i_prt == 1 || i_prt % n_print_pt == 0) && i_pcut == 1
+                    #    @info("Particle = $i_prt")
+                    #end
 
                     i_fin += 1
                     #if i_fin % 16 == 0
@@ -316,7 +320,7 @@ function main_loops(
 
             (;
                 dNdp_therm, dNdp_therm_pvals, dNdp_cr, zone_pop,
-                pressure_psd_par, pressure_psd_perp, energy_density_psd,
+                P_psd_par, P_psd_perp, energy_density_psd,
             ) = ion_finalize(
                 outfile, nc_unit,
                 aa, esc_psd_feb_upstream, esc_psd_feb_downstream,
@@ -357,18 +361,24 @@ function main_loops(
         #print_plot_vals(888)
 
         iter_finalize(
-            i_iter, i_shock, n_grid, outfile, Γ₂_RH, x_grid_cm, x_grid_rg,
+            i_iter, i_shock, n_ions, n_grid, aa_ion, zz_ion, n₀_ion, T₀_ion, rg₀,
+            outfile, Γ₂_RH, x_grid_cm, x_grid_rg,
+            do_smoothing, smooth_mom_energy_fac, smooth_pressure_flux_psd_fac,
+            do_prof_fac_damp, prof_weight_fac,
             Γ_grid, uz_sk_grid, θ_grid,
             pxx_flux, energy_flux, pₓ_esc_flux_upstream, pₓ_esc_upstream, F_px_upstream,
             energy_esc_flux_upstream, energy_esc_upstream, energy_density_psd,
             F_energy_upstream,
-            pressure_psd_par, pressure_psd_perp,
+            P_psd_par, P_psd_perp,
             Γ_downstream, ∑P_downstream, ∑KEdensity_downstream,
             q_esc_cal_pₓ, q_esc_cal_energy,
             uₓ_sk_grid, γ_sf_grid, btot_grid, utot_grid,
             γ_ef_grid, β_ef_grid, εB_grid,
-            r_comp, r_RH, u₀, β₀, γ₀, species, γ₂, β₂, u₂,
+            r_comp, r_RH, species, u₀, β₀, γ₀, u₂, β₂, γ₂,
+            bturb_comp_frac, bfield_amp, B₀, x_art_start_rg,
+            use_custom_εB,
         )
+        print_iteration_info(i_iter, outfile, r_comp, Γ_downstream, Γ₂_RH, r_RH)
         # If tcut tracking was enabled, print out the results here
         if do_tcuts
             tcut_print(

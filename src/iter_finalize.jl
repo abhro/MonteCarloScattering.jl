@@ -1,15 +1,21 @@
 function iter_finalize(
-        i_iter, i_shock, n_grid, outfile, Γ₂_RH, x_grid_cm, x_grid_rg,
+        i_iter, i_shock, n_ions, n_grid, aa_ion, zz_ion, n₀_ion, T₀_ion, rg₀,
+        outfile, Γ₂_RH, x_grid_cm, x_grid_rg,
+        do_smoothing, smooth_mom_energy_fac, smooth_pressure_flux_psd_fac,
+        do_prof_fac_damp, prof_weight_fac,
         Γ_grid, uz_sk_grid, θ_grid,
         pxx_flux, energy_flux, pₓ_esc_flux_upstream, pₓ_esc_upstream, F_px_upstream,
         energy_esc_flux_upstream, energy_esc_upstream, energy_density_psd,
         F_energy_upstream,
-        pressure_psd_par, pressure_psd_perp,
+        P_psd_par, P_psd_perp,
         Γ_downstream, ∑P_downstream, ∑KEdensity_downstream,
         q_esc_cal_pₓ, q_esc_cal_energy,
         uₓ_sk_grid, γ_sf_grid, btot_grid, utot_grid,
         γ_ef_grid, β_ef_grid, εB_grid,
-        r_comp, r_RH, u₀, β₀, γ₀, species, γ₂, β₂, u₂,
+        r_comp, r_RH, species, u₀, β₀, γ₀, u₂, β₂, γ₂,
+        bturb_comp_frac, bfield_amp, B₀,
+        x_art_start_rg, use_custom_εB,
+
     )
     # Compute the escaping flux for this iteration
     pₓ_esc_flux_upstream[i_iter] = pₓ_esc_upstream / F_px_upstream
@@ -20,7 +26,7 @@ function iter_finalize(
     # adiabatic indices will be used in the profile smoothing subroutine smooth_grid
     set_Γ_adiab_grid!(
         Γ_grid, i_iter, n_grid, x_grid_cm, Γ₂_RH,
-        pressure_psd_par, pressure_psd_perp, energy_density_psd,
+        P_psd_par, P_psd_perp, energy_density_psd,
     )
 
     # Also compute the adiabatic index of particles that were lost downstream
@@ -45,22 +51,22 @@ function iter_finalize(
     pxx_flux[1:n_grid] .= round.(eltype(pxx_flux[begin]), pxx_flux[1:n_grid], digits = 13)
     # Commented out because it's not necessary for smoothing parallel shocks
     #pxz_flux[1:n_grid] = round(pxz_flux[1:n_grid], digits=13)
-    energy_flux[1:n_grid] = round.(eltype(energy_flux), energy_flux[1:n_grid], digits = 13)
+    energy_flux[1:n_grid] = round.(eltype(energy_flux[begin]), energy_flux[1:n_grid], digits = 13)
 
     # Output grid data for this iteration, and smooth the grid for the next iteration
     smooth_grid_par(
-        i_iter, i_shock, n_grid, x_grid_rg, x_grid_cm,
+        i_iter, i_shock, n_grid, n_ions, aa_ion, T₀_ion, n₀_ion,
+        x_grid_rg, x_grid_cm,
         Γ_grid, uz_sk_grid, θ_grid,
-        pressure_psd_par, pressure_psd_perp,
+        P_psd_par, P_psd_perp,
         F_px_upstream, F_energy_upstream, Γ₂_RH, q_esc_cal_pₓ_avg, q_esc_cal_energy_avg,
         pxx_flux, energy_flux, uₓ_sk_grid, γ_sf_grid, btot_grid, utot_grid,
         γ_ef_grid, β_ef_grid, εB_grid,
-        n_ions, aa_ion, zz_ion, T₀_ion, n₀_ion,
         rg₀, do_prof_fac_damp, prof_weight_fac,
-        γ₀, u₀, β₀, γ₂, β₂, u₂,
+        u₀, β₀, γ₀, u₂, β₂, γ₂,
         do_smoothing, smooth_mom_energy_fac,
         smooth_pressure_flux_psd_fac, bturb_comp_frac, bfield_amp, B₀,
-        x_art_start_rg, use_custom_εB
+        x_art_start_rg, use_custom_εB,
     )
 
 
@@ -100,7 +106,10 @@ function iter_finalize(
     end
     println(outfile)
 
+    return
+end
 
+function print_iteration_info(i_iter, outfile, r_comp, Γ_downstream, Γ₂_RH, r_RH)
     # Compute various adiabatic indices and write them out
     n_avg = min(i_iter, 4)
     Γ_downstream_esc = mean(Γ_downstream[(i_iter - n_avg + 1):i_iter])
@@ -118,7 +127,7 @@ end
 
 function set_Γ_adiab_grid!(
         Γ_grid, i_iter, n_grid, x_grid_cm, Γ₂_RH,
-        pressure_psd_par, pressure_psd_perp, energy_density_psd,
+        P_psd_par, P_psd_perp, energy_density_psd,
     )
     if i_iter == 1
         index_mask = (@view(x_grid_cm[axes(Γ_grid, 1)]) .≤ 0cm)
@@ -128,7 +137,7 @@ function set_Γ_adiab_grid!(
         Γ_grid[:, 1] .= Γ_grid[:, 2]
     end
 
-    Γ_grid[:, 2] .= @. 1 + (pressure_psd_par + pressure_psd_perp) / energy_density_psd
+    Γ_grid[:, 2] .= @. 1 + (P_psd_par + P_psd_perp) / energy_density_psd
 
     index_mask = (energy_density_psd .== 1.0e-99)
     Γ_grid[index_mask, 2] .= 1.0e-99

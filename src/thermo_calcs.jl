@@ -22,8 +22,8 @@ calculate the pressure (which may be anisotropic) everywhere on the grid.
 
 ### Returns
 
-- `pressure_psd_par`: component of pressure parallel to magnetic field
-- `pressure_psd_perp`: component of pressure perpendicular to magnetic field
+- `P_psd_par`: component of pressure parallel to magnetic field
+- `P_psd_perp`: component of pressure perpendicular to magnetic field
 - `energy_density_psd`: local kinetic energy density of fluid in every grid zone
 """
 function thermo_calcs(
@@ -239,8 +239,8 @@ function thermo_calcs(
     Γ = 5 // 3
 
     # Output arguments
-    pressure_psd_par = zeros(PressureCGS, n_grid)
-    pressure_psd_perp = zeros(PressureCGS, n_grid)
+    P_psd_par = zeros(PressureCGS, n_grid)
+    P_psd_perp = zeros(PressureCGS, n_grid)
     energy_density_psd = zeros(PressureCGS, n_grid)
 
     local density_electron
@@ -268,8 +268,8 @@ function thermo_calcs(
 
             # Update components of pressure, assuming isotropy; twice as many perpendicular
             # components as parallel (y & z vs x), thus the factor of 2 in the computation
-            pressure_psd_par[i]  += 1/3 * pressure_loc
-            pressure_psd_perp[i] += 2/3 * pressure_loc
+            P_psd_par[i]  += 1/3 * pressure_loc
+            P_psd_perp[i] += 2/3 * pressure_loc
 
             # With only thermal particles at this grid location, the energy density is easy to determine
             # #assumecold
@@ -292,8 +292,8 @@ function thermo_calcs(
             # Scale the contributions from the thermal particles by the fraction of the
             # zone's population they represent, and add that to the running total
             pressure_loc *= 1 - d²N_pop[i] / zone_pop[i]
-            pressure_psd_par[i]  += 1/3 * pressure_loc
-            pressure_psd_perp[i] += 2/3 * pressure_loc
+            P_psd_par[i]  += 1/3 * pressure_loc
+            P_psd_perp[i] += 2/3 * pressure_loc
 
             # Set the normalization factor for the CRs that were tracked during the iteration;
             # summation over CRs will total d²N_pop[i], which makes up for the amount
@@ -335,8 +335,8 @@ function thermo_calcs(
                 # The factor of two below is because there are two perpendicular components of pressure
                 pressure_perp_tmp = d²N_pf[jθ, k, i] * pressure_fac * (1 - cos_center[jθ]^2)
 
-                pressure_psd_par[i] += pressure_par_tmp
-                pressure_psd_perp[i] += pressure_perp_tmp
+                P_psd_par[i] += pressure_par_tmp
+                P_psd_perp[i] += pressure_perp_tmp
 
 
                 # Update the energy density also
@@ -348,5 +348,5 @@ function thermo_calcs(
     #-------------------------------------------------------------------------
     # Loop over grid zones finished
 
-    return pressure_psd_par, pressure_psd_perp, energy_density_psd
+    return P_psd_par, P_psd_perp, energy_density_psd
 end

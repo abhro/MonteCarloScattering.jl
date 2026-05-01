@@ -6,7 +6,7 @@ using CSV
 using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
 using Unitful: Quantity, FreeUnits
 using Unitful: Momentum, Energy
-using Unitful: g, K, km, cm, s, dyn, erg, keV, MeV, GeV
+using Unitful: g, K, km, cm, s, dyn, erg, Ba, keV, MeV, GeV
 using Unitful: mp, me, c, q, k as kB, h, ħ    # physical constants
 using UnitfulAstro: Mpc
 using UnitfulGaussian: Fr, G, qcgs
@@ -353,7 +353,7 @@ function (@main)(args::Vector{String}=String[])
         # units of momentum flux density: [p] * [v] * [n] = [energy density]
         pxx_flux = Vector{MomentumDensityFluxCGS}(undef, n_grid)
         pxz_flux = Vector{MomentumDensityFluxCGS}(undef, n_grid)
-        energy_flux = Vector{Float64}(undef, n_grid)
+        energy_flux = Vector{EnergyDensityFluxCGS}(undef, n_grid)
         esc_flux = zeros(n_ions)
         pₓ_esc_feb = zeros(n_ions, n_itrs)
         energy_esc_feb = zeros(n_ions, n_itrs)
@@ -516,9 +516,9 @@ function (@main)(args::Vector{String}=String[])
     spectra_file = open("mc_coupled_spectra.csv", "a+")
     #spectra_file = jldopen("mc_coupled_spectra.hdf5", "a+")
 
-    pressure_psd_par = Vector{Float64}(undef, n_grid)
-    pressure_psd_perp = Vector{Float64}(undef, n_grid)
-    energy_density_psd = Vector{Float64}(undef, n_grid)
+    P_psd_par = Vector{PressureCGS}(undef, n_grid)
+    P_psd_perp = Vector{PressureCGS}(undef, n_grid)
+    energy_density_psd = Vector{EnergyDensityCGS}(undef, n_grid)
 
     energy_transfer_pool = Vector{EnergyCGS}(undef, n_grid)
     energy_recv_pool = Vector{EnergyCGS}(undef, n_grid)
@@ -613,7 +613,7 @@ function (@main)(args::Vector{String}=String[])
         (u₀, β₀, γ₀), (u₂, β₂, γ₂),
         Emax, Emax_per_aa, energy_pcut_hi, pmax,
         pxx_flux, pxz_flux, energy_flux,
-        pressure_psd_par, pressure_psd_perp, energy_density_psd,
+        P_psd_par, P_psd_perp, energy_density_psd,
         esc_spectra_feb_upstream, esc_spectra_feb_downstream,
         weight_coupled,
         ε_target, Γ₂_RH, εB_grid, Γ_grid, γ_sf_grid, uₓ_sk_grid, uz_sk_grid, utot_grid, energy_transfer_frac,
@@ -633,8 +633,9 @@ function (@main)(args::Vector{String}=String[])
         bmag₂, zone_vol, pₑ_crit, γₑ_crit,
         x_spec, feb_upstream, feb_downstream, B_CMBz, use_custom_εB,
         γ_ef_grid, β_ef_grid, btot_grid, θ_grid, pₓ_esc_feb, energy_esc_feb,
-        do_rad_losses, do_retro, do_tcuts, dont_DSA, dont_scatter, use_custom_frg,
-        inj_fracs, spectra_pf, spectra_sf, tcuts, age_max, spectra_coupled,
+        do_smoothing, do_rad_losses, do_retro, do_tcuts, dont_DSA, dont_scatter, use_custom_frg, do_prof_fac_damp,
+        smooth_mom_energy_fac, smooth_pressure_flux_psd_fac, prof_weight_fac, inj_fracs, spectra_pf, spectra_sf,
+        tcuts, age_max, spectra_coupled,
         esc_energy_eff, esc_num_eff, esc_flux, electron_weight_fac,
         n_pts_pcut, n_pts_pcut_hi, t_start, weights_file, spectra_file, outfile,
         pₓ_esc_flux_upstream, F_px_upstream, F_energy_upstream, energy_esc_flux_upstream,
@@ -642,6 +643,7 @@ function (@main)(args::Vector{String}=String[])
         do_multi_dNdps, do_photons,
         jet_rad_pc, jet_sph_frac, m_ion, aa_ion, zz_ion, T₀_ion, n₀_ion,
         r_comp, r_RH, n_shell_endpoints,
+        bturb_comp_frac, bfield_amp, bmag₀, x_art_start_rg,
     )
 
     close(weights_file)
@@ -653,7 +655,7 @@ function (@main)(args::Vector{String}=String[])
     run_time = round(t_end - t_start, Second)
 
     println()
-    @info(" Finished. Run time = $(run_time) sec, $(round(run_time, Minute)) min")
+    @info(" Finished. Run time = $(run_time) ($(round(run_time, Minute)))")
 
     println(outfile)
     println(outfile, " Finished. Run time = ", run_time, ", ", round(run_time, Minute))

@@ -72,7 +72,7 @@ Bin in angle into which particle falls
 """
 function get_psd_bin_angle(pₓ_sk, ptot_sk, psd_bins_per_dec_θ::Integer, num_psd_θ_bins::Integer, psd_cos_fine, Δcos, psd_θ_min)
     if iszero(ptot_sk)
-        @warn("Zero-momentum found, defaulting to angle bin = 0", ptot_sk, pₓ_sk)
+        #@warn("Zero-momentum found, defaulting to angle bin = 0", ptot_sk, pₓ_sk)
         return 0
     end
     # Bin in angle (bin); note that we negate the pitch angle to provide the

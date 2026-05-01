@@ -1,6 +1,6 @@
 using Printf: @sprintf
 using Unitful, UnitfulAstro
-using Unitful: cm
+using Unitful: cm, s
 using UnitfulAstro: pc
 
 export print_input, print_plot_vals, tcut_print
@@ -47,11 +47,11 @@ function tcut_print(
     j_plot = 0
     weights_table = (;
         i_iter = i_iter,
-        tcuts_log = log10.(tcuts),                      # 1     tcut times
+        tcuts_log = log10.(tcuts/s),                    # 1     tcut times
         weight_coupled_log = log10.(weight_coupled),    # 2-?   weights by species
     )
 
-    CSV.write(weights_fileunit, weights_table)
+    #CSV.write(weights_fileunit, weights_table)
 
 
     # Write out the spectra at each tcut, as a histogram. Split into groups
@@ -59,9 +59,9 @@ function tcut_print(
     for i_ion in 1:n_ions
         # XXX how does hdf5 actually index these things? probably two levels of
         # indexing isn't even necessasry
-        spectra_fileunit[i_ion]["psd_mom_bounds"] = psd_mom_bounds     # cgs units
-        spectra_fileunit[i_ion]["psd_mom_bounds_nat"] = log10.(psd_mom_bounds / (mp * c))  # nat units
-        spectra_fileunit[i_ion]["spectra"] = log10.(spectra_coupled)
+        #spectra_fileunit[i_ion]["psd_mom_bounds"] = psd_mom_bounds     # cgs units
+        #spectra_fileunit[i_ion]["psd_mom_bounds_nat"] = log10.(psd_mom_bounds / (mp * c))  # nat units
+        #spectra_fileunit[i_ion]["spectra"] = log10.(spectra_coupled)
 
         print_plot_vals(spectra_fileunit)
     end
@@ -251,4 +251,5 @@ function print_plot_vals(
     )
 
 end
-print_plot_vals(args...) = error("Fortran holdover function")
+print_plot_vals(args...) = nothing
+#print_plot_vals(args...) = error("Fortran holdover function")
