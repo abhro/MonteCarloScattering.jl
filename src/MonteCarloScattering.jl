@@ -9,6 +9,7 @@ using Unitful: mp, me, c, q, k as kB, h, ħ    # physical constants
 using UnitfulAstro: Mpc
 using UnitfulGaussian: Fr, G, qcgs
 using Cosmology
+using SynchrotronKernel: synchrotron_intensity
 using Statistics: mean
 using StaticArrays
 using OffsetArrays

@@ -1,8 +1,6 @@
 using LinearAlgebra: dot
 using Unitful: ustrip, MeV, erg, c, ħ, mp, me
 using UnitfulGaussian: qcgs
-using QuadGK: quadgk
-using SpecialFunctions: besselk
 
 """
     synch_emission(...)
@@ -117,6 +115,9 @@ Actual emission function
 function synch_emission!(
         synch_emis, nbins, dN, p_pf, B, mc, n_photon_synch, Eᵧ, p_fac
     )
+    if B < 1.0e-20
+        return
+    end
     xxx_max_set = 30.0
 
     ν = 5//3    # order of modified Bessel function
@@ -124,8 +125,8 @@ function synch_emission!(
     for i in 0:nbins
 
         # Total number of electrons in Δp
-        xnum_electron = dN[i]
-        xnum_electron ≤ 1.0e-60 && continue # skip empty bins
+        xNₑ = dN[i]
+        xNₑ ≤ 1.0e-60 && continue # skip empty bins
 
         # Assume electrons with E < 3 MeV contribute no synchrotron emission
         p = √(p_pf[i] * p_pf[i + 1]) # Geometric mean
@@ -136,32 +137,28 @@ function synch_emission!(
 
         # Eq. 6.17c Rybicki & Lightman without sin(α)
         ω_c = 3 * γₑ^2 * qcgs * B / 2mc
+        ω_c < 1.0e-55 && continue
 
         # Calculate F factor in eq. 6.18 Rybicki & Lightman (see Eq 6.31c)
         #     F(x) ≡ x ∫ₓ^∞ K_{5/3}(ξ) dξ              (6.31c)
         for j in 1:n_photon_synch
-            if B < 1.0e-20 || ω_c < 1.0e-55
-                continue
-            end
-
             ωᵧ = Eᵧ[j] / ħ    # from E = ħω
             x = ωᵧ / ω_c
-
             if x ≥ xxx_max_set || x < 1.0e-15
                 continue
             end
 
-            F = x * quadgk(t -> besselk(ν, t), x, Inf)
+            F = synchrotron_intensity(x)
 
             # In the MC code, the electron spectra passed to synch_emission contain the
             # total number of particles in each momentum shell. Therefore, the emission
             # returned by this subroutine has units of erg/s. (It would be erg/(s⋅cm³)
             # if we had passed density instead of number.)
-            # Also, Eq. (6.18) from Rybicki & Lightman, [xnum_electron * p_fac * F], is
+            # Also, Eq. (6.18) from Rybicki & Lightman, [xNₑ * p_fac * F], is
             # energy production rate per frequency, dP/dω. Since ωᵧ is E/ħ, dω = dE/ħ, and
             # so ωᵧ/dω = E/dE. Then [dP/dω * ωᵧ] is equal to [dP/dE * E], or dP/d(lnE).
             # This is what `synch_emis()` expects as output. Has units [erg/s].
-            tmp_add = xnum_electron * ωᵧ * p_fac * F
+            tmp_add = xNₑ * ωᵧ * p_fac * F
 
             # Only include emission if it's sufficiently positive
             if tmp_add > 1.0e-55
