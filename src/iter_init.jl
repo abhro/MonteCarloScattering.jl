@@ -1,6 +1,6 @@
 function populate_ε_target!(
         ε_target::AbstractVector{Float64},
-        z_max::AbstractVector{Float64}, γ_sf_grid::AbstractVector{Float64},
+        z_max::Float64, γ_sf_grid::AbstractVector{Float64},
         uₓ_sk_grid::AbstractVector{SpeedCGS}, u₀::SpeedCGS, γ₀::Float64,
         energy_transfer_frac::Float64)
     for i in eachindex(ε_target)
