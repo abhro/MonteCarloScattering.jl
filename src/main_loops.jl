@@ -64,8 +64,8 @@ function main_loops(
         ∑P_downstream = 1.0e-99erg/cm^3         # total downstream pressure
         ∑KEdensity_downstream = 1.0e-99erg/cm^3 # total downstream kinetic energy density
 
-        energy_esc_upstream = 1.0e-99
-        pₓ_esc_upstream = 1.0e-99
+        energy_esc_upstream = 1.0e-99*(erg/(cm^2*s))
+        pₓ_esc_upstream = 1.0e-99erg/cm^3
 
         # To facilitate energy transfer from ions to electrons, calculate here the target energy
         # density fraction for electrons at each grid zone, and zero out the pool of

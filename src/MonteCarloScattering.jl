@@ -4,6 +4,8 @@ using Dates
 using JLD2
 using CSV
 using Unitful, UnitfulAstro, UnitfulGaussian, UnitfulEquivalences
+using Unitful: Quantity, FreeUnits
+using Unitful: Momentum, Energy
 using Unitful: g, K, km, cm, s, dyn, erg, keV, MeV, GeV
 using Unitful: mp, me, c, q, k as kB, h, ħ    # physical constants
 using UnitfulAstro: Mpc

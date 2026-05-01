@@ -9,12 +9,13 @@ using LinearAlgebra: dot
 using StaticArrays: SVector
 using Roots: find_zero, Newton
 using Unitful, UnitfulAstro
+using Unitful: Length, Mass, Momentum, Energy, Velocity
 using Unitful: g, cm, s, dyn, erg, keV
 using Unitful: mp, c, k as kB
 using Distributions: TriangularDist
 using ..parameters: num_therm_bins, na_particles, E_rel_pt, β_rel_fl
 import ..density, ..temperature, ..mass, ..number_density
-using ..CGSTypes: SpeedCGS, MassCGS, LengthCGS, MomentumCGS, EnergyCGS, BFieldCGS, MomentumDensityFluxCGS, EnergyDensityFluxCGS
+using ..CGSTypes: MomentumCGS, BFieldCGS, MomentumDensityFluxCGS, EnergyDensityFluxCGS
 
 """
     calc_downstream(...)
@@ -431,7 +432,7 @@ const DOWNSTREAM_SPACING = SVector(
 - `x_grid_start`
 - `x_grid_stop`
 """
-function setup_grid(x_grid_start_rg::Float64, x_grid_stop_rg::Float64, use_prp::Bool, feb_downstream::LengthCGS, rg₀::LengthCGS)
+function setup_grid(x_grid_start_rg::Float64, x_grid_stop_rg::Float64, use_prp::Bool, feb_downstream::Length, rg₀::Length)
 
     # Recall that rg₀ is the gyroradius of a proton with speed u₀ in magnetic field B₀.
 
@@ -569,17 +570,17 @@ function upstream_momentum_flux(::Val{:classical}, u₀, β₀, ρ₀, P₀, B_x
 end
 function upstream_momentum_flux(::Val{:relativistic}, β₀, γ₀, e₀, P₀, B₀, B_x, B_z)
 
-    # Momentum flux, x-component
+    # Momentum density flux, x-component
     # Fluid part (Double+ Eq 23)
-    F_pₓ_fl = (γ₀ * β₀)^2 * (e₀ + P₀) + P₀ |> g / (cm * s^2)
+    F_pₓ_fl = (γ₀ * β₀)^2 * (e₀ + P₀) + P₀ |> MomentumDensityFluxCGS
     # EM part (Double+ Eq 25)
-    F_pₓ_EM = γ₀^2 * ((β₀ * B₀)^2 + B_z^2 - B_x^2) / 8π |> g / (cm * s^2)
+    F_pₓ_EM = γ₀^2 * ((β₀ * B₀)^2 + B_z^2 - B_x^2) / 8π |> MomentumDensityFluxCGS
     @debug("Found partial fluxes", F_pₓ_fl, F_pₓ_EM)
     F_px_upstream = F_pₓ_fl + F_pₓ_EM                         # Total
 
-    # Momentum flux, z-component (Fluid Part = 0, from Double+ Eq 24)
+    # Momentum density flux, z-component (Fluid Part = 0, from Double+ Eq 24)
     # Total = EM part (Double+ Eq 26)
-    F_pz_upstream = -γ₀ * B_x * B_z / 4π
+    F_pz_upstream = -γ₀ * B_x * B_z / 4π |> MomentumDensityFluxCGS
 
     return F_px_upstream, F_pz_upstream
 end
@@ -770,10 +771,10 @@ Sets the initial values of the shock profile
   depending on values of bturb_comp_frac & bfield_amp
 """
 function setup_profile(
-        u₀::SpeedCGS, β₀::Float64, γ₀::Float64, B₀::BFieldCGS, θ_B₀::Float64,
+        u₀::Velocity, β₀::Float64, γ₀::Float64, B₀::BFieldCGS, θ_B₀::Float64,
         r_comp::Float64, bturb_comp_frac::Float64, bfield_amp::Float64, use_custom_εB::Bool,
         n_ions::Int, species, F_px_upstream, F_energy_upstream,
-        grid_axis::AbstractUnitRange, x_grid_cm::AbstractVector{LengthCGS}, x_grid_rg::AbstractVector,
+        grid_axis::AbstractUnitRange, x_grid_cm::AbstractVector{<:Length}, x_grid_rg::AbstractVector,
     )
 
     uₓ_sk_grid = OffsetVector{typeof(u₀)}(undef, grid_axis)
@@ -1246,7 +1247,7 @@ the wasted computation because this subroutine runs only rarely).
 
 CHECKTHIS: that output distribution matches M-B, just to make sure I haven't made a typo
 """
-function set_inj_dist(inj_weight::Bool, n_pts_inj::Int, inp_distr::Int, T_or_E, m::MassCGS, n₀)
+function set_inj_dist(inj_weight::Bool, n_pts_inj::Int, inp_distr::Int, T_or_E, m::Mass, n₀)
 
     # Error prevention
     0 < inp_distr < 3 || throw(DomainError(inp_distr, "Code can only do inp_distr = 1 or 2."))
@@ -1414,8 +1415,9 @@ end
 
 function set_inj_dist_particle_equal_weight!(
         ptot_out::AbstractVector, weight_out::AbstractVector,
-        p_range::AbstractVector{MomentumCGS}, E_range::AbstractVector{EnergyCGS},
-        area_tot, n_pts_inj::Integer, Δp::MomentumCGS, n₀
+        p_range::AbstractVector{<:Momentum},
+        E_range::AbstractVector, # is dimensionless :|
+        area_tot, n_pts_inj::Integer, Δp::Momentum, n₀
     )
 
     area_per_pt = area_tot / n_pts_inj # Area each particle gets if inj_weight = T

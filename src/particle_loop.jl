@@ -156,7 +156,13 @@ function particle_loop(
         # needed for electrons at high energies when using radiative losses
         helix_count += 1
 
-        helix_count % 50000 == 0 && @info("In helix loop: i_ion=$i_ion, i_pcut=$i_pcut, i_prt=$i_prt, helix_count=$helix_count")
+        #helix_count % 50000 == 0 && @info("In helix loop: i_ion=$i_ion, i_pcut=$i_pcut, i_prt=$i_prt, helix_count=$helix_count")
+
+        # FIXME electrons need to be escaped for some reason
+        if helix_count > 10_000 #&& aa < 1
+            i_reason = 1
+            break
+        end
 
         if i_return == 1
 

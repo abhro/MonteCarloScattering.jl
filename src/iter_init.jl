@@ -3,10 +3,11 @@ function populate_ε_target!(
         z_max::Float64, γ_sf_grid::AbstractVector{Float64},
         uₓ_sk_grid::AbstractVector{SpeedCGS}, u₀::SpeedCGS, γ₀::Float64,
         energy_transfer_frac::Float64)
+    prefac = energy_transfer_frac / (z_max - 1)
     for i in eachindex(ε_target)
         if uₓ_sk_grid[i] != u₀
             z_curr = γ₀ * u₀ / (γ_sf_grid[i] * uₓ_sk_grid[i])
-            ε_target[i] = energy_transfer_frac * (z_curr - 1) / (z_max - 1)
+            ε_target[i] = prefac * (z_curr - 1)
         end
     end
     return ε_target

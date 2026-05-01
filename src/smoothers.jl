@@ -56,7 +56,7 @@ function smooth_grid_par(
         F_px_upstream, F_energy_upstream, Γ₂, q_esc_cal_pₓ, q_esc_cal_energy,
         pxx_flux, energy_flux, uₓ_sk_grid, γ_sf_grid, btot_grid, utot_grid,
         γ_ef_grid, β_ef_grid, εB_grid,
-        n_ions::Integer, aa_ion, zz_ion, T₀_ion, n₀_ion,
+        aa_ion, T₀_ion, n₀_ion,
         rg₀, do_prof_fac_damp, prof_weight_fac,
         γ₀, u₀, β₀, γ₂, β₂, u₂,
         do_smoothing::Bool, smooth_mom_energy_fac,
