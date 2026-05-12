@@ -8,3 +8,7 @@ makedocs(;
     sitename = "MonteCarloScattering",
     plugins = [bib],
 )
+
+deploydocs(
+    repo = "github.com/abhro/MonteCarloScattering.jl.git",
+)
