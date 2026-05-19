@@ -50,8 +50,8 @@ function q_esc_calcs_nonrelativistic(n₀_ion, T₀_ion, m_ion, (u₀, β₀, γ
     ρ₀ = dot(n₀_ion, m_ion)         # mass density
 
     # Calculate upstream incoming energy flux   #assumecold
-    F_pₓ_upstream_fl     = ρ₀ * u₀^2 + P₀
-    F_energy_upstream_fl = ρ₀ * u₀^3 / 2 + 5//2 * P₀ * u₀
+    F_pₓ_upstream_fl = ρ₀ * u₀^2 + P₀
+    F_energy_upstream_fl = ρ₀ * u₀^3 / 2 + 5 // 2 * P₀ * u₀
 
     # Calculate far downstream density (Eq 8) and pressure (Eq 9)
     ρ₂ = ρ₀ * γ₀ * β₀ / (γ₂ * β₂)       # mass density
@@ -103,8 +103,8 @@ function q_esc_calcs_relativistic(n₀_ion, T₀_ion, m_ion, (u₀, β₀, γ₀
     ρ₀ = dot(n₀_ion, m_ion)         # mass density
 
     # Two terms to simplify the calculation of pressure₂.   #assumecold
-    F_pₓ_upstream_fl = γ₀^2 * β₀^2 * (ρ₀ * c^2 + 5//2 * P₀) + P₀
-    F_energy_upstream_fl = γ₀^2 * u₀ * (ρ₀ * c^2 + 5//2 * P₀)
+    F_pₓ_upstream_fl = γ₀^2 * β₀^2 * (ρ₀ * c^2 + 5 // 2 * P₀) + P₀
+    F_energy_upstream_fl = γ₀^2 * u₀ * (ρ₀ * c^2 + 5 // 2 * P₀)
     term_aux = γ₂^2 * (q_fac * β₂^2 - u₂)
 
     # Calculate far downstream density and pressure

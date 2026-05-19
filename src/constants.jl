@@ -27,6 +27,6 @@ export Tₜₕ, Mᵣₑₛ, Γᵣₑₛ, E₀_π⁰
 # and B instead of of β and U_B (I think). Not sure where the extra factor of c
 # and the electron mass comes from.
 "Factor related to radiative losses"
-const rad_loss_fac = 4//3 * c * σ_T / (c^3 * me^2 * 8π) |> s^2/g^2
+const rad_loss_fac = 4 // 3 * c * σ_T / (c^3 * me^2 * 8π) |> s^2 / g^2
 export rad_loss_fac
 end

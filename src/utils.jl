@@ -73,7 +73,7 @@ Get velocity β (in units of c) from Lorentz factor γ.
     mass::typeof(1.0g)
     charge::typeof(1.0Fr)
     temperature::typeof(1.0K)
-    number_density::typeof(1.0/cm^3)
+    number_density::typeof(1.0 / cm^3)
 end
 function Base.getproperty(s::Species, sym::Symbol)
     if sym == :m

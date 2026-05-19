@@ -159,6 +159,9 @@ function photon_IC(
     return
 end
 
+# Constant from Wien's displacement law
+const Wiens_b_ν = 5.879e10 * Hz / K
+
 """
 This subroutine uses the derivation of Jones (1968) to determine the inverse Compton emission
 from a given electron distribution upscattering a specified photon field.
@@ -215,76 +218,9 @@ function IC_emission_FCJ(
     #-------------------------------------------------------------------------
     # End constants section
 
-    # Set various quantities related to the photon field:
-    # - photon_temp_IC is the effective temperature of the field
-    # - energy_density_IC is the energy density of the field, RELATIVE to the CMB
-    # Note that if you are reading in the photon spectrum from a file (not an
-    # option at present) these settings are irrelevant
-    #----------------------------------------------------------------------------
-    if j3 == 1 # the CMB
-        local photon_temp_IC = T_CMB0 * (1 + redshift)
-        local energy_density_IC = 1.0
-    end
-
-    # Wien displacement law in freq (Hz) (Wikipedia)
-    freq_peak_Hz = 5.879e10 * photon_temp_IC
-
-    # More constants related to the photon field
-    n_freq = 60   # 100 maximum
-    freq_min = freq_peak_Hz / 30
-    freq_max = freq_peak_Hz * 20   ##*10
-    freq_min_log = log10(freq_min)
-    Δfreq = (log10(freq_max) - freq_min_log) / n_freq
-
-    ∑xnum_photons = 0.0
-    ∑energy_photons = 0.0
-    ∑photon_energy_density = 0.0
-
-    photon_energy_rm = Vector{Float64}(undef, na_photons)
-    xnum_photons_p_vol = Vector{Float64}(undef, na_photons)
-    # Now actually populate the photon distribution. If j3 = -1, we are reading
-    # in a distribution from a file that should be specified here. This
-    # functionality has not yet been enabled, though, so don't have j3 = -1!
-    if j3 == -1
-        #for i in 1:n_freq
-        #    # read in the variables photon_seed_energy and photon_seed_density from file,
-        #    # and then use those to set the five variables below
-        #
-        #    photon_energy_rm[i] = photon_seed_energy[i]*eV/(me * c^2)
-        #    xnum_photons_p_vol[i] = photon_seed_density[i]/photon_seed_energy[i]
-        #
-        #    ∑energy_photons += photon_seed_density[i]*eV # erg/cm³
-        #    ∑xnum_photons += xnum_photons_p_vol[i]
-        #    ∑photon_energy_density += photon_seed_density[i]*eV #erg/cm³
-        #end
-    else
-        # Below are constants for spectral energy density of CMB in units of
-        # energy per volume per Hz taken from Wikipedia
-        con_f1 = 8π * h / (c^3)
-        con_f2 = h / (kB * photon_temp_IC)
-
-        for j_in in 1:n_freq     # loop over incoming photon energy density
-            f1 = exp10(freq_min_log + (j_in - 1) * Δfreq) # = freq_min (freq_max/freq_min)^[(j-1)/n_freq]
-            f2 = exp10(freq_min_log +  j_in      * Δfreq) # = freq_min (freq_max/freq_min)^[ j   /n_freq]
-            f_avg = √(f1 * f2) # = freq_min ⋅ (freq_max/freq_min)*[(2j-1)/2n_freq]
-            exp_fac = exp(min(con_f2 * f_avg, 200.0))
-
-            # Below is incoming photon energy density derived from CMB energy density
-            photon_energy_density = (f2 - f1) * con_f1 * f_avg^3 / (exp_fac - 1)
-            ∑photon_energy_density += photon_energy_density
-
-            photon_energy_erg = h * f_avg      # incoming photon energy (erg)
-            photon_energy_rm[j_in] = photon_energy_erg / (me * c^2)
-
-            # Below is number density of incoming photons [/cm³] in frequency bin
-            xnum_photons_p_vol[j_in] = photon_energy_density / photon_energy_erg
-            ∑xnum_photons += xnum_photons_p_vol[j_in]
-            ∑energy_photons += photon_energy_erg * xnum_photons_p_vol[j_in]
-        end
-    end
-    #-------------------------------------------------------------------------
-    # End photon field section
-
+    Eᵧ_rm = Vector{Float64}(undef, na_photons)
+    Nᵧ_p_vol = Vector{Float64}(undef, na_photons)
+    photon_field!(Eᵧ_rm, Nᵧ_p_vol, j3, redshift)
 
     # Now loop over momenta (i.e. energy) of electrons and calculate the inverse Compton emission.
     #-------------------------------------------------------------------------
@@ -305,13 +241,13 @@ function IC_emission_FCJ(
         # Fill d²N_o_dtdα as defined by equation (9) in the process.
         # Before collision, α₁ is incoming photon energy in units of the electron rest mass.
         # NOTE: right now, this loop is for a *single* electron. The normalization will be handled later.
-        for j_in in 1:n_freq
+        for j in 1:n_ν
 
             # for Eq.(9), Jones, PhysRev. 1968, V.167, p.1159
             #   d²N/dtdα ≈ 2πr₀²c/α₁γ² [2q″ ln q″ + (1+2q″)(1−q″) + ½(1-q″)(4α₁γq″)²/(1+4α₁γq″)]
             # where q″ = α/4α₁γ²(1−α/γ) and 1/4γ² < q″ ≤ 1
-            α₁ = photon_energy_rm[j_in]
-            norm_fac = xnum_photons_p_vol[j_in] * 2π * r₀^2 * c / (α₁ * γ^2)
+            α₁ = Eᵧ_rm[j]
+            norm_fac = Nᵧ_p_vol[j] * 2π * r₀^2 * c / (α₁ * γ^2)
 
             # Loop over outgoing photons. After collision, "α_out" is α in Eq. (9):
             # outgoing photon energy in units of electron rest mass
@@ -372,4 +308,76 @@ function IC_emission_FCJ(
     end
 
     return energy_γ, ic_emis
+end
+
+function photon_field!(Eᵧ_rm, Nᵧ_p_vol, j3, redshift)
+
+    # Set various quantities related to the photon field:
+    # - photon_temp_IC is the effective temperature of the field
+    # - energy_density_IC is the energy density of the field, RELATIVE to the CMB
+    # Note that if you are reading in the photon spectrum from a file (not an
+    # option at present) these settings are irrelevant
+    #----------------------------------------------------------------------------
+    #if j3 == 1 # the CMB
+    photon_temp_IC = T_CMB0 * (1 + redshift)
+    energy_density_IC = 1.0
+    #end
+
+    # Wien displacement law in ν (Hz) (Wikipedia)
+    ν_peak = Wiens_b_ν * photon_temp_IC
+
+    # More constants related to the photon field
+    n_ν = 60   # 100 maximum
+    ν_min = ν_peak / 30
+    ν_max = ν_peak * 20   ##*10
+    log_ν_min = log10(ν_min / Hz)
+    Δlogν = (log10(ν_max / Hz) - log_ν_min) / n_ν
+
+    ∑Nᵧ = 0.0 # Number of photons (float) found by integrating
+    ∑Eᵧ = 0.0
+    ∑photon_energy_density = 0.0
+
+    # Now actually populate the photon distribution. If j3 = -1, we are reading
+    # in a distribution from a file that should be specified here. This
+    # functionality has not yet been enabled, though, so don't have j3 = -1!
+    if j3 == -1
+        #for i in 1:n_ν
+        #    # read in the variables photon_seed_energy and photon_seed_density from file,
+        #    # and then use those to set the five variables below
+        #
+        #    Eᵧ_rm[i] = photon_seed_energy[i]*eV/(me * c^2)
+        #    Nᵧ_p_vol[i] = photon_seed_density[i]/photon_seed_energy[i]
+        #
+        #    ∑Eᵧ += photon_seed_density[i]*eV # erg/cm³
+        #    ∑Nᵧ += Nᵧ_p_vol[i]
+        #    ∑photon_energy_density += photon_seed_density[i]*eV #erg/cm³
+        #end
+    else
+        # Below are constants for spectral energy density of CMB in units of
+        # energy per volume per Hz taken from Wikipedia
+        con_f1 = 8π * h / c^3
+        con_f2 = h / (kB * photon_temp_IC)
+
+        for j in 1:n_ν     # loop over incoming photon energy density
+            log_ν1 = log_ν_min + (j - 1) * Δlogν
+            ν1 = exp10(log_ν1) * Hz # = ν_min (ν_max/ν_min)^[(j-1)/n_ν]
+            ν2 = exp10(log_ν1 + Δlogν) * Hz # = ν_min (ν_max/ν_min)^[ j   /n_ν]
+            ν_avg = √(ν1 * ν2) # = ν_min ⋅ (ν_max/ν_min)*[(2j-1)/2n_ν]
+            exp_fac = exp(min(con_f2 * ν_avg, 200.0))
+
+            # Below is incoming photon energy density derived from CMB energy density
+            photon_energy_density = (ν2 - ν1) * con_f1 * ν_avg^3 / (exp_fac - 1)
+            ∑photon_energy_density += photon_energy_density
+
+            photon_energy_erg = h * ν_avg      # incoming photon energy (erg)
+            Eᵧ_rm[j] = photon_energy_erg / (me * c^2)
+
+            # Below is number density of incoming photons [/cm³] in frequency bin
+            Nᵧ_p_vol[j] = photon_energy_density / photon_energy_erg
+            ∑Nᵧ += Nᵧ_p_vol[j]
+            ∑Eᵧ += photon_energy_erg * Nᵧ_p_vol[j]
+        end
+    end
+
+    return Eᵧ_rm, Nᵧ_p_vol
 end

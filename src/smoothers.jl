@@ -166,7 +166,7 @@ function smooth_grid_par(
 
         pxx_EM = γβ^2 / 8π * B^2 + γ² / 8π * (B_z^2 - B_x^2) - (γ² - γᵤ_sf) / 2π * (β_uz / β_uₓ) * B_x * B_z
 
-        energy_EM = γ² / 4π * β_uₓ*c * B_z^2 - (2γ² - γᵤ_sf) / 4π * β_uz*c * B_x * B_z
+        energy_EM = γ² / 4π * β_uₓ * c * B_z^2 - (2γ² - γᵤ_sf) / 4π * β_uz * c * B_x * B_z
 
         # Total momentum/energy fluxes, including electrons (if needed) and EM.
         # Also normalized against far upstream values and in log space for plotting.
@@ -203,8 +203,8 @@ function smooth_grid_par(
 
         # These pressures can become negative if a sharp shock with high compression ratio
         # results in a great deal of escaping flux. Place a floor on them for plotting purposes
-        pressure_pₓ = max(pressure_pₓ, 1.0e-99dyn/cm^2)
-        pressure_energy = max(pressure_energy, 1.0e-99dyn/cm^2)
+        pressure_pₓ = max(pressure_pₓ, 1.0e-99dyn / cm^2)
+        pressure_energy = max(pressure_energy, 1.0e-99dyn / cm^2)
 
         # Use the tabulated pressures from the thermal crossings and the PSD to determine
         # two quantities: the total pressure and the degree of anisotropy. Note that
@@ -250,20 +250,20 @@ function smooth_grid_par(
                 uz_norm,                        # 13
                 log10(uz_norm),                 # 14
                 B,                              # 15
-                log10(B/G),                     # 16
+                log10(B / G),                   # 16
                 θ_deg,                          # 17
                 γᵤ_sf,                          # 18
                 1 / density_ratio,              # 19
                 density_ratio,                  # 20
-                log10(pressure_pₓ/Ba),          # 21
-                log10(pressure_energy/Ba),      # 22
-                log10(P_psd_par[i]/Ba),         # 23
-                log10(P_psd_perp[i]/Ba),        # 24
-                log10(pressure_tot_MC[i]/Ba),      # 25
+                log10(pressure_pₓ / Ba),        # 21
+                log10(pressure_energy / Ba),    # 22
+                log10(P_psd_par[i] / Ba),       # 23
+                log10(P_psd_perp[i] / Ba),      # 24
+                log10(pressure_tot_MC[i] / Ba), # 25
                 pressure_aniso,                 # 26
-                log10(pressure_pₓ_tp/Ba),       # 27
-                log10(pressure_energy_tp/Ba),   # 28
-                log10(P₀/Ba),                   # 29
+                log10(pressure_pₓ_tp / Ba),     # 27
+                log10(pressure_energy_tp / Ba), # 28
+                log10(P₀ / Ba),                 # 29
                 log10(1 - q_esc_cal_pₓ),        # 30  Remaining fluxes for plot:
                 log10(1 - q_esc_cal_energy),    # 31  momentum and energy
                 εB_grid[i],                     # 32

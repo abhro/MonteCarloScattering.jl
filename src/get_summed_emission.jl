@@ -68,15 +68,15 @@ function get_summed_emission(
     # Summed spectra written if multiple spectra present
 
 
-    log_energy_MeV_in     = zeros(0:na_photons)
-    log_energy_MeV_pion   = zeros(0:na_photons)
-    log_energy_MeV_synch  = zeros(0:na_photons)
-    log_energy_MeV_IC     = zeros(0:na_photons)
-    energy_mid        = zeros(0:na_photons)
-    photon_flux_in    = Matrix{Float64}(undef, (na_photons, n_grid))
-    photon_flux_pion  = Matrix{Float64}(undef, (na_photons, n_grid))
+    log_energy_MeV_in = zeros(0:na_photons)
+    log_energy_MeV_pion = zeros(0:na_photons)
+    log_energy_MeV_synch = zeros(0:na_photons)
+    log_energy_MeV_IC = zeros(0:na_photons)
+    energy_mid = zeros(0:na_photons)
+    photon_flux_in = Matrix{Float64}(undef, (na_photons, n_grid))
+    photon_flux_pion = Matrix{Float64}(undef, (na_photons, n_grid))
     photon_flux_synch = Matrix{Float64}(undef, (na_photons, n_grid))
-    photon_flux_IC    = Matrix{Float64}(undef, (na_photons, n_grid))
+    photon_flux_IC = Matrix{Float64}(undef, (na_photons, n_grid))
 
     # Determine number of emission types based on whether electrons were used during this run.
     kmax = (count(aa_ion .< 1) < 1) ? 1 : 3

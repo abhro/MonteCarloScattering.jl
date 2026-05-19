@@ -10,15 +10,15 @@ export get_redshift
 
 
 # Parameters; cosmology values pulled from Planck 2013 results
-const H0    = 67.8            # Hubble constant, km/s Mpc^-1
-const h     = H0/100          # dimensionless Hubble constant
-const Ω_r   = 0.4165 / H0^2   # Fraction of density in neutrinos?
-const Ω_vac = 0.683 - 0.5*Ω_r # Fraction of density in dark energy and in matter
-const Ω_m   = 0.317 - 0.5*Ω_r
-const Ω_k   = 0.0             # Assume flat Universe, i.e. Ω_k = 1 - ∑(Ω_*)
-const c     = 2.99792458e5    # Speed of light, km/s
-const d_H   = c / H0          # Hubble distance, Mpc
-const t_H   = 9.778e11 / H0   # Hubble time, years (9.778e11 = 1 s⋅Mpc/yr⋅km)
+const H0 = 67.8                 # Hubble constant, km/s Mpc^-1
+const h = H0 / 100              # dimensionless Hubble constant
+const Ω_r = 0.4165 / H0^2       # Fraction of density in neutrinos?
+const Ω_vac = 0.683 - 0.5 * Ω_r # Fraction of density in dark energy and in matter
+const Ω_m = 0.317 - 0.5 * Ω_r
+const Ω_k = 0.0                 # Assume flat Universe, i.e. Ω_k = 1 - ∑(Ω_*)
+const c = 2.99792458e5          # Speed of light, km/s
+const d_H = c / H0              # Hubble distance, Mpc
+const t_H = 9.778e11 / H0       # Hubble time, years (9.778e11 = 1 s⋅Mpc/yr⋅km)
 
 const cosmo = cosmology(h = h, OmegaK = Ω_k, OmegaR = Ω_r, OmegaM = Ω_m)
 

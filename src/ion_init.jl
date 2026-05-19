@@ -41,12 +41,12 @@ function assign_particle_properties_to_population!(
         slice
     )
 
-    @inbounds downstream_new[slice]  .= false
-    @inbounds inj_new[slice]         .= false
-    @inbounds xn_per_new[slice]      .= xn_per_fine
-    @inbounds prp_x_cm_new[slice]    .= x_grid_stop
+    @inbounds downstream_new[slice] .= false
+    @inbounds inj_new[slice] .= false
+    @inbounds xn_per_new[slice] .= xn_per_fine
+    @inbounds prp_x_cm_new[slice] .= x_grid_stop
     @inbounds acctime_sec_new[slice] .= 0.0s
-    @inbounds tcut_new[slice]        .= 1
+    @inbounds tcut_new[slice] .= 1
 
     @inbounds φ_rad_new[slice] .= 2π * Random.rand(rng, length(slice))
     return
@@ -61,7 +61,7 @@ function get_pmax_cutoff(Emax, Emax_per_aa, pmax, aa)
     elseif Emax_per_aa > 0keV
         γ = 1 + Emax_per_aa / E₀
         pmax_cutoff = m * c * √(γ^2 - 1)
-    elseif pmax > 0g*cm/s
+    elseif pmax > 0g * cm / s
         pmax_cutoff = pmax
     else
         # Something has gone very wrong.

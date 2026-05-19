@@ -154,7 +154,7 @@ function all_flux!(
     #$omp critical
     if inj && x_PT_cm < feb_upstream && x_PT_old ≥ feb_upstream
         energy_esc_upstream += energy_flux_add * γ₀ * u₀
-        pₓ_esc_upstream     -= p_sk.x * weight * γ₀ * u₀
+        pₓ_esc_upstream -= p_sk.x * weight * γ₀ * u₀
     end
     #$omp end critical
 
@@ -227,13 +227,13 @@ function F_stream!(
         # Update fluxes; note the minus signs in sign_fac force pxx_flux to increase
         # (because particle is moving upstream and p_sk.x < 0) and force energy_flux to decrease
         #@debug "About to update" sign_fac p_sk weight γ₀ u₀ energy_flux_add pxx_flux pxz_flux energy_flux
-        pxx_flux[i]    += sign_fac *  p_sk.x *weight * γ₀*u₀ / cm^3 # FIXME why cm^3 here?
-        pxz_flux[i]    +=         abs(p_sk.z)*weight * γ₀*u₀ / cm^3 # FIXME why cm^3 here?
-        energy_flux[i] += sign_fac * energy_flux_add * γ₀*u₀ / cm^3
+        pxx_flux[i] += sign_fac * p_sk.x * weight * γ₀ * u₀ / cm^3 # FIXME why cm^3 here?
+        pxz_flux[i] += abs(p_sk.z) * weight * γ₀ * u₀ / cm^3 # FIXME why cm^3 here?
+        energy_flux[i] += sign_fac * energy_flux_add * γ₀ * u₀ / cm^3
 
         # Update PSD, or add to list of tracked thermal particles
         if inj
-            psd[i_pt, jθ, i] += weight * ustrip(s/cm, abs_inv_vx_sk) # FIXME dimensionality
+            psd[i_pt, jθ, i] += weight * ustrip(s / cm, abs_inv_vx_sk) # FIXME dimensionality
         else
             # Particle is a thermal particle. Increment crossing counter and attempt to add
             # entry to the various arrays. If arrays already full, write out crossing data to

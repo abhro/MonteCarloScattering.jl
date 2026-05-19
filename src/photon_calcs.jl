@@ -52,12 +52,12 @@ function photon_calcs(
     n_shells = num_upstream_shells + num_downstream_shells
 
     num_hist_bins = psd_max
-    p_pf_therm    = zeros(0:num_hist_bins)
+    p_pf_therm = zeros(0:num_hist_bins)
     dNdp_pf_therm = zeros(0:num_hist_bins)
-    p_pf_cr       = zeros(0:(num_psd_mom_bins + 1))
-    dNdp_pf_cr    = zeros(0:(num_psd_mom_bins + 1))
-    cos_bounds    = zeros(0:(num_psd_θ_bins + 1))
-    d²Ndp_slice   = zeros(0:psd_max, 0:psd_max)
+    p_pf_cr = zeros(0:(num_psd_mom_bins + 1))
+    dNdp_pf_cr = zeros(0:(num_psd_mom_bins + 1))
+    cos_bounds = zeros(0:(num_psd_θ_bins + 1))
+    d²Ndp_slice = zeros(0:psd_max, 0:psd_max)
 
     pred = >(1.0e-99)   # predicate function for meeting the emission threshold
 

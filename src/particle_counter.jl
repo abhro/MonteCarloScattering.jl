@@ -291,7 +291,7 @@ function get_dNdp_cr(
 
 
     # Finally, convert dNdp_cr into true dN/dp by dividing by dp for each cell
-    for m in 1:3, k in 1:n_grid, l in axes(dNdp_cr, 1)[begin:end-1]
+    for m in 1:3, k in 1:n_grid, l in axes(dNdp_cr, 1)[begin:(end - 1)]
 
         # Skip empty cells in PSD
         if dNdp_cr[l, k, m] < 1.0e-66
@@ -618,8 +618,8 @@ Get the cosine of the centers of the θ bins of the phase space distribution
 function cos_centers(num_psd_θ_bins, psd_lin_cos_bins, psd_θ_bounds)
     if length(psd_θ_bounds) != num_psd_θ_bins + 2
         error(
-          "Incompatible values for num_psd_θ_bins=$num_psd_θ_bins and ",
-          "psd_θ_bounds (length=$(length(psd_θ_bounds))) passed"
+            "Incompatible values for num_psd_θ_bins=$num_psd_θ_bins and ",
+            "psd_θ_bounds (length=$(length(psd_θ_bounds))) passed"
         )
     end
     cos_center = zeros(axes(psd_θ_bounds))
@@ -1076,16 +1076,16 @@ function get_dNdp_therm(
         # grid zone, all positions in the arrays should be filled with correct
         # data. However, initializing them to non-physical values serves as an
         # additional check against error.
-        ptot_pf = fill(-1.0 * g * cm/s, num_crossings[i])
+        ptot_pf = fill(-1.0 * g * cm / s, num_crossings[i])
         cθ_pf = fill(-2.0, num_crossings[i])
-        ptot_ef = fill(-1.0 * g * cm/s, num_crossings[i])
+        ptot_ef = fill(-1.0 * g * cm / s, num_crossings[i])
         cθ_ef = fill(-2.0, num_crossings[i])
 
         # Set up min and max values for total momentum and cos(θ) in the shock frame
         cθ_sk_min = 2.0
         cθ_sk_max = -2.0
-        ptot_sk_min = 1.0e99 * g * cm/s
-        ptot_sk_max = -1.0e99 * g * cm/s
+        ptot_sk_min = 1.0e99 * g * cm / s
+        ptot_sk_max = -1.0e99 * g * cm / s
 
         # Convert information about shock frame values into plasma and ISM frames. Even
         # though only total momentum is needed for calculating dN/dp, histogram of pitch

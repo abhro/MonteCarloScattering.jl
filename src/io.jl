@@ -47,7 +47,7 @@ function tcut_print(
     j_plot = 0
     weights_table = (;
         i_iter = i_iter,
-        tcuts_log = log10.(tcuts/s),                    # 1     tcut times
+        tcuts_log = log10.(tcuts / s),                  # 1     tcut times
         weight_coupled_log = log10.(weight_coupled),    # 2-?   weights by species
     )
 

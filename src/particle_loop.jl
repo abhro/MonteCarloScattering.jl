@@ -33,10 +33,10 @@ function particle_loop(
     # set RNG seed based on current iteration/ion/pcut/particle number
     n_pcuts = length(pcuts)
     iseed_mod = (
-         (i_iter - 1) * n_pts_max * n_pcuts * n_ions
-        + (i_ion - 1) * n_pts_max * n_pcuts
-        + (i_pcut - 1) * n_pts_max
-        + i_prt
+        (i_iter - 1) * n_pts_max * n_pcuts * n_ions
+            + (i_ion - 1) * n_pts_max * n_pcuts
+            + (i_pcut - 1) * n_pts_max
+            + i_prt
     )
     rng = Random.Xoshiro(iseed_mod)
 
@@ -45,18 +45,18 @@ function particle_loop(
 
 
     # Get the properties of the particle we're about to treat
-    weight       = weight_new[i_prt]
-    ptot_pf      = ptot_pf_new[i_prt]
-    pb_pf        = pb_pf_new[i_prt]
-    i_grid       = grid_new[i_prt]
-    i_grid_old   = i_grid  # Needed for energy transfer
+    weight = weight_new[i_prt]
+    ptot_pf = ptot_pf_new[i_prt]
+    pb_pf = pb_pf_new[i_prt]
+    i_grid = grid_new[i_prt]
+    i_grid_old = i_grid  # Needed for energy transfer
     l_downstream = downstream_new[i_prt]
-    inj          = inj_new[i_prt]
-    xn_per       = xn_per_new[i_prt]
-    prp_x_cm     = prp_x_cm_new[i_prt]
-    acctime_sec  = acctime_sec_new[i_prt]
-    φ_rad        = φ_rad_new[i_prt]
-    tcut_curr    = tcut_new[i_prt]
+    inj = inj_new[i_prt]
+    xn_per = xn_per_new[i_prt]
+    prp_x_cm = prp_x_cm_new[i_prt]
+    acctime_sec = acctime_sec_new[i_prt]
+    φ_rad = φ_rad_new[i_prt]
+    tcut_curr = tcut_new[i_prt]
 
     r_PT_cm = SVector{3, LengthCGS}(
         x_PT_cm_new[i_prt], # x
@@ -311,10 +311,10 @@ function particle_loop(
                 ptot_pf = radiation_loss(bmag^2 + B_CMB_loc^2, ptot_pf, t_step)
 
                 # Catch electrons that have somehow lost all their energy in a single time step
-                if ptot_pf ≤ 0g*cm/s
-                    ptot_pf = 1.0e-99g*cm/s
-                    pb_pf = 1.0e-99g*cm/s
-                    p_perp_b_pf = 1.0e-99g*cm/s
+                if ptot_pf ≤ 0g * cm / s
+                    ptot_pf = 1.0e-99g * cm / s
+                    pb_pf = 1.0e-99g * cm / s
+                    p_perp_b_pf = 1.0e-99g * cm / s
                     γ_pf = 1
                     i_reason = 4
                     keep_looping = false
@@ -362,18 +362,18 @@ function particle_loop(
                     #@debug("Removing ions at splitting momentum", pcuts[i_pcut], i_pcut, ptot_pf)
                     l_save[i_prt] = true
 
-                    weight_saved[i_prt]      = weight
-                    ptot_pf_saved[i_prt]     = ptot_pf
-                    pb_pf_saved[i_prt]       = pb_pf
-                    x_PT_cm_saved[i_prt]     = r_PT_cm.x
-                    grid_saved[i_prt]        = i_grid
-                    downstream_saved[i_prt]  = l_downstream
-                    inj_saved[i_prt]         = inj
-                    xn_per_saved[i_prt]      = xn_per
-                    prp_x_cm_saved[i_prt]    = r_PT_cm.x < prp_x_cm ? prp_x_cm : r_PT_cm.x * 1.1cm # Ensure particle is within PRP
+                    weight_saved[i_prt] = weight
+                    ptot_pf_saved[i_prt] = ptot_pf
+                    pb_pf_saved[i_prt] = pb_pf
+                    x_PT_cm_saved[i_prt] = r_PT_cm.x
+                    grid_saved[i_prt] = i_grid
+                    downstream_saved[i_prt] = l_downstream
+                    inj_saved[i_prt] = inj
+                    xn_per_saved[i_prt] = xn_per
+                    prp_x_cm_saved[i_prt] = r_PT_cm.x < prp_x_cm ? prp_x_cm : r_PT_cm.x * 1.1cm # Ensure particle is within PRP
                     acctime_sec_saved[i_prt] = acctime_sec
-                    φ_rad_saved[i_prt]       = φ_rad
-                    tcut_saved[i_prt]        = tcut_curr
+                    φ_rad_saved[i_prt] = φ_rad
+                    tcut_saved[i_prt] = tcut_curr
 
                     keep_looping = false
                     continue

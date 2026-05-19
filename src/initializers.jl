@@ -101,7 +101,7 @@ function calc_rRH_nonrelativistic(P₀, ρ₀, β₀::Real)
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal
     # gas, to calculate the far upstream sound speed and Mach number   #assumecold
-    Γ_sph = 5//3
+    Γ_sph = 5 // 3
     cₛ = √(Γ_sph * P₀ / ρ₀)
     M_Z = β₀ * Unitful.c / cₛ |> NoUnits
 
@@ -111,7 +111,7 @@ function calc_rRH_nonrelativistic(P₀, ρ₀, β₀::Real)
     r_RH = 8 / (2 + 6 / M_Z^2)
 
     # In non-relativistic case, downstream adiabatic index is pegged to 5/3
-    Γ₂_RH = 5//3
+    Γ₂_RH = 5 // 3
 
     return r_RH, Γ₂_RH
 end
@@ -151,8 +151,9 @@ function calc_rRH_relativistic(species, ρ₀, P₀, β₀::Real, γ₀::Real)
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal gas,
     # to calculate the far upstream enthalpy      #assumecold
-    Γ_sph = 5//3
-    w₀ = ρ₀ * c^2 + Γ_sph/(Γ_sph-1) * P₀
+    Γ_sph = 5 // 3
+    Ξ_sph = Γ_sph / (Γ_sph - 1)
+    w₀ = ρ₀ * c^2 + Ξ_sph * P₀
 
     # Calculate the far upstream momentum flux
     upstream_mom_flux = γ₀^2 * w₀ * β₀^2 + P₀
@@ -346,9 +347,9 @@ function set_upstream_photon_shells!(
             # In the general case, note that x_region_start should be the same as
             # the previous region's x_region_end. This can be checked with print
             # or write statements at runtime.
-            x_region_start = exp10(-1 + x_section_width * (i -   1) )
-            x_region_end   = exp10(-1 + x_section_width *  i        )
-            x_region_mid   = exp10(-1 + x_section_width * (i - 1/2) )
+            x_region_start = exp10(-1 + x_section_width * (i - 1))
+            x_region_end = exp10(-1 + x_section_width * i)
+            x_region_mid = exp10(-1 + x_section_width * (i - 1 / 2))
         end
 
         # Update the arrays with this information, remembering that the eventual array will
@@ -464,7 +465,7 @@ function setup_grid(x_grid_start_rg::Float64, x_grid_stop_rg::Float64, use_prp::
     # Downstream from there, more log-spaced zones.
     n_log_downstream = 16
     x_end_man = x_grid_rg[end]
-    Δlogx = (log10(x_grid_stop/rg₀) - log10(x_end_man)) / n_log_downstream
+    Δlogx = (log10(x_grid_stop / rg₀) - log10(x_end_man)) / n_log_downstream
 
     log_x_grid_downstream = range(start = log10(x_end_man), step = Δlogx, length = n_log_downstream)
     append!(x_grid_rg, exp10.(log_x_grid_downstream))
@@ -515,12 +516,12 @@ function upstream_fluxes(n₀_ion, T₀_ion, m_ion, B₀::BFieldCGS, θ_B₀::Fl
     # Note that this INCLUDES the mass-energy density, which is typically omitted in
     # nonrelativistic calculations
     P₀ = dot(n₀_ion, T₀_ion) * kB |> dyn / cm^2 # pressure
-    ρ₀ = dot(n₀_ion, m_ion)       |> g / cm^3   # mass density
+    ρ₀ = dot(n₀_ion, m_ion) |> g / cm^3   # mass density
     @debug("Calculated params", P₀, ρ₀)
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal gas,
     # to calculate the far upstream internal energy             #assumecold
-    Γ_sph = 5//3
+    Γ_sph = 5 // 3
     # internal energy density
     e₀ = ρ₀ * c^2 + 1 / (Γ_sph - 1) * P₀ |> erg / cm^3
 
@@ -603,8 +604,8 @@ function upstream_energy_flux(::Val{:classical}, u₀, β₀, ρ₀, P₀, B_z, 
     Ξ = Γ / (Γ - 1)
     return (
         ρ₀ * u₀^3 * (1 + 1.25 * β₀^2) / 2
-        + P₀ * u₀ * Ξ * (1 + β₀^2)
-        + u₀ * B_z^2 / 4π
+            + P₀ * u₀ * Ξ * (1 + β₀^2)
+            + u₀ * B_z^2 / 4π
     )
 end
 function upstream_energy_flux(::Val{:relativistic}, u₀, β₀, γ₀, e₀, ρ₀, P₀, B_z)
@@ -641,7 +642,7 @@ Calculates the sonic and Alfvén mach numbers for the shock.
 function upstream_machs(β₀, species, B₀)
 
     # Assume cold upstream plasma, so that the adiabatic index is 5/3 identically   #assumecold
-    Γ = 5//3
+    Γ = 5 // 3
     n₀ = number_density.(species)
     P₀ = dot(n₀, temperature.(species)) * kB  # pressure
     ρ₀ = dot(n₀, mass.(species))              # mass density
@@ -723,7 +724,7 @@ where ``u_B = B^2/4π`` is the magnetic field energy density,
 ``P/(Γ-1)`` is the thermal component (internal kinetic energy).
 """
 function alfven_speed(::Val{:relativistic}, ρ, B, P, Γ)
-    enthalpy = Γ/(Γ-1) * P + ρ * c^2
+    enthalpy = Γ / (Γ - 1) * P + ρ * c^2
     v_A = c / √(1 + 4π * enthalpy / B^2)
     return v_A
 end
@@ -1040,7 +1041,7 @@ function init_pop(
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal
     # gas, to calculate the far upstream internal energy   #assumecold
-    Γ_sph = 5//3
+    Γ_sph = 5 // 3
 
     temp_ratio = density_ratio^Γ_sph / density_ratio
 
@@ -1163,7 +1164,7 @@ function F_update!(
 
     # Assume an adiabatic index of 5/3, appropriate for non-relativistic ideal gas,
     # to calculate the far upstream pressure and internal energy   #assumecold
-    Γ_sph = 5//3
+    Γ_sph = 5 // 3
     Ξ_sph = Γ_sph / (Γ_sph - 1)
 
     # Calculate fluxes and update arrays; note that if fast push isn't enabled
@@ -1277,7 +1278,7 @@ function set_inj_dist(inj_weight::Bool, n_pts_inj::Int, inp_distr::Int, T_or_E, 
     kT = kB * T_or_E  # Working under assumption of thermal dist now
     # define energy over kT
     if (kT / E₀) < E_rel_pt # Does thermal energy go over relativistic cutoff?
-        E_range = @. p_range ^ 2 / (2m * kT)
+        E_range = @. p_range^2 / (2m * kT)
     else
         E_range = @. hypot(p_range * c, E₀) / kT
     end
@@ -1340,7 +1341,7 @@ up to arbitrary normalization.
 - `area_tot`
 """
 function calc_MB_area(p_range::AbstractRange, E_range::AbstractVector)
-    area_tot = 0.0g*cm/s
+    area_tot = 0.0g * cm / s
     Δp = step(p_range)
     for (i, p1) in enumerate(p_range[begin:(end - 1)])
         area_tot += calc_MB_area_single_bin(p1, p_range[i + 1], E_range[i], E_range[i + 1])
@@ -1366,8 +1367,8 @@ temperature T (the temperature is implicit in `E1` and `E2`).
 """
 function calc_MB_area_single_bin(p1, p2, E1, E2)
     # Start working in log space because of potentially huge exponents
-    log_f1 = 2 * log(p1 / (g*cm/s)) - E1
-    log_f2 = 2 * log(p2 / (g*cm/s)) - E2
+    log_f1 = 2 * log(p1 / (g * cm / s)) - E1
+    log_f2 = 2 * log(p2 / (g * cm / s)) - E2
     f1 = exp(log_f1)
     f2 = exp(log_f2)
     # Integrate using the trapezoid rule

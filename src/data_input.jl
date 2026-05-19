@@ -78,7 +78,7 @@ end
 
 function check_x_grid_limits(x_grid_start_rg, x_grid_stop_rg)
     x_grid_start_rg ≥ 0 && error("x_grid_limits: x_grid_start must be negative.")
-    x_grid_stop_rg  ≤ 0 && error("x_grid_limits: x_grid_stop must be positive.")
+    x_grid_stop_rg ≤ 0 && error("x_grid_limits: x_grid_stop must be positive.")
     return
 end
 

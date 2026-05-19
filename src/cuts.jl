@@ -44,18 +44,18 @@ function new_pcut(
 
     N = n_pts_use * i_mult
 
-    grid_new        = zeros(Int, N)
-    tcut_new        = zeros(Int, N)
-    downstream_new  = zeros(Bool, N)
-    inj_new         = zeros(Bool, N)
-    weight_new      = zeros(Float64, N)
-    ptot_pf_new     = zeros(MomentumCGS, N)
-    pb_pf_new       = zeros(MomentumCGS, N)
-    x_PT_cm_new     = zeros(LengthCGS, N)
-    xn_per_new      = zeros(Float64, N)
-    prp_x_cm_new    = zeros(LengthCGS, N)
+    grid_new = zeros(Int, N)
+    tcut_new = zeros(Int, N)
+    downstream_new = zeros(Bool, N)
+    inj_new = zeros(Bool, N)
+    weight_new = zeros(Float64, N)
+    ptot_pf_new = zeros(MomentumCGS, N)
+    pb_pf_new = zeros(MomentumCGS, N)
+    x_PT_cm_new = zeros(LengthCGS, N)
+    xn_per_new = zeros(Float64, N)
+    prp_x_cm_new = zeros(LengthCGS, N)
     acctime_sec_new = zeros(TimeCGS, N)
-    φ_rad_new       = zeros(Float64, N)
+    φ_rad_new = zeros(Float64, N)
 
     # Calculate effect on particle weights and the weighting factor of each
     # remaining particle in the simulation
@@ -74,18 +74,18 @@ function new_pcut(
 
             n_pts_new += 1
 
-            weight_new[n_pts_new]      = weight_saved[j] / i_mult
-            ptot_pf_new[n_pts_new]     = ptot_pf_saved[j]
-            pb_pf_new[n_pts_new]       = pb_pf_saved[j]
-            x_PT_cm_new[n_pts_new]     = x_PT_cm_saved[j]
-            grid_new[n_pts_new]        = grid_saved[j]
-            downstream_new[n_pts_new]  = downstream_saved[j]
-            inj_new[n_pts_new]         = inj_saved[j]
-            xn_per_new[n_pts_new]      = xn_per_saved[j]
-            prp_x_cm_new[n_pts_new]    = prp_x_cm_saved[j]
+            weight_new[n_pts_new] = weight_saved[j] / i_mult
+            ptot_pf_new[n_pts_new] = ptot_pf_saved[j]
+            pb_pf_new[n_pts_new] = pb_pf_saved[j]
+            x_PT_cm_new[n_pts_new] = x_PT_cm_saved[j]
+            grid_new[n_pts_new] = grid_saved[j]
+            downstream_new[n_pts_new] = downstream_saved[j]
+            inj_new[n_pts_new] = inj_saved[j]
+            xn_per_new[n_pts_new] = xn_per_saved[j]
+            prp_x_cm_new[n_pts_new] = prp_x_cm_saved[j]
             acctime_sec_new[n_pts_new] = acctime_sec_saved[j]
-            φ_rad_new[n_pts_new]       = φ_rad_saved[j]
-            tcut_new[n_pts_new]        = tcut_saved[j]
+            φ_rad_new[n_pts_new] = φ_rad_saved[j]
+            tcut_new[n_pts_new] = tcut_saved[j]
 
         end  # loop over splits
     end  # loop over saved particles

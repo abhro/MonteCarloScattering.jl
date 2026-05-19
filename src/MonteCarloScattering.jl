@@ -57,7 +57,7 @@ zero!(A::AbstractArray{T}) where {T} = fill!(A, zero(T))
 include("data_input.jl")
 include("main_loops.jl")
 
-function (@main)(args::Vector{String}=String[])
+function (@main)(args::Vector{String} = String[])
     # Start the wall clock for this run
     t_start = now()
 
@@ -220,7 +220,7 @@ function (@main)(args::Vector{String}=String[])
     psd_bins_per_dec_mom, psd_bins_per_dec_θ = let
         psd_bins = get(cfg_toml, "num-psd-bins-per-decade", [10, 10])
         psd_bins_per_dec_mom::Int = psd_bins[1]
-        psd_bins_per_dec_θ::Int   = psd_bins[2]
+        psd_bins_per_dec_θ::Int = psd_bins[2]
         if psd_bins_per_dec_mom ≤ 0 || psd_bins_per_dec_θ ≤ 0
             error("num-psd-bins-per-decade: both values must be positive.")
         end
@@ -312,26 +312,28 @@ function (@main)(args::Vector{String}=String[])
     # Now find the maximum momentum for the PSD (this will be adjusted due to SF->PF Lorentz
     # transformation). How to actually calculate it depends on the user-specified maximum energy
     # "maximum-energy"
-    psd_mom_max = MomentumCGS(let
-        rest_mass_max = maximum(mass.(species))
-        rest_energy_max = uconvert(erg, rest_mass_max, MassEnergy())
-        if Emax > 0keV
-            γ = (1 + Emax / rest_energy_max)::Float64
-            rest_mass_max * c * √(γ^2 - 1)
-        elseif Emax_per_aa > 0keV
-            γ = (1 + Emax_per_aa / (mp * c^2))::Float64
-            rest_mass_max * c * √(γ^2 - 1)
-        elseif pmax > 0g * cm / s
-            pmax
-        else
-            # Something has gone very wrong.
-            error("Max CR energy not set in data_input, so can not set PSD bins.")
+    psd_mom_max = MomentumCGS(
+        let
+            rest_mass_max = maximum(mass.(species))
+            rest_energy_max = uconvert(erg, rest_mass_max, MassEnergy())
+            if Emax > 0keV
+                γ = (1 + Emax / rest_energy_max)::Float64
+                rest_mass_max * c * √(γ^2 - 1)
+            elseif Emax_per_aa > 0keV
+                γ = (1 + Emax_per_aa / (mp * c^2))::Float64
+                rest_mass_max * c * √(γ^2 - 1)
+            elseif pmax > 0g * cm / s
+                pmax
+            else
+                # Something has gone very wrong.
+                error("Max CR energy not set in data_input, so can not set PSD bins.")
+            end
         end
-    end)
+    )
 
     # Adjust max momentum based on a SF->PF Lorentz transform
     psd_mom_max *= 2γ₀
-    num_psd_mom_bins, psd_mom_bounds = set_psd_mom_bins(psd_mom_min|>MomentumCGS, psd_mom_max|>MomentumCGS, psd_bins_per_dec_mom)
+    num_psd_mom_bins, psd_mom_bounds = set_psd_mom_bins(psd_mom_min |> MomentumCGS, psd_mom_max |> MomentumCGS, psd_bins_per_dec_mom)
     psd_mom_axis = axes(psd_mom_bounds, 1)
     #@debug("Setting PSD momentum parameters", psd_mom_max, num_psd_mom_bins, psd_mom_axis, psd_mom_bounds)
     Δcos, psd_θ_bounds = set_psd_angle_bins(psd_bins_per_dec_θ, psd_lin_cos_bins, psd_cos_fine, psd_θ_min)
@@ -478,9 +480,9 @@ function (@main)(args::Vector{String}=String[])
 
         # Must set far upstream and downstream limits manually, since they won't be read in from the file
         x_grid_rg[begin] = -1.0e30
-        x_grid_rg[end]   =  1.0e30
+        x_grid_rg[end] = 1.0e30
         x_grid_cm[begin] = -1.0e30 * rg₀
-        x_grid_cm[end]   =  1.0e30 * rg₀
+        x_grid_cm[end] = 1.0e30 * rg₀
     end
 
 
@@ -534,7 +536,7 @@ function (@main)(args::Vector{String}=String[])
     therm_grid = zeros(Int, na_cr)
     therm_pₓ_sk = zeros(MomentumCGS, na_cr)
     therm_ptot_sk = zeros(MomentumCGS, na_cr)
-    therm_weight = zeros(typeof(1.0s/cm), na_cr)
+    therm_weight = zeros(typeof(1.0s / cm), na_cr)
 
     # Spectra at x_spec locations
     spectra_sf = zeros(0:psd_max, n_grid)
@@ -570,29 +572,29 @@ function (@main)(args::Vector{String}=String[])
 
     # "module" pcut_vars
     l_save = zeros(Bool, na_particles) # Whether or not to save particle for next pcut
-    grid_saved        = zeros(Int, na_particles)
-    tcut_saved        = zeros(Int, na_particles)
-    downstream_saved  = zeros(Bool, na_particles)
-    inj_saved         = zeros(Bool, na_particles)
-    weight_saved      = zeros(na_particles)
-    ptot_pf_saved     = zeros(MomentumCGS, na_particles)
-    pb_pf_saved       = zeros(MomentumCGS, na_particles)
-    x_PT_cm_saved     = zeros(LengthCGS, na_particles)
-    xn_per_saved      = zeros(na_particles)
+    grid_saved = zeros(Int, na_particles)
+    tcut_saved = zeros(Int, na_particles)
+    downstream_saved = zeros(Bool, na_particles)
+    inj_saved = zeros(Bool, na_particles)
+    weight_saved = zeros(na_particles)
+    ptot_pf_saved = zeros(MomentumCGS, na_particles)
+    pb_pf_saved = zeros(MomentumCGS, na_particles)
+    x_PT_cm_saved = zeros(LengthCGS, na_particles)
+    xn_per_saved = zeros(na_particles)
     #zz_saved         = zeros(na_particles)
-    prp_x_cm_saved    = zeros(LengthCGS, na_particles)
+    prp_x_cm_saved = zeros(LengthCGS, na_particles)
     acctime_sec_saved = zeros(TimeCGS, na_particles)
-    φ_rad_saved       = zeros(na_particles)
+    φ_rad_saved = zeros(na_particles)
 
-    grid_new        = zeros(Int, na_particles)
-    tcut_new        = zeros(Int, na_particles)
-    downstream_new  = zeros(Bool, na_particles)
-    inj_new         = zeros(Bool, na_particles)
-    xn_per_new      = zeros(na_particles)
+    grid_new = zeros(Int, na_particles)
+    tcut_new = zeros(Int, na_particles)
+    downstream_new = zeros(Bool, na_particles)
+    inj_new = zeros(Bool, na_particles)
+    xn_per_new = zeros(na_particles)
     #zz_new         = zeros(na_particles)
-    prp_x_cm_new    = zeros(LengthCGS, na_particles)
+    prp_x_cm_new = zeros(LengthCGS, na_particles)
     acctime_sec_new = zeros(TimeCGS, na_particles)
-    φ_rad_new       = zeros(na_particles)
+    φ_rad_new = zeros(na_particles)
     # end "module" pcut_vars
 
     ε_target = zeros(n_grid)

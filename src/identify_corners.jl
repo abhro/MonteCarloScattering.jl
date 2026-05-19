@@ -31,11 +31,11 @@ function identify_corners(i, j, transform_corner_pt, transform_corner_cθ, ii_sk
 
     # Get momentum and cos(θ) values from the grid
     corner_pts = MomentumCGS[
-        transform_corner_pt[i, j],     transform_corner_pt[i + 1, j],
+        transform_corner_pt[i, j], transform_corner_pt[i + 1, j],
         transform_corner_pt[i, j + 1], transform_corner_pt[i + 1, j + 1],
     ]
     corner_cθs = Float64[
-        transform_corner_cθ[i, j],     transform_corner_cθ[i + 1, j],
+        transform_corner_cθ[i, j], transform_corner_cθ[i + 1, j],
         transform_corner_cθ[i, j + 1], transform_corner_cθ[i + 1, j + 1],
     ]
 

@@ -55,7 +55,7 @@ function prob_return(
 
         # Do nothing
 
-    # Particle has just crossed end of shock region as initially defined in input file
+        # Particle has just crossed end of shock region as initially defined in input file
     elseif x_PT_old < x_grid_stop ≤ x_PT_cm
 
         # The following simple equation is decidedly non-trivial, and comes from
@@ -84,7 +84,7 @@ function prob_return(
         prp_x_cm = x_PT_cm + 3L_diff
 
 
-    # Particle has crossed PRP, and we need more complex calculations to determine if it returns
+        # Particle has crossed PRP, and we need more complex calculations to determine if it returns
     elseif x_PT_old < prp_x_cm && x_PT_cm ≥ prp_x_cm
         vt_pf = ptot_pf / (γ_pf * aa * mp)
         prob_ret = ((vt_pf - u₂) / (vt_pf + u₂))^2
@@ -319,8 +319,8 @@ function retro_time(
 
         # Catch electrons that have somehow lost all their energy in a single time step,
         # and update the pitch angle of particles that remain
-        if ptot_pf ≤ 0g*cm/s
-            ptot_pf = 1.0e-99g*cm/s
+        if ptot_pf ≤ 0g * cm / s
+            ptot_pf = 1.0e-99g * cm / s
             γ_pf = 1.0
 
             lose_pt = true

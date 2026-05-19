@@ -57,19 +57,19 @@ function main_loops(
         # Minimally positive number is used to prevent errors when taking logarithms later
         # XXX uses the type-pirated version of Base.fill!
         fill!((pxx_flux, pxz_flux), 1.0e-99erg / cm^3)
-        fill!(energy_flux, 1.0e-99erg/(cm^2*s))
+        fill!(energy_flux, 1.0e-99erg / (cm^2 * s))
         fill!((P_psd_par, P_psd_perp), 1.0e-99Ba)
-        fill!(energy_density_psd, 1.0e-99erg/cm^3)
+        fill!(energy_density_psd, 1.0e-99erg / cm^3)
         fill!((esc_spectra_feb_upstream, esc_spectra_feb_downstream), 1.0e-99)
         fill!(weight_coupled, 1.0e-99)
 
 
         # Additionally, set/reset scalar quantities that will change
-        ∑P_downstream = 1.0e-99erg/cm^3         # total downstream pressure
-        ∑KEdensity_downstream = 1.0e-99erg/cm^3 # total downstream kinetic energy density
+        ∑P_downstream = 1.0e-99erg / cm^3         # total downstream pressure
+        ∑KEdensity_downstream = 1.0e-99erg / cm^3 # total downstream kinetic energy density
 
-        energy_esc_upstream = 1.0e-99*(erg/(cm^2*s))
-        pₓ_esc_upstream = 1.0e-99erg/cm^3
+        energy_esc_upstream = 1.0e-99 * (erg / (cm^2 * s))
+        pₓ_esc_upstream = 1.0e-99erg / cm^3
 
         # To facilitate energy transfer from ions to electrons, calculate here the target energy
         # density fraction for electrons at each grid zone, and zero out the pool of
@@ -202,7 +202,7 @@ function main_loops(
 
                 # For high-energy electrons in a strong magnetic field, need to know
                 # previous cutoff momentum for calculating new PRP downstream
-                pcut_prev = i_pcut > 1 ? pcuts[i_pcut - 1] : 0.0g*c
+                pcut_prev = i_pcut > 1 ? pcuts[i_pcut - 1] : 0.0g * c
 
                 #--------------------------------------------------------------------
                 #  Start of loop over particles

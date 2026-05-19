@@ -268,8 +268,8 @@ function thermo_calcs(
 
             # Update components of pressure, assuming isotropy; twice as many perpendicular
             # components as parallel (y & z vs x), thus the factor of 2 in the computation
-            P_psd_par[i]  += 1/3 * pressure_loc
-            P_psd_perp[i] += 2/3 * pressure_loc
+            P_psd_par[i] += 1 / 3 * pressure_loc
+            P_psd_perp[i] += 2 / 3 * pressure_loc
 
             # With only thermal particles at this grid location, the energy density is easy to determine
             # #assumecold
@@ -283,7 +283,7 @@ function thermo_calcs(
             # Case (2): no thermal particles, but some CRs detected.
             # Find pressure due to untracked thermal particles
             # #assumecold: using Γ = 5/3 in the pressure calculation
-            pressure_loc = ustrip(cm^-3, density_loc)^Γ * kB*T₀_ion[i_ion] / cm^3 # FIXME dimensionality
+            pressure_loc = ustrip(cm^-3, density_loc)^Γ * kB * T₀_ion[i_ion] / cm^3 # FIXME dimensionality
 
             if aa_ion[i_ion] > 1
                 density_electron *= zz_ion[i_ion]
@@ -292,8 +292,8 @@ function thermo_calcs(
             # Scale the contributions from the thermal particles by the fraction of the
             # zone's population they represent, and add that to the running total
             pressure_loc *= 1 - d²N_pop[i] / zone_pop[i]
-            P_psd_par[i]  += 1/3 * pressure_loc
-            P_psd_perp[i] += 2/3 * pressure_loc
+            P_psd_par[i] += 1 / 3 * pressure_loc
+            P_psd_perp[i] += 2 / 3 * pressure_loc
 
             # Set the normalization factor for the CRs that were tracked during the iteration;
             # summation over CRs will total d²N_pop[i], which makes up for the amount
@@ -303,7 +303,7 @@ function thermo_calcs(
             # Finally, calculate contribution of thermal particles to energy density.
             # This will be updated during the following loop to include CR contribution.
             # #assumecold
-            energy_density_psd[i] += 3//2 * pressure_loc
+            energy_density_psd[i] += 3 // 2 * pressure_loc
 
         else
 
@@ -322,7 +322,7 @@ function thermo_calcs(
         for k in 0:num_psd_mom_bins
 
             # These factors are the same in all cells of this ptot column
-            pressure_fac = 1//3 * pt_center[k] * vel_ptot[k] * norm_fac
+            pressure_fac = 1 // 3 * pt_center[k] * vel_ptot[k] * norm_fac
             γ_tmp = hypot(1, pt_center[k] / mc)
             energy_density_fac = (γ_tmp - 1) * E₀
 

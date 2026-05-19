@@ -120,7 +120,7 @@ function synch_emission!(
     end
     xxx_max_set = 30.0
 
-    ν = 5//3    # order of modified Bessel function
+    ν = 5 // 3    # order of modified Bessel function
 
     for i in 0:nbins
 
