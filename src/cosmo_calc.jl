@@ -31,8 +31,6 @@ E(z) = √(Ω_r * (1 + z)^4 + Ω_m * (1 + z)^3 + Ω_k * (1 + z)^2 + Ω_vac)
 D_C(z) = d_H * first(quadgk(t -> 1 / E(t), 0, z)) # Hogg (1999) Equation 15
 D_C′(z) = d_H / E(z)
 
-#using PolynomialRoots: roots
-
 """
     get_redshift(d_CM)
 
@@ -56,13 +54,11 @@ calling subroutine.
 function get_redshift(d_CM)
     d_CM ≤ 0 && throw(DomainError(d_CM, "d_CM must be positive"))
 
-    # Step through integral in z (Equation (15) in Hogg 1999) until next step exceeds d_CM
     if d_CM < 0.443
         z = 0.0
         #t_look = d_CM * 3.2616e6 # convert Mpc to years
         # d_CM less than critical value. Skip stepping through z integral and
         # integration to find t_look
-        code_stat = 2
         return z
     end
 
