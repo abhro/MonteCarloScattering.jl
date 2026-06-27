@@ -195,15 +195,11 @@ function (@main)(args::Vector{String} = String[])
 
     jet_sph_frac, jet_open_ang_deg = parse_jet_frac(get(cfg_toml, "JETFR", nothing)..., do_photons)
 
-    jet_dist_kpc = get(cfg_toml, "jet-distance", 1.0)::Float64
-    redshift = get(cfg_toml, "RDSHF", 0.0)::Float64
-    if jet_dist_kpc > 0 && redshift > 0
-        error("jet-distance: At most one of 'jet-distance' and 'RDSHF' may be non-zero.")
+    jet_dist = get(cfg_toml, "jet-distance", 1.0e-3)::Float64
+    redshift = get(cfg_toml, "redshift", 0.0)::Float64
+    if jet_dist > 0 && redshift > 0
+        error("jet-distance: At most one of 'jet-distance' and 'redshift' may be non-zero.")
     end
-
-    # The following option is not in the Fortran program
-    cosmo_var = cfg_toml["COSMO_VAR"]::Int
-    cosmo_var ≠ 1 && cosmo_var ≠ 2 && error("Invalid value for cosmo_var")
 
     energy_transfer_frac = float(get(cfg_toml, "energy-transfer-frac", 0.0))::Float64
     0 ≤ energy_transfer_frac ≤ 1 || error("energy_transfer_frac must be in [0,1]")
@@ -418,13 +414,10 @@ function (@main)(args::Vector{String} = String[])
     i_grid_feb = findfirst(>(feb_upstream), x_grid_cm) - 1
 
     # Because redshift will be needed to compute radiative losses (it affects both the energy
-    # and density of CMB photons), calculate it here. If redshift was provided during
-    # data_input, cosmo_calc will return distance instead
-    # Cosmo_calc expects distance in megaparsecs, so convert from value read in during data_input
-    if cosmo_var == 1
-        redshift = get_redshift(jet_dist_kpc * 1.0e-3)
-    else
-        jet_dist_kpc = ustrip(kpc, comoving_radial_dist(cosmo_calc.cosmo, redshift))
+    # and density of CMB photons), calculate it here.
+    # get_redshift expects distance in megaparsecs, so convert from value read in during data_input
+    if jet_dist > 0     # The input gave jet distance instead of redshift
+        redshift = get_redshift(jet_dist)
     end
 
 

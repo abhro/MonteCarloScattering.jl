@@ -194,11 +194,10 @@ jet-shock-radius = 4.38e-01
 # Fraction of sphere producing CRs, or jet open angle[deg]. 1st non-zero value used. Ignored if calculate-photon-production = false
 JETFR = [0.0, 5.0]
 
-# Distance from jet to observer[kpc]. Used to calculate photon fluxes & CMB parameters
-jet-distance = 1e6
-
-# Whether to use jet distance (= 1) or redshift (= 2) for cosmological calculations
-COSMO_VAR = 1
+# Distance from jet to observer[Mpc]. Used to calculate photon fluxes & CMB parameters
+jet-distance = 1e3
+# Redshift at jet. Used to calculate photon fluxes & CMB parameters.
+# redshift = 0
 
 # Fraction of ion energy transferred to electrons at 1st shock crossing. Must be [0,1]; 0 to ignore
 energy-transfer-frac = 0.1
