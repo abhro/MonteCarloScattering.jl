@@ -421,15 +421,10 @@ function (@main)(args::Vector{String} = String[])
     # and density of CMB photons), calculate it here. If redshift was provided during
     # data_input, cosmo_calc will return distance instead
     # Cosmo_calc expects distance in megaparsecs, so convert from value read in during data_input
-    jet_dist_Mpc = jet_dist_kpc * 1.0e-3
-    # TODO use cosmology.jl for this instead?
-    #jet_dist_Mpc, redshift = cosmo_calc_wrapper(jet_dist_Mpc, redshift)
     if cosmo_var == 1
-        # FIXME redshift is defined as a const in data_input.jl, so it should not be redefined here.
-        # figure out scoping issues
-        redshift = get_redshift(jet_dist_Mpc)
+        redshift = get_redshift(jet_dist_kpc * 1.0e-3)
     else
-        jet_dist_Mpc = ustrip(Mpc, comoving_radial_dist(cosmo_calc.cosmo, redshift))
+        jet_dist_kpc = ustrip(kpc, comoving_radial_dist(cosmo_calc.cosmo, redshift))
     end
 
 
