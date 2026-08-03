@@ -5,7 +5,7 @@ MonteCarloScattering = "a575b980-c6d2-47bc-bd50-9f2bfd7764b5"
 
 [compat]
 Aqua = "0.8"
-JET = "0.11"
+JET = "0.11, 0.12"
 
 [sources]
 MonteCarloScattering = {path = ".."}
