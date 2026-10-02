@@ -36,7 +36,7 @@ UnitfulEquivalences = "da9c4bc3-91c8-4f02-8a40-6b990d2a7e0c"
 UnitfulGaussian = "203183ea-d3ea-452b-8588-590cbae10604"
 
 [compat]
-CSV = "0.10.15"
+CSV = "1"
 Cosmology = "1"
 Dates = "1.11"
 Debugger = "0.7.16, 0.9"
